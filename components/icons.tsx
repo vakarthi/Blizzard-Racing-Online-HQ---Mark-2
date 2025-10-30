@@ -252,3 +252,7 @@ export const KeyIcon = (props: IconProps) => (
 export const FingerprintIcon = (props: IconProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 12a3 3 0 0 0-3 3"/><path d="M12 12h.01"/><path d="M15.07 14.88c.47-.23.97-.41 1.43-.68"/><path d="M16.93 12.12c.56-.56.93-1.32.93-2.12"/><path d="M12 8.1a4 4 0 0 0-4 4"/><path d="M8.93 9.12a6 6 0 0 1 8.14 8.14"/><path d="M4.93 19.07a10 10 0 0 1 14.14-14.14"/><path d="M2 12h.01"/><path d="M22 12h-.01"/><path d="M12 2v.01"/><path d="M12 22v-.01"/></svg>
 );
+
+export const InfoIcon = (props: IconProps) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+);

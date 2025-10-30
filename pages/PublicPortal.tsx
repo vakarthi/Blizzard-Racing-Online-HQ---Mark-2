@@ -1,8 +1,11 @@
 
-import React, { useState } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
-import { useData } from '../contexts/AppContext';
-import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon } from '../components/icons';
+import { useData, useAppState } from '../contexts/AppContext';
+import { MOCK_TEAM_INFO } from '../services/mockData';
+// Fix: Imported the missing `FlagIcon` component.
+import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon } from '../components/icons';
 
 // --- Components for Public Pages ---
 
@@ -21,7 +24,7 @@ const PublicHomePage: React.FC = () => {
                 <div className="relative z-10 p-4">
                     <h1 className="text-4xl md:text-6xl font-extrabold mb-4 animate-slide-in-up">BLIZZARD RACING</h1>
                     <p className="text-lg md:text-2xl mb-8 animate-slide-in-up [animation-delay:0.2s]">Welcome to the Official Hub of Blizzard Racing</p>
-                    <Link to="/public/sponsors" className="bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-full text-lg hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block animate-slide-in-up [animation-delay:0.4s]">
+                    <Link to="/sponsors" className="bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-full text-lg hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block animate-slide-in-up [animation-delay:0.4s]">
                         Become a Partner
                     </Link>
                 </div>
@@ -37,7 +40,7 @@ const PublicHomePage: React.FC = () => {
                             <div className="p-8">
                                 <h3 className="text-2xl font-bold text-brand-text mb-3">{latestNews.title}</h3>
                                 <p className="text-brand-text-secondary mb-6 line-clamp-3">{latestNews.content}</p>
-                                <Link to="/public/news" className="font-semibold text-brand-accent hover:text-brand-accent-hover">
+                                <Link to="/news" className="font-semibold text-brand-accent hover:text-brand-accent-hover">
                                     Read More &rarr;
                                 </Link>
                             </div>
@@ -48,6 +51,36 @@ const PublicHomePage: React.FC = () => {
         </div>
     );
 };
+
+const AboutPage: React.FC = () => {
+    return (
+        <div className="container mx-auto px-6 py-12 animate-fade-in">
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">About Blizzard Racing</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">Learn about our mission, our history, and the competition that drives us to be the best.</p>
+
+            <div className="max-w-4xl mx-auto space-y-12">
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                    <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Mission</h2>
+                    <p className="text-brand-text-secondary leading-relaxed">{MOCK_TEAM_INFO.mission}</p>
+                </div>
+
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                    <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Journey</h2>
+                    <p className="text-brand-text-secondary leading-relaxed">{MOCK_TEAM_INFO.history}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    {MOCK_TEAM_INFO.stats.map(stat => (
+                        <div key={stat.label} className="bg-brand-dark-secondary p-4 rounded-lg border border-brand-border">
+                            <p className="text-3xl font-bold text-brand-text">{stat.value}</p>
+                            <p className="text-sm text-brand-text-secondary">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
 
 const TeamPage: React.FC = () => {
     const { users } = useData();
@@ -87,6 +120,76 @@ const OurCarPage: React.FC = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+        </div>
+    );
+};
+
+const CompetitionCountdown: React.FC = () => {
+    const { competitionDate } = useAppState();
+    const targetDate = useMemo(() => competitionDate ? new Date(competitionDate) : null, [competitionDate]);
+    const [timeLeft, setTimeLeft] = useState(targetDate ? targetDate.getTime() - new Date().getTime() : 0);
+
+    useEffect(() => {
+        if (!targetDate) return;
+        const timer = setInterval(() => {
+            setTimeLeft(targetDate.getTime() - new Date().getTime());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [targetDate]);
+
+    if (!targetDate || isNaN(targetDate.getTime())) {
+        return (
+             <div className="text-center p-6 bg-brand-dark rounded-xl text-brand-text shadow-lg border border-brand-border">
+                <h3 className="text-lg font-semibold text-yellow-400 mb-2">Competition date is not yet announced.</h3>
+                <p className="text-brand-text-secondary">Please check back for updates!</p>
+            </div>
+        )
+    }
+
+    const isPast = timeLeft < 0;
+    const absTimeLeft = Math.abs(timeLeft);
+
+    const days = Math.floor(absTimeLeft / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((absTimeLeft / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((absTimeLeft / 1000 / 60) % 60);
+    const seconds = Math.floor((absTimeLeft / 1000) % 60);
+
+    return (
+        <div className="text-center p-8 bg-brand-dark-secondary rounded-xl text-brand-text shadow-lg border border-brand-border">
+            <h3 className="text-2xl font-semibold text-brand-accent mb-4">{isPast ? "Competition Is Live!" : "Countdown to Competition"}</h3>
+            <div className="flex justify-center space-x-4 md:space-x-8 text-4xl font-bold">
+                <div>{days}<span className="block text-sm font-normal text-brand-text-secondary">Days</span></div>
+                <div>{hours}<span className="block text-sm font-normal text-brand-text-secondary">Hours</span></div>
+                <div>{minutes}<span className="block text-sm font-normal text-brand-text-secondary">Minutes</span></div>
+                <div>{seconds}<span className="block text-sm font-normal text-brand-text-secondary">Seconds</span></div>
+            </div>
+        </div>
+    );
+};
+
+const CompetitionPage: React.FC = () => {
+    const { competitionProgress } = useData();
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
+    return (
+        <div className="container mx-auto px-6 py-12 animate-fade-in">
+             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">Competition Readiness</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">Follow our progress as we prepare for the next big event. Each category represents a core part of the F1 in Schools challenge.</p>
+            <div className="max-w-4xl mx-auto space-y-8">
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border space-y-6">
+                    {competitionProgress.map((item, index) => (
+                        <div key={item.category}>
+                            <div className="flex justify-between items-baseline mb-1">
+                                <span className="text-md font-semibold text-brand-text">{item.category}</span>
+                                <span className="text-md font-bold text-brand-text-secondary">{item.progress}%</span>
+                            </div>
+                            <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
+                                <div className={`${colors[index % colors.length]} h-full rounded-full transition-all duration-500`} style={{ width: `${item.progress}%` }}></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <CompetitionCountdown />
             </div>
         </div>
     );
@@ -185,13 +288,16 @@ const ContactPage: React.FC = () => {
 
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const { teamLogoUrl } = useAppState();
     const navItems = [
-        { name: 'Home', path: '/public', icon: <HomeIcon className="w-5 h-5"/> },
-        { name: 'The Team', path: '/public/team', icon: <UsersIcon className="w-5 h-5"/> },
-        { name: 'Our Car', path: '/public/car', icon: <CarIcon className="w-5 h-5"/> },
-        { name: 'Sponsors', path: '/public/sponsors', icon: <TrophyIcon className="w-5 h-5"/> },
-        { name: 'News', path: '/public/news', icon: <NewspaperIcon className="w-5 h-5"/> },
-        { name: 'Contact', path: '/public/contact', icon: <MailIcon className="w-5 h-5"/> },
+        { name: 'Home', path: '/', icon: <HomeIcon className="w-5 h-5"/> },
+        { name: 'About Us', path: '/about', icon: <InfoIcon className="w-5 h-5"/> },
+        { name: 'The Team', path: '/team', icon: <UsersIcon className="w-5 h-5"/> },
+        { name: 'Our Car', path: '/car', icon: <CarIcon className="w-5 h-5"/> },
+        { name: 'Competition', path: '/competition', icon: <FlagIcon className="w-5 h-5"/> },
+        { name: 'Sponsors', path: '/sponsors', icon: <TrophyIcon className="w-5 h-5"/> },
+        { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
+        { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
     ];
     
     const NavLinks = ({isMobile = false}: {isMobile?: boolean}) => (
@@ -201,7 +307,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
                     key={item.name} 
                     to={item.path} 
                     onClick={() => setMenuOpen(false)}
-                    end={item.path === '/public'}
+                    end={item.path === '/'}
                     className={({isActive}) => `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-brand-accent text-brand-dark' : 'text-brand-text hover:bg-brand-text/10'}`}
                 >
                     {item.icon} {item.name}
@@ -215,8 +321,10 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             <header className="bg-brand-dark-secondary/80 backdrop-blur-sm shadow-lg sticky top-0 z-30 border-b border-brand-border">
                 <div className="container mx-auto px-6">
                     <div className="flex items-center justify-between h-20">
-                        <Link to="/public" className="flex items-center text-brand-text text-xl font-bold">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-brand-accent mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+                        <Link to="/" className="flex items-center text-brand-text text-xl font-bold">
+                           <div className="bg-white p-1 rounded-md mr-2">
+                                <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
+                           </div>
                             Blizzard Racing
                         </Link>
                         <nav className="hidden md:flex items-center space-x-2">
@@ -240,7 +348,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             <footer className="bg-brand-dark-secondary text-brand-text-secondary py-12 border-t border-brand-border">
                 <div className="container mx-auto px-6 text-center">
                     <p>&copy; {new Date().getFullYear()} Blizzard Racing. All Rights Reserved.</p>
-                    <Link to="/" className="text-sm text-brand-accent hover:underline mt-4 inline-flex items-center gap-1">
+                    <Link to="/login" className="text-sm text-brand-accent hover:underline mt-4 inline-flex items-center gap-1">
                         Team HQ Login <ExternalLinkIcon className="w-4 h-4"/>
                     </Link>
                 </div>
@@ -255,8 +363,10 @@ const PublicPortal: React.FC = () => {
     return (
         <PublicLayout>
             <Routes>
+                <Route path="about" element={<AboutPage />} />
                 <Route path="team" element={<TeamPage />} />
                 <Route path="car" element={<OurCarPage />} />
+                <Route path="competition" element={<CompetitionPage />} />
                 <Route path="sponsors" element={<SponsorsPage />} />
                 <Route path="news" element={<NewsPage />} />
                 <Route path="contact" element={<ContactPage />} />

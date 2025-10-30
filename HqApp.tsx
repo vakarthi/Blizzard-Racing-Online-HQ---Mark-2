@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { announcement } = useAppState();
+  const { announcement, teamLogoUrl } = useAppState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
@@ -53,8 +53,8 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
     <>
     <div className="flex flex-col flex-grow">
       <div className="p-4 flex items-center border-b border-brand-border">
-        <div className="bg-brand-dark p-2 rounded-lg mr-3 border border-brand-border">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-brand-accent" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+        <div className="bg-white p-1 rounded-md mr-3 border border-brand-border">
+            <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
         </div>
         <h1 className="text-xl font-bold text-brand-text">Blizzard HQ</h1>
       </div>

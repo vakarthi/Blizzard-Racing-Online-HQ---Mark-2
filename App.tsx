@@ -5,7 +5,7 @@ import { useAuth } from './contexts/AppContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/shared/LoadingSpinner';
 
-const HqApp = lazy(() => import('./pages/HqApp'));
+const HqApp = lazy(() => import('./HqApp'));
 const PublicPortal = lazy(() => import('./pages/PublicPortal'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
@@ -17,12 +17,12 @@ const App: React.FC = () => {
       <HashRouter>
         <Suspense fallback={<div className="w-full h-screen flex items-center justify-center bg-brand-dark"><LoadingSpinner /></div>}>
           <Routes>
-            <Route path="/public/*" element={<PublicPortal />} />
-            <Route path="/login" element={user ? <Navigate to="/" /> : <LoginPage />} />
+            <Route path="/login" element={user ? <Navigate to="/hq" /> : <LoginPage />} />
             <Route
-              path="/*"
+              path="/hq/*"
               element={user ? <HqApp /> : <Navigate to="/login" />}
             />
+            <Route path="/*" element={<PublicPortal />} />
           </Routes>
         </Suspense>
       </HashRouter>

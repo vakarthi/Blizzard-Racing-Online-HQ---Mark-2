@@ -701,10 +701,11 @@ const ProtocolManagement: React.FC = () => {
 }
 
 const HQSettings: React.FC = () => {
-    const { announcement, setAnnouncement, competitionDate, setCompetitionDate } = useAppState();
+    const { announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl } = useAppState();
     const data = useData();
     const [newAnnouncement, setNewAnnouncement] = useState(announcement || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const logoInputRef = useRef<HTMLInputElement>(null);
 
     const handleSetAnnouncement = () => {
         setAnnouncement(newAnnouncement);
@@ -725,6 +726,7 @@ const HQSettings: React.FC = () => {
             competitionDate: competitionDate,
             competitionProgress: data.competitionProgress,
             protocols: data.protocols,
+            teamLogoUrl: teamLogoUrl,
         };
         const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(exportedData, null, 2))}`;
         const link = document.createElement("a");
@@ -757,6 +759,18 @@ const HQSettings: React.FC = () => {
         reader.readAsText(file);
     };
 
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setTeamLogoUrl(reader.result as string);
+                alert("Logo updated successfully!");
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -776,6 +790,19 @@ const HQSettings: React.FC = () => {
                     onChange={(e) => setCompetitionDate(e.target.value)}
                     className="p-2 bg-brand-dark border border-brand-border rounded-lg"
                 />
+            </div>
+             <div className="border-t border-brand-border pt-6">
+                <h3 className="text-xl font-bold text-brand-text mb-4">Team Logo</h3>
+                <p className="text-sm text-brand-text-secondary mb-4">Upload a new logo for the team. It will be displayed on a white background in the sidebar.</p>
+                <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 bg-white rounded-md flex items-center justify-center p-2 border border-brand-border">
+                        <img src={teamLogoUrl} alt="Team Logo" className="max-w-full max-h-full object-contain" />
+                    </div>
+                    <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
+                    <button onClick={() => logoInputRef.current?.click()} className="bg-brand-surface hover:bg-brand-border text-brand-text font-semibold px-4 py-2 rounded-lg flex items-center gap-2">
+                        <UploadIcon className="w-5 h-5"/> Upload New Logo
+                    </button>
+                </div>
             </div>
              <div className="border-t border-brand-border pt-6">
                  <h3 className="text-xl font-bold text-brand-text mb-4">Data Management</h3>

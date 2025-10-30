@@ -1,3 +1,4 @@
+
 import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
@@ -108,6 +109,17 @@ export const MOCK_PROTOCOLS: Protocol[] = [
         ]
     }
 ];
+
+export const MOCK_TEAM_INFO = {
+    mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork. We are committed to innovation, sportsmanship, and inspiring the next generation of STEM leaders.",
+    history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School. In our first year, we achieved regional success, which fueled our ambition. Now in our third season, with the BR-02 and now the BR-03 challenger, we're leveraging advanced manufacturing techniques and data-driven design to compete at the national level.",
+    stats: [
+        { label: "Years Competing", value: "3" },
+        { label: "Team Members", value: "6" },
+        { label: "Regional Podiums", value: "2" },
+        { label: "Innovations Developed", value: "5+" },
+    ]
+};
 
 export const F1_IN_SCHOOLS_RULES: readonly {
     id: string;

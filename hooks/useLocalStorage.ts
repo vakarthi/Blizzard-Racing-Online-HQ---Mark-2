@@ -1,4 +1,4 @@
-import { useState, SetStateAction } from 'react';
+import { useState, SetStateAction, useEffect } from 'react';
 
 // Custom hook for robust localStorage access
 export const useLocalStorage = <T,>(key: string, initialValue: T): [T, (value: SetStateAction<T>) => void] => {
@@ -21,6 +21,27 @@ export const useLocalStorage = <T,>(key: string, initialValue: T): [T, (value: S
       console.warn(`Error setting localStorage key “${key}”:`, error);
     }
   };
+
+  // Listen for changes in other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === key && e.newValue !== e.oldValue) {
+        try {
+          // When the value is removed, e.newValue is null. Reset to initial.
+          setStoredValue(e.newValue ? JSON.parse(e.newValue) : initialValue);
+        } catch (error) {
+          console.warn(`Error parsing stored value for key “${key}”:`, error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [key, initialValue]);
+
 
   return [storedValue, setValue];
 };

@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
       setError('Invalid email or password.');
       setLoading(false);
     } else {
-      navigate('/');
+      navigate('/hq');
     }
   };
   
@@ -55,7 +55,7 @@ const LoginPage: React.FC = () => {
       setLoading(false);
       setIsManagerLogin(false); // Revert to normal login on failure
     } else {
-      navigate('/');
+      navigate('/hq');
     }
   }, [email, login, navigate]);
 
@@ -79,7 +79,7 @@ const LoginPage: React.FC = () => {
         await authenticateWithBiometrics(config.credentialId);
         // On success, use special password to log in the user
         await login(biometricUser.email, '__BIOMETRIC_SUCCESS__');
-        navigate('/');
+        navigate('/hq');
     } catch (err) {
         console.error(err);
         setError('Biometric login failed. Please use your password.');
@@ -172,7 +172,7 @@ const LoginPage: React.FC = () => {
         )}
 
         <p className="text-xs text-brand-text-secondary text-center mt-6">
-            For public updates, visit our <a href="#/public" className="text-brand-accent hover:underline">Public Portal</a>.
+            For public updates, visit our <a href="#/" className="text-brand-accent hover:underline">Public Portal</a>.
         </p>
          <p className="text-xs text-brand-text-secondary text-center mt-2">
             (Hint: The password for all mock accounts is 'password123')

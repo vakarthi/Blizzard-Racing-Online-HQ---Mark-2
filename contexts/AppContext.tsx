@@ -72,12 +72,17 @@ interface AppStateContextType {
     setAnnouncement: (message: string | null) => void;
     competitionDate: string | null;
     setCompetitionDate: (date: string) => void;
+    teamLogoUrl: string;
+    setTeamLogoUrl: (url: string) => void;
 }
 
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DataContext = createContext<DataContextType | undefined>(undefined);
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
+
+const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
+
 
 // --- PROVIDER COMPONENT ---
 
@@ -102,6 +107,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // App State
   const [announcement, setAnnouncement] = useLocalStorage<string | null>('brh-announcement', 'Welcome to the Blizzard Racing HQ! All systems are operational.');
   const [competitionDate, setCompetitionDate] = useLocalStorage<string | null>('brh-comp-date', '2024-12-01T09:00:00');
+  const [teamLogoUrl, setTeamLogoUrl] = useLocalStorage<string>('brh-team-logo', DEFAULT_LOGO);
 
 
   // Auth Logic
@@ -359,13 +365,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (data.competitionDate) setCompetitionDate(data.competitionDate);
     if (data.competitionProgress) setCompetitionProgress(data.competitionProgress);
     if (data.protocols) setProtocols(data.protocols);
+    if (data.teamLogoUrl) setTeamLogoUrl(data.teamLogoUrl);
   }
 
 
   return (
     <AuthContext.Provider value={{ user, login, logout, verifyPassword, getBiometricConfig, setBiometricConfig, clearBiometricConfig }}>
       <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol }}>
-        <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate }}>
+        <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl }}>
             {children}
         </AppStateContext.Provider>
       </DataContext.Provider>
