@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
@@ -28,14 +26,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
-  { path: '/aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
-  { path: '/projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
-  { path: '/comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  { path: '/socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.SocialMedia, UserRole.Manager] },
-  { path: '/toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: '/protocols', name: 'Protocols', icon: <FileCheckIcon className="w-6 h-6" /> },
-  { path: '/portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" /> },
+  { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
+  { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
+  { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
+  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.SocialMedia, UserRole.Manager] },
+  { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
+  { path: 'protocols', name: 'Protocols', icon: <FileCheckIcon className="w-6 h-6" /> },
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" /> },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -68,7 +66,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
           <NavLink
             key={item.name}
             to={item.path}
-            end={item.path === '/'}
+            end={item.path === ''}
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                 isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -82,7 +80,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
         ))}
         {user?.role === UserRole.Manager && (
             <NavLink
-                to="/manager"
+                to="manager"
                 className={({ isActive }) =>
                 `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                     isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -95,7 +93,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
             </NavLink>
         )}
          <NavLink
-            to="/settings"
+            to="settings"
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                 isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -175,16 +173,16 @@ const HqApp: React.FC = () => {
     return (
         <HqLayout>
             <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/aero" element={<AeroPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/comms" element={<CommunicationsPage />} />
-                <Route path="/socials" element={<SocialsPage />} />
-                <Route path="/toolbox" element={<ToolboxPage />} />
-                <Route path="/protocols" element={<ProtocolsPage />} />
-                <Route path="/portal-editor" element={<PortalEditorPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                {user?.role === UserRole.Manager && <Route path="/manager" element={<ManagerPanelGate />} />}
+                <Route index element={<DashboardPage />} />
+                <Route path="aero" element={<AeroPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="comms" element={<CommunicationsPage />} />
+                <Route path="socials" element={<SocialsPage />} />
+                <Route path="toolbox" element={<ToolboxPage />} />
+                <Route path="protocols" element={<ProtocolsPage />} />
+                <Route path="portal-editor" element={<PortalEditorPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                {user?.role === UserRole.Manager && <Route path="manager" element={<ManagerPanelGate />} />}
                 <Route path="*" element={<div>Not Found</div>} />
             </Routes>
         </HqLayout>

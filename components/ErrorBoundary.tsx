@@ -1,4 +1,3 @@
-
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
@@ -11,10 +10,10 @@ interface State {
   error: Error | null;
 }
 
-// Fix: The ErrorBoundary class must extend React.Component to be a valid class component.
-// This gives the class access to `this.props`, `this.setState`, and other React lifecycle methods.
+// FIX: To be a valid React class component, ErrorBoundary must extend React.Component.
+// This gives the class access to `this.props`, `this.setState`, and other React lifecycle methods,
+// which resolves the errors about those properties not existing on the class instance.
 class ErrorBoundary extends React.Component<Props, State> {
-  // Use a class property for state initialization, which is a modern and clean approach.
   state: State = {
     hasError: false,
     error: null,
@@ -28,9 +27,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // Use an arrow function for the event handler to ensure 'this' is correctly bound.
   handleRetry = () => {
-    // Correctly call this.setState which is available on React.Component
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -61,7 +58,6 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Correctly access this.props which is available on React.Component
     return this.props.children;
   }
 }
