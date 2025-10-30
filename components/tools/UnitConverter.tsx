@@ -52,8 +52,9 @@ const UnitConverter: React.FC = () => {
         const value = parseFloat(inputValue);
         if (isNaN(value)) return 'Invalid Input';
         
-        const fromFactor = units[fromUnit as keyof typeof units].factor;
-        const toFactor = units[toUnit as keyof typeof units].factor;
+        const safeUnits = units as Record<string, Unit>;
+        const fromFactor = safeUnits[fromUnit].factor;
+        const toFactor = safeUnits[toUnit].factor;
         
         // Convert input value to base unit, then to target unit
         const valueInBase = value * fromFactor;
@@ -90,16 +91,14 @@ const UnitConverter: React.FC = () => {
                         <label className="text-sm font-semibold text-brand-text-secondary">From</label>
                         <input type="number" value={inputValue} onChange={e => setInputValue(e.target.value)} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg" />
                         <select value={fromUnit} onChange={e => setFromUnit(e.target.value)} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg text-sm">
-                           {/* Fix: Explicitly cast `unit` to the `Unit` type to allow accessing `unit.name`. */}
-                           {Object.entries(units).map(([key, unit]) => <option key={key} value={key}>{(unit as Unit).name}</option>)}
+                           {Object.entries(units as Record<string, Unit>).map(([key, unit]) => <option key={key} value={key}>{unit.name}</option>)}
                         </select>
                     </div>
                     <div className="flex-1">
                         <label className="text-sm font-semibold text-brand-text-secondary">To</label>
                          <div className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg font-bold text-lg">{result}</div>
                          <select value={toUnit} onChange={e => setToUnit(e.target.value)} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg text-sm">
-                           {/* Fix: Explicitly cast `unit` to the `Unit` type to allow accessing `unit.name`. */}
-                           {Object.entries(units).map(([key, unit]) => <option key={key} value={key}>{(unit as Unit).name}</option>)}
+                           {Object.entries(units as Record<string, Unit>).map(([key, unit]) => <option key={key} value={key}>{unit.name}</option>)}
                         </select>
                     </div>
                 </div>

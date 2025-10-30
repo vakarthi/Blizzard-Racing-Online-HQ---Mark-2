@@ -10,7 +10,7 @@ interface State {
   error: Error | null;
 }
 
-// Fix: Extended React.Component to make this a valid class component.
+// Fix: The ErrorBoundary class must extend React.Component to be a valid class component.
 // This gives the class access to `this.props`, `this.setState`, and other React lifecycle methods.
 class ErrorBoundary extends React.Component<Props, State> {
   // Use a class property for state initialization, which is a modern and clean approach.
