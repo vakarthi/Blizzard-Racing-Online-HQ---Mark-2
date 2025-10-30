@@ -1,9 +1,10 @@
 
+
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
 import { UserRole } from './types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, FileCheckIcon } from './components/icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon } from './components/icons';
 import { useCommandK } from './hooks/useCommandK';
 import DashboardPage from './pages/private/DashboardPage';
 import AeroPage from './pages/private/AeroPage';
@@ -16,7 +17,6 @@ import ToolboxPage from './pages/private/ToolboxPage';
 import SettingsPage from './pages/private/SettingsPage';
 import CommandPalette from './components/hq/CommandPalette';
 import PortalEditorPage from './pages/private/PortalEditorPage';
-import ProtocolsPage from './pages/private/ProtocolsPage';
 
 interface NavItem {
   path: string;
@@ -32,7 +32,6 @@ const navItems: NavItem[] = [
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
   { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.SocialMedia, UserRole.Manager] },
   { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: 'protocols', name: 'Protocols', icon: <FileCheckIcon className="w-6 h-6" /> },
   { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" /> },
 ];
 
@@ -179,7 +178,6 @@ const HqApp: React.FC = () => {
                 <Route path="comms" element={<CommunicationsPage />} />
                 <Route path="socials" element={<SocialsPage />} />
                 <Route path="toolbox" element={<ToolboxPage />} />
-                <Route path="protocols" element={<ProtocolsPage />} />
                 <Route path="portal-editor" element={<PortalEditorPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 {user?.role === UserRole.Manager && <Route path="manager" element={<ManagerPanelGate />} />}
