@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blizzard Racing HQ - Mark 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-dark': {
+                DEFAULT: 'var(--color-bg-dark-default)',
+                secondary: 'var(--color-bg-dark-secondary)',
+              },
+              'brand-accent': {
+                DEFAULT: 'var(--color-accent-default)',
+                hover: 'var(--color-accent-hover)',
+              },
+              'brand-border': 'var(--color-border)',
+              'brand-text': {
+                DEFAULT: 'var(--color-text-default)',
+                secondary: 'var(--color-text-secondary)',
+              },
+              'brand-surface': 'var(--color-surface)',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-in-out',
+              'slide-in-up': 'slideInUp 0.5s ease-in-out',
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'scanline': 'scanline 8s linear infinite',
+            },
+            keyframes: {
+              fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+              slideInUp: { '0%': { transform: 'translateY(20px)', opacity: 0 }, '100%': { transform: 'translateY(0)', opacity: 1 } },
+              scanline: { 
+                '0%': { transform: 'translateY(-10%)' },
+                '100%': { transform: 'translateY(calc(100vh + 10%))' } 
+              },
+            },
+            boxShadow: {
+              'glow-accent': '0 0 15px 0px var(--color-accent-default)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --color-bg-dark-default: #0D1117;
+        --color-bg-dark-secondary: #161B22;
+        --color-accent-default: #00BFFF;
+        --color-accent-hover: #38CCFF;
+        --color-border: #30363D;
+        --color-text-default: #E6EDF3;
+        --color-text-secondary: #7D8590;
+        --color-surface: #161B22;
+
+        --bg-image: none;
+        --bg-size: cover;
+        --bg-repeat: no-repeat;
+        --bg-overlay-opacity: 0.5;
+      }
+      .scanline-effect::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        width: 100%;
+        background: var(--color-accent-default);
+        opacity: 0.1;
+        animation: scanline 8s linear infinite;
+        pointer-events: none;
+        z-index: 9999;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.23.1?external=react,react-dom",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/"
+  }
+}
+</script>
+</head>
+  <body class="bg-brand-dark text-brand-text h-screen antialiased">
+    <div id="app-background" class="fixed inset-0 -z-10 transition-all duration-500" style="background-image: var(--bg-image); background-size: var(--bg-size); background-repeat: var(--bg-repeat); background-position: center;">
+      <div class="absolute inset-0 bg-black" style="opacity: var(--bg-overlay-opacity);"></div>
+    </div>
+    <div id="root" class="scanline-effect"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
