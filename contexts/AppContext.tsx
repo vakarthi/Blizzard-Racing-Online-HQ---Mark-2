@@ -1,8 +1,9 @@
 
 
+
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
-import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus } from '../types';
-import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS } from '../services/mockData';
+import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion } from '../types';
+import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { generateAvatar } from '../utils/avatar';
 
@@ -65,6 +66,10 @@ export interface DataContextType {
   deleteProtocol: (protocolId: string) => void;
   getTeamMember: (userId: string) => User | undefined;
   loadData: (data: any) => void;
+  publicPortalContent: PublicPortalContent;
+  publicPortalContentHistory: ContentVersion[];
+  updatePublicPortalContent: (newContent: PublicPortalContent) => void;
+  revertToVersion: (versionIndex: number) => void;
 }
 
 interface AppStateContextType {
@@ -102,7 +107,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [discussionThreads, setDiscussionThreads] = useLocalStorage<DiscussionThread[]>('brh-threads', MOCK_THREADS);
   const [competitionProgress, setCompetitionProgress] = useLocalStorage<CompetitionProgressItem[]>('brh-comp-progress', MOCK_COMPETITION_PROGRESS);
   const [protocols, setProtocols] = useLocalStorage<Protocol[]>('brh-protocols', MOCK_PROTOCOLS);
-
+  const [publicPortalContentHistory, setPublicPortalContentHistory] = useLocalStorage<ContentVersion[]>('brh-portal-history', [{
+    content: INITIAL_PUBLIC_PORTAL_CONTENT,
+    timestamp: new Date().toISOString(),
+    editorId: 'system'
+  }]);
 
   // App State
   const [announcement, setAnnouncement] = useLocalStorage<string | null>('brh-announcement', 'Welcome to the Blizzard Racing HQ! All systems are operational.');
@@ -166,6 +175,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   // Data Logic
+  const publicPortalContent = publicPortalContentHistory[0].content;
+
+  const updatePublicPortalContent = (newContent: PublicPortalContent) => {
+      if (!user) return;
+      const newVersion: ContentVersion = {
+          content: newContent,
+          timestamp: new Date().toISOString(),
+          editorId: user.id
+      };
+      setPublicPortalContentHistory(prev => [newVersion, ...prev]);
+  };
+
+  const revertToVersion = (versionIndex: number) => {
+      if (!user || versionIndex <= 0 || versionIndex >= publicPortalContentHistory.length) return;
+      setPublicPortalContentHistory(prev => {
+          const historyCopy = [...prev];
+          const versionToRestore = historyCopy.splice(versionIndex, 1)[0];
+          if (!versionToRestore) return prev;
+          
+          const newCurrentVersion: ContentVersion = {
+              content: versionToRestore.content,
+              timestamp: new Date().toISOString(),
+              editorId: user.id,
+          };
+
+          return [newCurrentVersion, ...historyCopy];
+      });
+  };
+
   const addUser = (user: Omit<User, 'id' | 'avatarUrl'>) => {
     const newUser: User = {
       ...user,
@@ -366,12 +404,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (data.competitionProgress) setCompetitionProgress(data.competitionProgress);
     if (data.protocols) setProtocols(data.protocols);
     if (data.teamLogoUrl) setTeamLogoUrl(data.teamLogoUrl);
+    if (data.publicPortalContentHistory) setPublicPortalContentHistory(data.publicPortalContentHistory);
   }
 
 
   return (
     <AuthContext.Provider value={{ user, login, logout, verifyPassword, getBiometricConfig, setBiometricConfig, clearBiometricConfig }}>
-      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol }}>
+      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion }}>
         <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl }}>
             {children}
         </AppStateContext.Provider>

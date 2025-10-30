@@ -1,3 +1,5 @@
+
+
 export enum UserRole {
   Manager = 'Manager',
   Engineer = 'Engineer',
@@ -154,4 +156,56 @@ export interface Protocol {
     title: string;
     description: string;
     steps: string[];
+}
+
+export interface StatItem {
+  id: number;
+  label: string;
+  value: string;
+}
+
+export interface PublicPortalContent {
+  home: {
+    heroTitle: string;
+    heroSubtitle: string;
+    heroCtaText: string;
+    heroBackgroundImage: string;
+  };
+  about: {
+    title: string;
+    subtitle: string;
+    mission: string;
+    history: string;
+    stats: StatItem[];
+  };
+  team: {
+    title: string;
+    subtitle: string;
+  };
+  car: {
+    title: string;
+    subtitle: string;
+  };
+  competition: {
+    title: string;
+    subtitle: string;
+  };
+  sponsors: {
+    title: string;
+    subtitle: string;
+  };
+  news: {
+    title: string;
+    subtitle: string;
+  };
+  contact: {
+    title: string;
+    subtitle: string;
+  };
+}
+
+export interface ContentVersion {
+  content: PublicPortalContent;
+  timestamp: string;
+  editorId: string;
 }

@@ -1,16 +1,17 @@
 
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-import { MOCK_TEAM_INFO } from '../services/mockData';
-// Fix: Imported the missing `FlagIcon` component.
 import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon } from '../components/icons';
 
 // --- Components for Public Pages ---
 
 const PublicHomePage: React.FC = () => {
     const { news } = useData();
+    const { publicPortalContent } = useData();
+    const { home: homeContent } = publicPortalContent;
     const latestNews = news.filter(n => n.isPublic).slice(0, 1)[0];
 
     return (
@@ -18,14 +19,14 @@ const PublicHomePage: React.FC = () => {
             {/* Hero Section */}
             <section 
                 className="relative bg-cover bg-center h-[60vh] text-brand-text flex items-center justify-center text-center"
-                style={{backgroundImage: "url('https://picsum.photos/seed/racecar/1600/900')"}}
+                style={{backgroundImage: `url('${homeContent.heroBackgroundImage}')`}}
             >
                 <div className="absolute inset-0 bg-black bg-opacity-60"></div>
                 <div className="relative z-10 p-4">
-                    <h1 className="text-4xl md:text-6xl font-extrabold mb-4 animate-slide-in-up">BLIZZARD RACING</h1>
-                    <p className="text-lg md:text-2xl mb-8 animate-slide-in-up [animation-delay:0.2s]">Welcome to the Official Hub of Blizzard Racing</p>
+                    <h1 className="text-4xl md:text-6xl font-extrabold mb-4 animate-slide-in-up">{homeContent.heroTitle}</h1>
+                    <p className="text-lg md:text-2xl mb-8 animate-slide-in-up [animation-delay:0.2s]">{homeContent.heroSubtitle}</p>
                     <Link to="/sponsors" className="bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-full text-lg hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block animate-slide-in-up [animation-delay:0.4s]">
-                        Become a Partner
+                        {homeContent.heroCtaText}
                     </Link>
                 </div>
             </section>
@@ -53,25 +54,27 @@ const PublicHomePage: React.FC = () => {
 };
 
 const AboutPage: React.FC = () => {
+    const { publicPortalContent } = useData();
+    const { about: aboutContent } = publicPortalContent;
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">About Blizzard Racing</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">Learn about our mission, our history, and the competition that drives us to be the best.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aboutContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aboutContent.subtitle}</p>
 
             <div className="max-w-4xl mx-auto space-y-12">
                 <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
                     <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Mission</h2>
-                    <p className="text-brand-text-secondary leading-relaxed">{MOCK_TEAM_INFO.mission}</p>
+                    <p className="text-brand-text-secondary leading-relaxed">{aboutContent.mission}</p>
                 </div>
 
                 <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
                     <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Journey</h2>
-                    <p className="text-brand-text-secondary leading-relaxed">{MOCK_TEAM_INFO.history}</p>
+                    <p className="text-brand-text-secondary leading-relaxed">{aboutContent.history}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    {MOCK_TEAM_INFO.stats.map(stat => (
-                        <div key={stat.label} className="bg-brand-dark-secondary p-4 rounded-lg border border-brand-border">
+                    {aboutContent.stats.map(stat => (
+                        <div key={stat.id} className="bg-brand-dark-secondary p-4 rounded-lg border border-brand-border">
                             <p className="text-3xl font-bold text-brand-text">{stat.value}</p>
                             <p className="text-sm text-brand-text-secondary">{stat.label}</p>
                         </div>
@@ -83,11 +86,12 @@ const AboutPage: React.FC = () => {
 }
 
 const TeamPage: React.FC = () => {
-    const { users } = useData();
+    const { users, publicPortalContent } = useData();
+    const { team: teamContent } = publicPortalContent;
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">Meet The Team</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">The dedicated individuals driving Blizzard Racing forward. A blend of experience, innovation, and passion for motorsport.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{teamContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{teamContent.subtitle}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                 {users.map(member => (
                     <div key={member.id} className="text-center bg-brand-dark-secondary p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow border border-brand-border">
@@ -102,12 +106,13 @@ const TeamPage: React.FC = () => {
 };
 
 const OurCarPage: React.FC = () => {
-    const { carHighlights } = useData();
+    const { carHighlights, publicPortalContent } = useData();
+    const { car: carContent } = publicPortalContent;
     const publicHighlights = carHighlights.filter(h => h.isPublic);
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">The BR-02 Challenger</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{carContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{carContent.subtitle}</p>
             <div className="space-y-16">
                 {publicHighlights.map((highlight, index) => (
                     <div key={highlight.id} className={`flex flex-col md:flex-row items-center gap-8 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
@@ -169,12 +174,13 @@ const CompetitionCountdown: React.FC = () => {
 };
 
 const CompetitionPage: React.FC = () => {
-    const { competitionProgress } = useData();
+    const { competitionProgress, publicPortalContent } = useData();
+    const { competition: competitionContent } = publicPortalContent;
     const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">Competition Readiness</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">Follow our progress as we prepare for the next big event. Each category represents a core part of the F1 in Schools challenge.</p>
+             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{competitionContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{competitionContent.subtitle}</p>
             <div className="max-w-4xl mx-auto space-y-8">
                 <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border space-y-6">
                     {competitionProgress.map((item, index) => (
@@ -196,12 +202,13 @@ const CompetitionPage: React.FC = () => {
 };
 
 const SponsorsPage: React.FC = () => {
-    const { sponsors } = useData();
+    const { sponsors, publicPortalContent } = useData();
+    const { sponsors: sponsorsContent } = publicPortalContent;
     const securedSponsors = sponsors.filter(s => s.status === 'secured');
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">Our Partners</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">We are proud to be supported by industry leaders who share our vision for excellence and innovation. Their partnership is crucial to our success.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{sponsorsContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{sponsorsContent.subtitle}</p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                 {securedSponsors.map(sponsor => (
                     <div key={sponsor.id} className="bg-brand-text/5 p-6 rounded-lg shadow-md flex items-center justify-center hover:shadow-xl transition-shadow border border-brand-border">
@@ -214,13 +221,14 @@ const SponsorsPage: React.FC = () => {
 };
 
 const NewsPage: React.FC = () => {
-    const { news, getTeamMember } = useData();
+    const { news, getTeamMember, publicPortalContent } = useData();
+    const { news: newsContent } = publicPortalContent;
     const publicNews = news.filter(n => n.isPublic).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">News Feed</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">The latest updates, announcements, and stories from inside Blizzard Racing.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{newsContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{newsContent.subtitle}</p>
             <div className="space-y-8 max-w-3xl mx-auto">
                 {publicNews.map(post => {
                     const author = getTeamMember(post.authorId);
@@ -241,6 +249,8 @@ const NewsPage: React.FC = () => {
 
 
 const ContactPage: React.FC = () => {
+    const { publicPortalContent } = useData();
+    const { contact: contactContent } = publicPortalContent;
     const [submitted, setSubmitted] = useState(false);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -249,8 +259,8 @@ const ContactPage: React.FC = () => {
 
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">Contact Us</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">Have a question or a partnership inquiry? We'd love to hear from you.</p>
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{contactContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{contactContent.subtitle}</p>
             <div className="max-w-xl mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
                 {submitted ? (
                     <div className="text-center">

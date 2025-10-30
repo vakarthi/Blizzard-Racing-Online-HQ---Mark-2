@@ -1,5 +1,6 @@
 
-import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters } from '../types';
+
+import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
 export const MOCK_USERS_DATA = [
@@ -110,16 +111,51 @@ export const MOCK_PROTOCOLS: Protocol[] = [
     }
 ];
 
-export const MOCK_TEAM_INFO = {
+export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
+  home: {
+    heroTitle: "BLIZZARD RACING",
+    heroSubtitle: "Welcome to the Official Hub of Blizzard Racing",
+    heroCtaText: "Become a Partner",
+    heroBackgroundImage: "https://picsum.photos/seed/racecar/1600/900",
+  },
+  about: {
+    title: "About Blizzard Racing",
+    subtitle: "Learn about our mission, our history, and the competition that drives us to be the best.",
     mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork. We are committed to innovation, sportsmanship, and inspiring the next generation of STEM leaders.",
     history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School. In our first year, we achieved regional success, which fueled our ambition. Now in our third season, with the BR-02 and now the BR-03 challenger, we're leveraging advanced manufacturing techniques and data-driven design to compete at the national level.",
     stats: [
-        { label: "Years Competing", value: "3" },
-        { label: "Team Members", value: "6" },
-        { label: "Regional Podiums", value: "2" },
-        { label: "Innovations Developed", value: "5+" },
+        { id: 1, label: "Years Competing", value: "3" },
+        { id: 2, label: "Team Members", value: "6" },
+        { id: 3, label: "Regional Podiums", value: "2" },
+        { id: 4, label: "Innovations Developed", value: "5+" },
     ]
+  },
+  team: {
+      title: "Meet The Team",
+      subtitle: "The dedicated individuals driving Blizzard Racing forward. A blend of experience, innovation, and passion for motorsport."
+  },
+  car: {
+      title: "The BR-02 Challenger",
+      subtitle: "A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car."
+  },
+  competition: {
+      title: "Competition Readiness",
+      subtitle: "Follow our progress as we prepare for the next big event. Each category represents a core part of the F1 in Schools challenge."
+  },
+  sponsors: {
+      title: "Our Partners",
+      subtitle: "We are proud to be supported by industry leaders who share our vision for excellence and innovation. Their partnership is crucial to our success."
+  },
+  news: {
+      title: "News Feed",
+      subtitle: "The latest updates, announcements, and stories from inside Blizzard Racing."
+  },
+  contact: {
+      title: "Contact Us",
+      subtitle: "Have a question or a partnership inquiry? We'd love to hear from you."
+  }
 };
+
 
 export const F1_IN_SCHOOLS_RULES: readonly {
     id: string;

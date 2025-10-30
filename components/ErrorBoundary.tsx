@@ -1,3 +1,4 @@
+
 import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
@@ -29,6 +30,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   // Use an arrow function for the event handler to ensure 'this' is correctly bound.
   handleRetry = () => {
+    // Correctly call this.setState which is available on React.Component
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -59,6 +61,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
+    // Correctly access this.props which is available on React.Component
     return this.props.children;
   }
 }
