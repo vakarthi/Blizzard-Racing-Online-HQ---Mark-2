@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon } from '../../components/icons';
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 
 // --- EDIT TASK MODAL ---
@@ -148,6 +148,71 @@ const UserManagement: React.FC = () => {
         </div>
     )
 }
+
+const UserActivity: React.FC = () => {
+    const { users, loginHistory } = useData();
+
+    const activityData = useMemo(() => {
+        const now = new Date();
+        const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        return users.map(user => {
+            const userLogins = loginHistory.filter(log => log.userId === user.id);
+            const lastDay = userLogins.filter(log => new Date(log.timestamp) > dayAgo).length;
+            const lastWeek = userLogins.filter(log => new Date(log.timestamp) > weekAgo).length;
+            const lastMonth = userLogins.filter(log => new Date(log.timestamp) > monthAgo).length;
+            const lastSeen = userLogins.length > 0 ? new Date(userLogins[0].timestamp) : null;
+            
+            return {
+                ...user,
+                lastDay,
+                lastWeek,
+                lastMonth,
+                lastSeen
+            };
+        });
+
+    }, [users, loginHistory]);
+
+    return (
+        <div>
+            <h3 className="text-xl font-bold text-brand-text mb-4">User Login Activity</h3>
+            <p className="text-sm text-brand-text-secondary mb-4">Tracks the number of login sessions for each user over various periods. The "Last Seen" timestamp is from their most recent login.</p>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-brand-text-secondary uppercase bg-brand-dark">
+                        <tr>
+                            <th scope="col" className="px-4 py-3">User</th>
+                            <th scope="col" className="px-4 py-3 text-center">Last 24 Hours</th>
+                            <th scope="col" className="px-4 py-3 text-center">Last 7 Days</th>
+                            <th scope="col" className="px-4 py-3 text-center">Last 30 Days</th>
+                            <th scope="col" className="px-4 py-3">Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {activityData.map(user => (
+                            <tr key={user.id} className="border-b border-brand-border hover:bg-brand-surface">
+                                <td className="px-4 py-3 font-medium text-brand-text flex items-center gap-3">
+                                    <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+                                    {user.name}
+                                </td>
+                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastDay}</td>
+                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastWeek}</td>
+                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastMonth}</td>
+                                <td className="px-4 py-3 text-brand-text-secondary">
+                                    {user.lastSeen ? user.lastSeen.toLocaleString() : 'Never'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 
 const FinancialCommand: React.FC = () => {
     const { finances, addFinancialRecord, deleteFinancialRecord } = useData();
@@ -727,6 +792,7 @@ const HQSettings: React.FC = () => {
             competitionProgress: data.competitionProgress,
             protocols: data.protocols,
             teamLogoUrl: teamLogoUrl,
+            loginHistory: data.loginHistory,
         };
         const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(exportedData, null, 2))}`;
         const link = document.createElement("a");
@@ -821,13 +887,14 @@ const HQSettings: React.FC = () => {
 
 // --- MAIN PANEL PAGE ---
 
-type Tab = 'team' | 'finance' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
+type Tab = 'team' | 'activity' | 'finance' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
 
 const ManagerPanelPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('team');
     
     const tabs: {id: Tab, name: string, icon: React.ReactNode}[] = [
         { id: 'team', name: 'Team', icon: <UsersIcon className="w-5 h-5" /> },
+        { id: 'activity', name: 'User Activity', icon: <BarChartIcon className="w-5 h-5" /> },
         { id: 'finance', name: 'Finance', icon: <DollarSignIcon className="w-5 h-5" /> },
         { id: 'projects', name: 'Project Analytics', icon: <PieChartIcon className="w-5 h-5" /> },
         { id: 'tasks', name: 'Task Control', icon: <ClipboardListIcon className="w-5 h-5" /> },
@@ -841,6 +908,7 @@ const ManagerPanelPage: React.FC = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'team': return <UserManagement />;
+            case 'activity': return <UserActivity />;
             case 'finance': return <FinancialCommand />;
             case 'projects': return <ProjectAnalytics />;
             case 'tasks': return <TaskControl />;

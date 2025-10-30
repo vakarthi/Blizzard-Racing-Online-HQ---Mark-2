@@ -209,3 +209,8 @@ export interface ContentVersion {
   timestamp: string;
   editorId: string;
 }
+
+export interface LoginRecord {
+  userId: string;
+  timestamp: string;
+}

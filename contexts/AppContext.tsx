@@ -1,8 +1,9 @@
 
 
 
+
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
-import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion } from '../types';
+import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
 import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { generateAvatar } from '../utils/avatar';
@@ -70,6 +71,7 @@ export interface DataContextType {
   publicPortalContentHistory: ContentVersion[];
   updatePublicPortalContent: (newContent: PublicPortalContent) => void;
   revertToVersion: (versionIndex: number) => void;
+  loginHistory: LoginRecord[];
 }
 
 interface AppStateContextType {
@@ -112,6 +114,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     timestamp: new Date().toISOString(),
     editorId: 'system'
   }]);
+  const [loginHistory, setLoginHistory] = useLocalStorage<LoginRecord[]>('brh-login-history', []);
 
   // App State
   const [announcement, setAnnouncement] = useLocalStorage<string | null>('brh-announcement', 'Welcome to the Blizzard Racing HQ! All systems are operational.');
@@ -126,23 +129,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (!foundUser) return null;
 
-    if (pass === '__BIOMETRIC_SUCCESS__') {
-        setUser(foundUser);
-        return foundUser;
-    }
+    const isValidPassword = (pass === '__BIOMETRIC_SUCCESS__') ||
+        (foundUser.role === UserRole.Manager && pass === '__HYDRA7__') ||
+        (foundUser.role !== UserRole.Manager && pass === 'password123');
 
-    // Manager login path
-    if (foundUser.role === UserRole.Manager) {
-        if (pass === '__HYDRA7__') {
-            setUser(foundUser);
-            return foundUser;
-        }
-        return null; // Managers can ONLY log in with the Konami password
-    }
-
-    // Standard login for other roles
-    if (pass === 'password123') {
+    if (isValidPassword) {
         setUser(foundUser);
+        setLoginHistory(prev => [
+            { userId: foundUser.id, timestamp: new Date().toISOString() },
+            ...prev
+        ]);
         return foundUser;
     }
 
@@ -405,12 +401,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (data.protocols) setProtocols(data.protocols);
     if (data.teamLogoUrl) setTeamLogoUrl(data.teamLogoUrl);
     if (data.publicPortalContentHistory) setPublicPortalContentHistory(data.publicPortalContentHistory);
+    if (data.loginHistory) setLoginHistory(data.loginHistory);
   }
 
 
   return (
     <AuthContext.Provider value={{ user, login, logout, verifyPassword, getBiometricConfig, setBiometricConfig, clearBiometricConfig }}>
-      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion }}>
+      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion, loginHistory }}>
         <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl }}>
             {children}
         </AppStateContext.Provider>
