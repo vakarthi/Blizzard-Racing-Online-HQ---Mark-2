@@ -86,8 +86,10 @@ const UserManagement: React.FC = () => {
     const handleAddUser = (e: React.FormEvent) => {
         e.preventDefault();
         if(!newUser.name || !newUser.email) return;
-        addUser(newUser);
-        setNewUser({ name: '', email: '', role: UserRole.Engineer });
+        const success = addUser(newUser);
+        if (success) {
+            setNewUser({ name: '', email: '', role: UserRole.Engineer });
+        }
     }
 
     return (

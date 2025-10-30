@@ -30,7 +30,7 @@ interface AuthContextType {
 export interface DataContextType {
   users: User[];
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  addUser: (user: Omit<User, 'id' | 'avatarUrl'>) => void;
+  addUser: (user: Omit<User, 'id' | 'avatarUrl'>) => boolean;
   updateUser: (userId: string, name: string) => void;
   updateUserAvatar: (userId: string, avatarDataUrl: string) => void;
   changePassword: (userId: string, newPassword: string) => Promise<boolean>;
@@ -121,10 +121,57 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [competitionDate, setCompetitionDate] = useLocalStorage<string | null>('brh-comp-date', '2024-12-01T09:00:00');
   const [teamLogoUrl, setTeamLogoUrl] = useLocalStorage<string>('brh-team-logo', DEFAULT_LOGO);
 
+  const logout = useCallback(() => {
+    setUser(null);
+    window.location.hash = '/login';
+  }, [setUser]);
+  
+  // Security Patch: On initial load, purge any users without a valid domain and log out an invalid active user.
+  useEffect(() => {
+    // Purge invalid users on initial load
+    setUsers(currentUsers => {
+        const validUsers = currentUsers.filter(u => u.email.toLowerCase().endsWith('@saintolaves.net'));
+        if (validUsers.length < currentUsers.length) {
+            console.warn("Security Alert: Unauthorized user accounts detected and removed from the system.");
+        }
+        return validUsers;
+    });
+
+    // Log out current user if they are invalid
+    if (user && !user.email.toLowerCase().endsWith('@saintolaves.net')) {
+        console.warn(`Security Alert: Active session for unauthorized user ${user.email} detected. Terminating session.`);
+        logout();
+    }
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // Run only once on mount
+
+    // State Synchronization: Ensure the current user's session data is consistent with the master user list.
+    // This handles cases where a manager modifies a user's role or deletes their account in another tab.
+    useEffect(() => {
+        if (user) {
+            const userFromMasterList = users.find(u => u.id === user.id);
+            
+            if (!userFromMasterList) {
+                // The current user was deleted from the master list; force logout.
+                console.warn(`Active user ${user.email} not found in master list. Forcing logout.`);
+                logout();
+            } else if (JSON.stringify(user) !== JSON.stringify(userFromMasterList)) {
+                // The user's data (e.g., name, role) has changed; update their session.
+                setUser(userFromMasterList);
+            }
+        }
+    }, [users, user, setUser, logout]);
+
 
   // Auth Logic
   const login = async (email: string, pass: string): Promise<User | null> => {
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Security Patch: Enforce domain check at login as a redundant safeguard
+    if (!normalizedEmail.endsWith('@saintolaves.net')) {
+        return null;
+    }
+
     const foundUser = users.find(u => u.email.toLowerCase() === normalizedEmail);
 
     if (!foundUser) return null;
@@ -143,11 +190,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     return null;
-  };
-
-  const logout = () => {
-    setUser(null);
-    window.location.hash = '/login';
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
@@ -200,13 +242,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
   };
 
-  const addUser = (user: Omit<User, 'id' | 'avatarUrl'>) => {
+  const addUser = (user: Omit<User, 'id' | 'avatarUrl'>): boolean => {
+    // Security Patch: Enforce valid email domain for all new users
+    if (!user.email.toLowerCase().endsWith('@saintolaves.net')) {
+        alert('Security Breach Prevented: Invalid email domain. All team members must use a "@saintolaves.net" email address.');
+        return false;
+    }
+
     const newUser: User = {
       ...user,
       id: `user-${Date.now()}`,
       avatarUrl: generateAvatar(user.name),
     };
     setUsers(prev => [newUser, ...prev]);
+    return true;
   };
 
   const updateUser = (userId: string, name: string) => {
