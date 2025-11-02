@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction, useMemo } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
 import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -95,10 +95,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [user, setUser] = useLocalStorage<User | null>('brh-user', null);
   const [biometricConfig, setBiometricConfigState] = useLocalStorage<BiometricConfig | null>('brh-biometric-config', null);
   
+  // Memoize unstable initial values for useLocalStorage to prevent re-subscribing to storage events on every render.
+  const initialAeroResults = useMemo(() => [], []);
+  const initialLoginHistory = useMemo(() => [], []);
+  const initialPortalHistory = useMemo(() => ([{
+    content: INITIAL_PUBLIC_PORTAL_CONTENT,
+    timestamp: new Date().toISOString(),
+    editorId: 'system'
+  }]), []);
+
   // Data State
   const [users, setUsers] = useLocalStorage<User[]>('brh-users', MOCK_USERS);
   const [tasks, setTasks] = useLocalStorage<Task[]>('brh-tasks', MOCK_TASKS);
-  const [aeroResults, setAeroResults] = useLocalStorage<AeroResult[]>('brh-aero', []);
+  const [aeroResults, setAeroResults] = useLocalStorage<AeroResult[]>('brh-aero', initialAeroResults);
   const [finances, setFinances] = useLocalStorage<FinancialRecord[]>('brh-finances', MOCK_FINANCES);
   const [sponsors, setSponsors] = useLocalStorage<Sponsor[]>('brh-sponsors', MOCK_SPONSORS);
   const [news, setNews] = useLocalStorage<NewsPost[]>('brh-news', MOCK_NEWS);
@@ -106,12 +115,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [discussionThreads, setDiscussionThreads] = useLocalStorage<DiscussionThread[]>('brh-threads', MOCK_THREADS);
   const [competitionProgress, setCompetitionProgress] = useLocalStorage<CompetitionProgressItem[]>('brh-comp-progress', MOCK_COMPETITION_PROGRESS);
   const [protocols, setProtocols] = useLocalStorage<Protocol[]>('brh-protocols', MOCK_PROTOCOLS);
-  const [publicPortalContentHistory, setPublicPortalContentHistory] = useLocalStorage<ContentVersion[]>('brh-portal-history', [{
-    content: INITIAL_PUBLIC_PORTAL_CONTENT,
-    timestamp: new Date().toISOString(),
-    editorId: 'system'
-  }]);
-  const [loginHistory, setLoginHistory] = useLocalStorage<LoginRecord[]>('brh-login-history', []);
+  const [publicPortalContentHistory, setPublicPortalContentHistory] = useLocalStorage<ContentVersion[]>('brh-portal-history', initialPortalHistory);
+  const [loginHistory, setLoginHistory] = useLocalStorage<LoginRecord[]>('brh-login-history', initialLoginHistory);
 
   // App State
   const [announcement, setAnnouncement] = useLocalStorage<string | null>('brh-announcement', 'Welcome to the Blizzard Racing HQ! All systems are operational.');

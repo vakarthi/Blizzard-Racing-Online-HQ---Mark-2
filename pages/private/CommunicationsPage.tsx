@@ -1,12 +1,11 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData, useAuth } from '../../contexts/AppContext';
 import { DiscussionThread, UserRole } from '../../types';
 
 const CommunicationsPage: React.FC = () => {
     const { user } = useAuth();
     const { discussionThreads, getTeamMember, addThread, addPostToThread } = useData();
-    const [selectedThread, setSelectedThread] = useState<DiscussionThread | null>(null);
+    const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState('');
     const [showNewThreadModal, setShowNewThreadModal] = useState(false);
     const isMember = user?.role === UserRole.Member;
@@ -18,20 +17,19 @@ const CommunicationsPage: React.FC = () => {
             return new Date(lastPostB).getTime() - new Date(lastPostA).getTime();
         });
     }, [discussionThreads]);
+    
+    // The selected thread is now derived directly from the central state.
+    // This is more robust and prevents synchronization issues.
+    const selectedThread = useMemo(() => {
+        if (!selectedThreadId) return null;
+        // Find the thread from the latest sorted list to ensure it's up-to-date
+        const thread = sortedThreads.find(thread => thread.id === selectedThreadId);
+        return thread || null;
+    }, [selectedThreadId, sortedThreads]);
 
-    useEffect(() => {
-        if (selectedThread) {
-            const updatedThread = discussionThreads.find(thread => thread.id === selectedThread.id);
-            if (updatedThread && updatedThread !== selectedThread) {
-                setSelectedThread(updatedThread);
-            } else if (!updatedThread) {
-                setSelectedThread(null);
-            }
-        }
-    }, [discussionThreads, selectedThread]);
 
     const handleSelectThread = (thread: DiscussionThread) => {
-        setSelectedThread(thread);
+        setSelectedThreadId(thread.id);
     };
 
     const handleReply = () => {
