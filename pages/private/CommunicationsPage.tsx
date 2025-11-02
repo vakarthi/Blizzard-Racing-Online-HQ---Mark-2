@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData, useAuth } from '../../contexts/AppContext';
-import { DiscussionThread } from '../../types';
+import { DiscussionThread, UserRole } from '../../types';
 
 const CommunicationsPage: React.FC = () => {
     const { user } = useAuth();
@@ -9,6 +9,7 @@ const CommunicationsPage: React.FC = () => {
     const [selectedThread, setSelectedThread] = useState<DiscussionThread | null>(null);
     const [replyContent, setReplyContent] = useState('');
     const [showNewThreadModal, setShowNewThreadModal] = useState(false);
+    const isMember = user?.role === UserRole.Member;
 
     const sortedThreads = useMemo(() => {
         return [...discussionThreads].sort((a, b) => {
@@ -17,6 +18,17 @@ const CommunicationsPage: React.FC = () => {
             return new Date(lastPostB).getTime() - new Date(lastPostA).getTime();
         });
     }, [discussionThreads]);
+
+    useEffect(() => {
+        if (selectedThread) {
+            const updatedThread = discussionThreads.find(thread => thread.id === selectedThread.id);
+            if (updatedThread && updatedThread !== selectedThread) {
+                setSelectedThread(updatedThread);
+            } else if (!updatedThread) {
+                setSelectedThread(null);
+            }
+        }
+    }, [discussionThreads, selectedThread]);
 
     const handleSelectThread = (thread: DiscussionThread) => {
         setSelectedThread(thread);
@@ -58,9 +70,11 @@ const CommunicationsPage: React.FC = () => {
             {showNewThreadModal && <NewThreadModal />}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-brand-text">Communications Hub</h1>
-                <button onClick={() => setShowNewThreadModal(true)} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">
-                    + New Thread
-                </button>
+                {!isMember && (
+                    <button onClick={() => setShowNewThreadModal(true)} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">
+                        + New Thread
+                    </button>
+                )}
             </div>
             <div className="flex-grow flex border border-brand-border rounded-xl bg-brand-dark-secondary shadow-md overflow-hidden">
                 {/* Threads List */}
@@ -104,12 +118,14 @@ const CommunicationsPage: React.FC = () => {
                                     )
                                 })}
                             </div>
-                            <div className="p-4 border-t border-brand-border bg-brand-dark-secondary">
-                                <div className="flex gap-2">
-                                    <textarea value={replyContent} onChange={e => setReplyContent(e.target.value)} rows={2} placeholder="Type your reply..." className="flex-grow p-2 bg-brand-dark border border-brand-border rounded-md" />
-                                    <button onClick={handleReply} className="px-4 py-2 bg-brand-accent text-brand-dark font-bold rounded-md self-end">Reply</button>
+                            {!isMember && (
+                                <div className="p-4 border-t border-brand-border bg-brand-dark-secondary">
+                                    <div className="flex gap-2">
+                                        <textarea value={replyContent} onChange={e => setReplyContent(e.target.value)} rows={2} placeholder="Type your reply..." className="flex-grow p-2 bg-brand-dark border border-brand-border rounded-md" />
+                                        <button onClick={handleReply} className="px-4 py-2 bg-brand-accent text-brand-dark font-bold rounded-md self-end">Reply</button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </>
                     ) : (
                         <div className="flex-grow flex items-center justify-center text-brand-text-secondary">

@@ -1,19 +1,22 @@
 
+
 import React, { useState, DragEvent } from 'react';
-import { Task, TaskStatus, User } from '../../types';
-import { useData } from '../../contexts/AppContext';
+import { Task, TaskStatus, User, UserRole } from '../../types';
+import { useData, useAuth } from '../../contexts/AppContext';
 
 const statusOrder = [TaskStatus.ToDo, TaskStatus.InProgress, TaskStatus.InReview, TaskStatus.Done];
 
 const TaskCard: React.FC<{ task: Task; onDragStart: (e: DragEvent, taskId: string) => void }> = ({ task, onDragStart }) => {
   const { getTeamMember } = useData();
+  const { user } = useAuth();
+  const isMember = user?.role === UserRole.Member;
   const assignee = task.assigneeId ? getTeamMember(task.assigneeId) : null;
 
   return (
     <div
-      draggable
+      draggable={!isMember}
       onDragStart={(e) => onDragStart(e, task.id)}
-      className="bg-brand-dark p-3 mb-3 rounded-lg border border-brand-border shadow-md cursor-grab active:cursor-grabbing hover:border-brand-accent transition-colors"
+      className={`bg-brand-dark p-3 mb-3 rounded-lg border border-brand-border shadow-md hover:border-brand-accent transition-colors ${!isMember ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
     >
       <p className="font-semibold text-brand-text mb-2">{task.title}</p>
       {assignee && (
@@ -32,6 +35,9 @@ const KanbanColumn: React.FC<{
   onDragStart: (e: DragEvent, taskId: string) => void;
   onDrop: (e: DragEvent, status: TaskStatus) => void;
 }> = ({ status, tasks, onDragStart, onDrop }) => {
+  const { user } = useAuth();
+  const isMember = user?.role === UserRole.Member;
+
   const onDragOver = (e: DragEvent) => {
     e.preventDefault();
   };
@@ -45,7 +51,7 @@ const KanbanColumn: React.FC<{
 
   return (
     <div
-      onDrop={(e) => onDrop(e, status)}
+      onDrop={isMember ? undefined : (e) => onDrop(e, status)}
       onDragOver={onDragOver}
       className="bg-brand-dark-secondary rounded-lg p-3 w-full md:w-1/4 flex-shrink-0"
     >

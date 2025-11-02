@@ -29,7 +29,8 @@ const navItems: NavItem[] = [
   { path: '/aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
   { path: '/projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: '/comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  { path: '/socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.SocialMedia, UserRole.Manager] },
+  // FIX: Replaced non-existent UserRole.SocialMedia with valid roles based on component logic.
+  { path: '/socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
   { path: '/toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
 ];
 

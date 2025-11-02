@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useData, useAuth } from '../../contexts/AppContext';
-import { PublicPortalContent, StatItem } from '../../types';
+import { PublicPortalContent, StatItem, UserRole } from '../../types';
 import { EditIcon, HistoryIcon, SaveIcon, TrashIcon, UploadIcon, XIcon } from '../../components/icons';
 
 const PortalEditorPage: React.FC = () => {
@@ -11,6 +12,7 @@ const PortalEditorPage: React.FC = () => {
     const [editableContent, setEditableContent] = useState<PublicPortalContent>(publicPortalContent);
     const [activeSection, setActiveSection] = useState<keyof PublicPortalContent>('home');
     const [isDirty, setIsDirty] = useState(false);
+    const isMember = user?.role === UserRole.Member;
 
     useEffect(() => {
         setEditableContent(publicPortalContent);
@@ -83,7 +85,7 @@ const PortalEditorPage: React.FC = () => {
     const renderEditor = () => {
         const currentSection = editableContent[activeSection];
         return (
-            <div className="space-y-6">
+            <fieldset disabled={isMember} className="space-y-6">
                 <h2 className="text-2xl font-bold text-brand-accent">{sections.find(s=>s.key === activeSection)?.name} Editor</h2>
                 {Object.entries(currentSection).map(([field, value]) => {
                     if (field === 'stats') { // Special handler for stats array
@@ -129,7 +131,7 @@ const PortalEditorPage: React.FC = () => {
                         </div>
                     );
                 })}
-            </div>
+            </fieldset>
         );
     };
 
@@ -150,7 +152,7 @@ const PortalEditorPage: React.FC = () => {
                                     {new Date(version.timestamp).toLocaleString()}
                                 </p>
                             </div>
-                            {index > 0 && (
+                            {index > 0 && !isMember && (
                                 <button
                                     onClick={() => {
                                         if (window.confirm("Are you sure you want to revert to this version? This will create a new version based on this historical one.")) {
@@ -171,13 +173,18 @@ const PortalEditorPage: React.FC = () => {
 
     return (
         <div className="animate-fade-in">
+             {isMember && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 p-3 rounded-lg text-sm text-center mb-6">
+                    You are viewing in read-only mode. Content can only be modified by Managers, Engineers, or Designers.
+                </div>
+            )}
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-brand-text">Public Portal Editor</h1>
                     <p className="text-brand-text-secondary">Manage the content displayed on the public website.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                     {isDirty && view === 'editor' && (
+                     {isDirty && view === 'editor' && !isMember && (
                         <div className="flex items-center gap-2">
                             <p className="text-yellow-400 text-sm font-semibold">You have unsaved changes.</p>
                              <button onClick={() => setEditableContent(publicPortalContent)} className="bg-brand-border text-brand-text font-bold py-2 px-4 rounded-lg hover:bg-brand-text-secondary">

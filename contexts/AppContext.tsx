@@ -1,7 +1,4 @@
 
-
-
-
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
 import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
@@ -177,7 +174,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!foundUser) return null;
 
     const isValidPassword = (pass === '__BIOMETRIC_SUCCESS__') ||
-        (foundUser.role === UserRole.Manager && pass === '__HYDRA7__') ||
+        (foundUser.role === UserRole.Manager && pass === '__FROSTNOVA__') ||
         (foundUser.role !== UserRole.Manager && pass === 'password123');
 
     if (isValidPassword) {
@@ -193,12 +190,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
-      if (!user) return false;
+    // This function is for secondary authentication, like accessing the manager panel.
+    // It should be pure and not have side effects like logging the user out.
+    if (!user || user.role !== UserRole.Manager) {
+        // This case should not be reachable due to routing guards, but as a safeguard, deny access.
+        return false;
+    }
+    
+    // Explicitly check the manager password.
+    const isCorrect = password === '__FROSTNOVA__';
 
-      if (user.role === UserRole.Manager) {
-          return password === '__HYDRA7__';
-      }
-      return password === 'password123';
+    return isCorrect;
   };
   
   const getBiometricConfig = () => biometricConfig;

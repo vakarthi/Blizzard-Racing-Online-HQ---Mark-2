@@ -3,8 +3,11 @@ import React, { useState } from 'react';
 import { SparklesIcon } from '../../components/icons';
 import { generateSocialPostTemplate } from '../../services/localSimulationService';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import { useAuth } from '../../contexts/AppContext';
+import { UserRole } from '../../types';
 
 const SocialsPage: React.FC = () => {
+  const { user } = useAuth();
   const [topic, setTopic] = useState('');
   const [generatedPost, setGeneratedPost] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +23,15 @@ const SocialsPage: React.FC = () => {
         setIsLoading(false);
     }, 500);
   };
+
+  if (user?.role === UserRole.Member) {
+    return (
+      <div className="text-center p-8 text-brand-text-secondary">
+        <h1 className="text-2xl font-bold text-brand-text mb-2">Access Denied</h1>
+        <p>This page is not available for your user role.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">
