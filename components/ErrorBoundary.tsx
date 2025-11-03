@@ -10,9 +10,8 @@ interface State {
   error: Error | null;
 }
 
-// FIX: To be a valid React class component, ErrorBoundary must extend React.Component.
-// This gives the class access to `this.props`, `this.setState`, and other React lifecycle methods,
-// which resolves the errors about those properties not existing on the class instance.
+// FIX: The ErrorBoundary class was not extending React.Component, which is required for a class component.
+// This provides access to `this.props`, `this.setState`, and other React lifecycle methods, resolving the errors.
 class ErrorBoundary extends React.Component<Props, State> {
   state: State = {
     hasError: false,
@@ -28,7 +27,6 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   handleRetry = () => {
-    // FIX: Correctly call this.setState, which is available on React.Component
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -59,7 +57,6 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // FIX: Correctly access this.props.children, which is available on React.Component
     return this.props.children;
   }
 }

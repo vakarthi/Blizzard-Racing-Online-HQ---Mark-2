@@ -15,29 +15,40 @@ export const runAdvancedCfdSimulation = async (
   onProgress: (update: { stage: string; progress: number, log?: string }) => void
 ): Promise<Omit<AeroResult, 'id' | 'isBest' | 'suggestions' | 'scrutineeringReport' | 'fileName'>> => {
   const startTime = Date.now();
+  const INLET_VELOCITY = 20; // m/s
 
   try {
-    // Stage 1: Initialization (5s)
+    // Stage 1: Initialization (3s)
     onProgress({ stage: 'Initializing Solver', progress: 2, log: 'Solver setup complete. Reading high-resolution geometry data...' });
-    await sleep(5000);
+    await sleep(1000);
+    onProgress({ stage: 'Initializing Solver', progress: 2, log: `Setting simulation parameters: Inlet velocity ${INLET_VELOCITY.toFixed(1)} m/s...` });
+    
+    // Calculate Reynolds number for realism
+    const airDensity = 1.225; // kg/m^3
+    const airViscosity = 1.81e-5; // kg/(m*s)
+    const characteristicLength = params.totalLength / 1000; // meters
+    const reynoldsNumber = (airDensity * INLET_VELOCITY * characteristicLength) / airViscosity;
+    await sleep(2000);
+    onProgress({ stage: 'Initializing Solver', progress: 4, log: `Flow regime calculated: Reynolds number ~${Math.round(reynoldsNumber / 1000)}k. Turbulent model engaged.` });
 
-    // Stage 2: Surface Mesh (40s)
+
+    // Stage 2: Surface Mesh (15s)
     onProgress({ stage: 'Generating Surface Mesh', progress: 15, log: 'Surface mesh generation started... targeting 25M triangles.' });
-    await sleep(40000);
+    await sleep(15000);
     onProgress({ stage: 'Generating Surface Mesh', progress: 15, log: 'Surface mesh generated with 25M triangles.' });
 
 
-    // Stage 3: Volume Mesh (60s)
+    // Stage 3: Volume Mesh (25s)
     onProgress({ stage: 'Generating Volume Mesh', progress: 35, log: 'Volume mesh generation started... targeting 65M cells.' });
-    await sleep(60000);
+    await sleep(25000);
     const meshQuality = 92 + Math.random() * 5; // 92-97% quality for high-fidelity
     onProgress({ stage: 'Generating Volume Mesh', progress: 35, log: `Volume mesh generated with 65M cells. Mesh quality check: ${meshQuality.toFixed(1)}%` });
 
 
-    // Stage 4: Solving (180s / 3 min)
+    // Stage 4: Solving (40s)
     const totalIterations = 5000;
-    const solveDuration = 180000;
-    const updateCount = 50; // More frequent updates for a long solve
+    const solveDuration = 40000;
+    const updateCount = 20; // Fewer updates for shorter solve time
     for (let i = 1; i <= updateCount; i++) {
         await sleep(solveDuration / updateCount);
         const iterations = Math.floor((i / updateCount) * totalIterations);
@@ -45,9 +56,9 @@ export const runAdvancedCfdSimulation = async (
         onProgress({ stage: 'Solving Flow Field', progress, log: `Iteration ${iterations}/${totalIterations}... Residuals stable.` });
     }
 
-    // Stage 5: Convergence Check (5s)
+    // Stage 5: Convergence Check (2s)
     onProgress({ stage: 'Checking Convergence', progress: 92, log: 'Final convergence criteria met.' });
-    await sleep(5000);
+    await sleep(2000);
     const convergenceStatus = Math.random() > 0.02 ? 'Converged' : 'Diverged'; // Higher success rate for longer sims
 
     // --- More Complex Parameter Calculations ---
@@ -97,9 +108,9 @@ export const runAdvancedCfdSimulation = async (
         flowAnalysis += "Pressure distribution is optimal, indicating a very stable center of pressure."
     }
 
-    // Stage 6: Post-processing (10s)
+    // Stage 6: Post-processing (5s)
     onProgress({ stage: 'Post-processing Results', progress: 98, log: 'Generating high-resolution result plots and reports...' });
-    await sleep(10000);
+    await sleep(5000);
 
     onProgress({ stage: 'Complete', progress: 100, log: 'Simulation finished.' });
 
