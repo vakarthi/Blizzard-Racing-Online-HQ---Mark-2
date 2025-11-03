@@ -1,16 +1,15 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { runAdvancedCfdSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
 import { extractParametersFromFileName } from '../../services/fileAnalysisService';
 import { AeroResult, DesignParameters } from '../../types';
 import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon } from '../../components/icons';
-import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
 // Add new icons for the page
+// FIX: Corrected typo in viewBox attribute (was "0 0 24" 24", is now "0 0 24 24").
 const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
 );
@@ -18,11 +17,55 @@ const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9"x2="15" y2="15"/></svg>
 );
 
+const SimulationProgressModal: React.FC<{ progressData: { stage: string; progress: number; logs: string[] } | null }> = ({ progressData }) => {
+    if (!progressData) return null;
+
+    const { stage, progress, logs } = progressData;
+    const logsEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [logs]);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fade-in">
+            <div className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl border border-brand-border">
+                <div className="p-4 border-b border-brand-border">
+                    <h2 className="text-xl font-bold text-brand-accent">CFD Simulation in Progress</h2>
+                    <p className="text-sm text-brand-text-secondary">This process is computationally intensive and will take a few minutes.</p>
+                </div>
+                <div className="p-6">
+                    <div className="mb-4">
+                        <div className="flex justify-between items-baseline mb-1">
+                            <span className="text-md font-semibold text-brand-text">{stage}</span>
+                            <span className="text-md font-bold text-brand-text-secondary">{progress.toFixed(0)}%</span>
+                        </div>
+                        <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
+                            <div className="bg-brand-accent h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
+                    <div className="bg-brand-dark p-3 rounded-md border border-brand-border h-48 overflow-y-auto font-mono text-sm text-brand-text-secondary">
+                        {logs.map((log, index) => (
+                            <p key={index} className="animate-fade-in">{`> ${log}`}</p>
+                        ))}
+                        <div ref={logsEndRef} />
+                    </div>
+                    {progress === 100 && stage === 'Complete' && (
+                        <div className="text-center mt-4 text-green-400 font-semibold animate-fade-in">
+                            Simulation complete! Finalizing results...
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void }> = ({ result, onClose }) => {
     const [activeTab, setActiveTab] = useState('analysis');
 
     const renderScrutineering = () => {
-        if (!result.scrutineeringReport) return <div className="flex justify-center p-8"><LoadingSpinner /></div>;
+        if (!result.scrutineeringReport) return <div className="text-center p-8 text-brand-text-secondary">No scrutineering report available.</div>;
         return (
             <div className="space-y-3">
                 {result.scrutineeringReport.map(item => (
@@ -45,7 +88,7 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
     };
 
     const renderSuggestions = () => {
-        if (!result.suggestions) return <div className="flex justify-center p-8"><LoadingSpinner /></div>;
+        if (!result.suggestions) return <div className="text-center p-8 text-brand-text-secondary">No suggestions were generated for this run.</div>;
         return <div className="prose prose-sm max-w-none prose-invert" dangerouslySetInnerHTML={{__html: result.suggestions.replace(/\n/g, '<br />')}} />;
     };
 
@@ -58,22 +101,18 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
             </div>
             <div>
                 {activeTab === 'analysis' && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                        <div className="p-4 bg-brand-dark rounded-lg">
-                            <p className="text-sm text-brand-text-secondary">Cd (Drag)</p>
-                            <p className="text-2xl font-bold text-brand-text">{result.cd}</p>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                            <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Cd (Drag)</p><p className="text-2xl font-bold text-brand-text">{result.cd}</p></div>
+                            <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Cl (Lift)</p><p className="text-2xl font-bold text-brand-text">{result.cl}</p></div>
+                            <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">L/D Ratio</p><p className="text-2xl font-bold text-green-400">{result.liftToDragRatio}</p></div>
+                            <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Aero Balance</p><p className="text-2xl font-bold text-brand-text">{result.aeroBalance}% F</p></div>
                         </div>
-                        <div className="p-4 bg-brand-dark rounded-lg">
-                            <p className="text-sm text-brand-text-secondary">Cl (Lift)</p>
-                            <p className="text-2xl font-bold text-brand-text">{result.cl}</p>
-                        </div>
-                        <div className="p-4 bg-green-500/10 rounded-lg">
-                            <p className="text-sm text-green-300">L/D Ratio</p>
-                            <p className="text-2xl font-bold text-green-400">{result.liftToDragRatio}</p>
-                        </div>
-                        <div className="p-4 bg-brand-dark rounded-lg">
-                            <p className="text-sm text-brand-text-secondary">Aero Balance</p>
-                            <p className="text-2xl font-bold text-brand-text">{result.aeroBalance}% F</p>
+                        <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm font-semibold text-brand-text-secondary">Flow Analysis</p><p className="text-brand-text mt-1">{result.flowAnalysis}</p></div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                             <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Mesh Quality</p><p className="text-2xl font-bold text-brand-text">{result.meshQuality}%</p></div>
+                             <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Convergence</p><p className={`text-2xl font-bold ${result.convergenceStatus === 'Converged' ? 'text-green-400' : 'text-red-400'}`}>{result.convergenceStatus}</p></div>
+                             <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sim Time</p><p className="text-2xl font-bold text-brand-text">{result.simulationTime} s</p></div>
                         </div>
                     </div>
                 )}
@@ -87,6 +126,7 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
 const AeroPage: React.FC = () => {
   const { aeroResults, addAeroResult } = useData();
   const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationProgress, setSimulationProgress] = useState<{ stage: string; progress: number; logs: string[] } | null>(null);
   const [selectedResult, setSelectedResult] = useState<AeroResult | null>(null);
   const [carName, setCarName] = useState('BR-04-Alpha');
   const [file, setFile] = useState<File | null>(null);
@@ -129,14 +169,29 @@ const AeroPage: React.FC = () => {
         return;
     }
     setIsSimulating(true);
+    setSimulationProgress({ stage: 'Preparing...', progress: 0, logs: ['Simulation requested...'] });
     try {
+        const onProgress = (update: { stage: string; progress: number; log?: string }) => {
+            setSimulationProgress(prev => {
+                const newLogs = [...(prev?.logs || [])];
+                if (update.log && newLogs[newLogs.length - 1] !== update.log) {
+                    newLogs.push(update.log);
+                }
+                return {
+                    stage: update.stage,
+                    progress: update.progress,
+                    logs: newLogs.slice(-10) // Keep log from getting too long
+                };
+            });
+        };
+
         const extractedParams = extractParametersFromFileName(file.name);
         const designParameters: DesignParameters = {
             carName,
             ...extractedParams,
         };
         
-        const simResultData = await runAdvancedCfdSimulation(designParameters);
+        const simResultData = await runAdvancedCfdSimulation(designParameters, onProgress);
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
@@ -156,18 +211,22 @@ const AeroPage: React.FC = () => {
         
         addAeroResult(finalResult);
         setFile(null);
+        
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Pause on completion
 
     } catch (error) {
         console.error("Simulation failed", error);
         alert("Simulation failed. Please check the console.");
     } finally {
         setIsSimulating(false);
+        setSimulationProgress(null);
     }
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
       <h1 className="text-3xl font-bold text-brand-text">Aero Analysis & Scrutineering</h1>
+      {isSimulating && <SimulationProgressModal progressData={simulationProgress} />}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
@@ -213,7 +272,7 @@ const AeroPage: React.FC = () => {
                             disabled={isSimulating || !file || !carName.trim()}
                             className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
                         >
-                            {isSimulating ? <><LoadingSpinner /> <span className="ml-2">Simulating...</span></> : <><WindIcon className="w-5 h-5 mr-2" /> Start CFD Analysis</>}
+                           <WindIcon className="w-5 h-5 mr-2" /> Start CFD Analysis
                         </button>
                     </form>
                 </div>

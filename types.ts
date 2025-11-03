@@ -73,6 +73,11 @@ export interface AeroResult {
   // AI Generated Content
   suggestions?: string;
   scrutineeringReport?: ScrutineeringItem[];
+  
+  // Professional Simulation Data
+  meshQuality?: number; // %
+  convergenceStatus?: 'Converged' | 'Diverged';
+  simulationTime?: number; // seconds
 }
 
 
