@@ -1,4 +1,5 @@
 
+
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction, useMemo } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
 import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
@@ -38,6 +39,7 @@ export interface DataContextType {
   aeroResults: AeroResult[];
   addAeroResult: (result: Omit<AeroResult, 'id' | 'isBest'>) => AeroResult;
   updateAeroResult: (updatedResult: AeroResult) => void;
+  resetAeroResults: () => void;
   finances: FinancialRecord[];
   addFinancialRecord: (record: Omit<FinancialRecord, 'id' | 'date'>) => void;
   deleteFinancialRecord: (recordId: string) => void;
@@ -327,6 +329,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAeroResults(prevResults => prevResults.map(result => result.id === updatedResult.id ? updatedResult : result));
   };
 
+  const resetAeroResults = () => {
+    setAeroResults([]);
+  };
+
   const addFinancialRecord = (record: Omit<FinancialRecord, 'id' | 'date'>) => {
     const newRecord: FinancialRecord = { ...record, id: `fin-${Date.now()}`, date: new Date().toISOString() };
     setFinances(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -463,7 +469,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AuthContext.Provider value={{ user, login, logout, verifyPassword, getBiometricConfig, setBiometricConfig, clearBiometricConfig }}>
-      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion, loginHistory }}>
+      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, resetAeroResults, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion, loginHistory }}>
         <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl }}>
             {children}
         </AppStateContext.Provider>

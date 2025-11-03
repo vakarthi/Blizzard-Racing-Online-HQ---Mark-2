@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon } from '../../components/icons';
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 
 // --- EDIT TASK MODAL ---
@@ -770,6 +770,7 @@ const ProtocolManagement: React.FC = () => {
 const HQSettings: React.FC = () => {
     const { announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl } = useAppState();
     const data = useData();
+    const { resetAeroResults } = useData();
     const [newAnnouncement, setNewAnnouncement] = useState(announcement || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const logoInputRef = useRef<HTMLInputElement>(null);
@@ -838,6 +839,13 @@ const HQSettings: React.FC = () => {
             reader.readAsDataURL(file);
         }
     };
+    
+    const handleResetAeroData = () => {
+        if (window.confirm("DANGER: Are you sure you want to permanently delete all aerodynamic simulation results? This action cannot be undone.")) {
+            resetAeroResults();
+            alert("All aerodynamic simulation results have been cleared.");
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -881,6 +889,26 @@ const HQSettings: React.FC = () => {
                      <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
                  </div>
                  <p className="text-xs text-red-400 mt-2">Warning: Importing data will overwrite everything currently in the HQ.</p>
+            </div>
+
+            <div className="border-t border-red-500/30 pt-6 mt-6">
+                <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
+                    <AlertTriangleIcon className="w-6 h-6"/> Danger Zone
+                </h3>
+                <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                    <div className="flex flex-col md:flex-row justify-between items-center">
+                        <div>
+                            <p className="font-semibold text-red-300">Reset All Aero Simulation Data</p>
+                            <p className="text-sm text-red-400/80 mt-1">This will permanently delete all historical simulation results. This action cannot be undone.</p>
+                        </div>
+                        <button 
+                            onClick={handleResetAeroData} 
+                            className="mt-3 md:mt-0 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 flex-shrink-0"
+                        >
+                            Reset Aero Data
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
