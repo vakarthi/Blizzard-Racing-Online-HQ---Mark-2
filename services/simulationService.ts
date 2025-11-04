@@ -46,10 +46,10 @@ export const runAdvancedCfdSimulation = async (
     onProgress({ stage: 'Generating Volume Mesh', progress: 35, log: `Volume mesh generated with 65M cells. Mesh quality check: ${meshQuality.toFixed(1)}%` });
 
 
-    // Stage 4: Solving (40s)
-    const totalIterations = 5000;
-    const solveDuration = 40000;
-    const updateCount = 20; // Fewer updates for shorter solve time
+    // Stage 4: Solving (100s)
+    const totalIterations = 10000;
+    const solveDuration = 100000;
+    const updateCount = 50; // More updates for longer solve time
     for (let i = 1; i <= updateCount; i++) {
         await sleep(solveDuration / updateCount);
         const iterations = Math.floor((i / updateCount) * totalIterations);

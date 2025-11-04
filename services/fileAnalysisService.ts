@@ -44,11 +44,10 @@ export const extractParametersFromFileName = (fileName: string): Omit<DesignPara
       params.totalLength -= 10;
   }
   
-  // Add slight randomization to make results feel unique for each file
+  // Removed randomization to ensure results are fully deterministic for a given file name.
+  // All values are rounded to prevent floating point inconsistencies.
   Object.keys(params).forEach(key => {
       const k = key as keyof typeof params;
-      params[k] *= (1 + (Math.random() - 0.5) * 0.05); // +/- 5% variance
-      // round to 2 decimal places
       params[k] = parseFloat(params[k].toFixed(2));
   });
 
