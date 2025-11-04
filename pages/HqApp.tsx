@@ -1,21 +1,22 @@
 
 
 import React, { useState, ReactNode, useEffect } from 'react';
-import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from '../contexts/AppContext';
 import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon } from '../components/icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
 import DashboardPage from './private/DashboardPage';
 import AeroPage from './private/AeroPage';
 import ProjectsPage from './private/ProjectsPage';
-import ManagerPanelPage from './private/ManagerPanelPage';
+import ManagerPanelGate from './private/ManagerPanelGate';
 import SocialsPage from './private/SocialsPage';
 import CommunicationsPage from './private/CommunicationsPage';
 import Icicle from '../components/hq/IcicleAssistant';
 import ToolboxPage from './private/ToolboxPage';
 import SettingsPage from './private/SettingsPage';
 import CommandPalette from '../components/hq/CommandPalette';
+import PortalEditorPage from './private/PortalEditorPage';
 
 interface NavItem {
   path: string;
@@ -25,22 +26,21 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: '/', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
-  { path: '/aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
-  { path: '/projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
-  { path: '/comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  // FIX: Replaced non-existent UserRole.SocialMedia with valid roles based on component logic.
-  { path: '/socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
-  { path: '/toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
+  { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
+  { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
+  { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
+  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
+  { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { announcement } = useAppState();
+  const { announcement, teamLogoUrl } = useAppState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));
@@ -54,8 +54,8 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
     <>
     <div className="flex flex-col flex-grow">
       <div className="p-4 flex items-center border-b border-brand-border">
-        <div className="bg-brand-dark p-2 rounded-lg mr-3 border border-brand-border">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-brand-accent" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>
+        <div className="bg-white p-1 rounded-md mr-3 border border-brand-border">
+            <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
         </div>
         <h1 className="text-xl font-bold text-brand-text">Blizzard HQ</h1>
       </div>
@@ -64,7 +64,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
           <NavLink
             key={item.name}
             to={item.path}
-            end={item.path === '/'}
+            end={item.path === ''}
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                 isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -78,7 +78,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
         ))}
         {user?.role === UserRole.Manager && (
             <NavLink
-                to="/manager"
+                to="manager"
                 className={({ isActive }) =>
                 `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                     isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -91,7 +91,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
             </NavLink>
         )}
          <NavLink
-            to="/settings"
+            to="settings"
             className={({ isActive }) =>
               `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
                 isActive ? 'bg-brand-accent text-brand-dark font-bold shadow-glow-accent' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'
@@ -156,7 +156,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
             </div>
         )}
         
-        <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8">
+        <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 lg:p-8 pb-24">
             {children}
         </div>
         <Icicle />
@@ -167,17 +167,19 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
 
 
 const HqApp: React.FC = () => {
+    const { user } = useAuth();
     return (
         <HqLayout>
             <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/aero" element={<AeroPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/comms" element={<CommunicationsPage />} />
-                <Route path="/socials" element={<SocialsPage />} />
-                <Route path="/toolbox" element={<ToolboxPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/manager" element={<ManagerPanelPage />} />
+                <Route index element={<DashboardPage />} />
+                <Route path="aero" element={<AeroPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="comms" element={<CommunicationsPage />} />
+                <Route path="socials" element={<SocialsPage />} />
+                <Route path="toolbox" element={<ToolboxPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="portal-editor" element={<PortalEditorPage />} />
+                {user?.role === UserRole.Manager && <Route path="manager" element={<ManagerPanelGate />} />}
                 <Route path="*" element={<div>Not Found</div>} />
             </Routes>
         </HqLayout>

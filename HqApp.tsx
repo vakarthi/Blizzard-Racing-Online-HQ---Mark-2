@@ -1,7 +1,6 @@
 
-
 import React, { useState, ReactNode, useEffect } from 'react';
-import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
 import { UserRole } from './types';
 import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon } from './components/icons';
@@ -32,7 +31,7 @@ const navItems: NavItem[] = [
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
   { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
   { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" /> },
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -41,7 +40,6 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));
