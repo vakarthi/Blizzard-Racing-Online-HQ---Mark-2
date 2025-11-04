@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
 import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon } from '../components/icons';
+import FbxViewer from '../components/shared/FbxViewer';
 
 // --- Components for Public Pages ---
 
@@ -113,6 +114,18 @@ const OurCarPage: React.FC = () => {
         <div className="container mx-auto px-6 py-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{carContent.title}</h1>
             <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{carContent.subtitle}</p>
+            
+            {/* New 3D Viewer Section */}
+            <section className="mb-16">
+                 {carContent.carModelFbx ? (
+                    <FbxViewer fbxDataUrl={carContent.carModelFbx} isBlurred={carContent.isCarModelBlurred} />
+                 ) : (
+                    <div className="w-full h-[50vh] bg-brand-dark/50 rounded-lg border border-brand-border flex items-center justify-center text-brand-text-secondary">
+                        <p>3D Model of the BR-03 Coming Soon...</p>
+                    </div>
+                 )}
+            </section>
+
             <div className="space-y-16">
                 {publicHighlights.map((highlight, index) => (
                     <div key={highlight.id} className={`flex flex-col md:flex-row items-center gap-8 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>

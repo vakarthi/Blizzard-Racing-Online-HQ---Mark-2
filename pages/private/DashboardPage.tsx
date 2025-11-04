@@ -143,7 +143,13 @@ const TeamOverviewWidget: React.FC = () => {
 
 const DashboardPage: React.FC = () => {
   const { tasks, aeroResults, sponsors } = useData();
-  const topAero = aeroResults.find(r => r.isBest);
+  const topAero = useMemo(() => {
+    if (aeroResults.length === 0) return null;
+    // Find the result with the highest liftToDragRatio
+    return aeroResults.reduce((best, current) => 
+        current.liftToDragRatio > best.liftToDragRatio ? current : best
+    );
+  }, [aeroResults]);
 
   return (
     <div className="space-y-6 animate-fade-in">

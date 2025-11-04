@@ -37,7 +37,7 @@ export interface DataContextType {
   updateTask: (updatedTask: Task) => void;
   deleteTask: (taskId: string) => void;
   aeroResults: AeroResult[];
-  addAeroResult: (result: Omit<AeroResult, 'id' | 'isBest'>) => AeroResult;
+  addAeroResult: (result: Omit<AeroResult, 'id'>) => AeroResult;
   updateAeroResult: (updatedResult: AeroResult) => void;
   resetAeroResults: () => void;
   finances: FinancialRecord[];
@@ -304,25 +304,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
   
-  const addAeroResult = (result: Omit<AeroResult, 'id' | 'isBest'>): AeroResult => {
-      let newResult: AeroResult | null = null;
-      setAeroResults(prev => {
-          const bestLDRatio = Math.max(...prev.map(r => r.liftToDragRatio), 0);
-          const isNewBest = result.liftToDragRatio > bestLDRatio;
-          
-          newResult = {
-              ...result,
-              id: `aero-${Date.now()}`,
-              isBest: isNewBest,
-          };
-          
-          const updatedPreviousResults = isNewBest 
-              ? prev.map(r => ({ ...r, isBest: false }))
-              : prev;
-          
-          return [newResult, ...updatedPreviousResults];
-      });
-      return newResult!;
+  const addAeroResult = (result: Omit<AeroResult, 'id'>): AeroResult => {
+      const newResult: AeroResult = {
+          ...result,
+          id: `aero-${Date.now()}`,
+      };
+      setAeroResults(prev => [newResult, ...prev]);
+      return newResult;
   };
   
   const updateAeroResult = (updatedResult: AeroResult) => {

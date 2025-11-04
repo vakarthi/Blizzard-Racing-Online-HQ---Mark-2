@@ -53,7 +53,6 @@ export interface ScrutineeringItem {
 export interface AeroResult {
   id: string;
   timestamp: string;
-  isBest: boolean;
   
   // Input parameters
   parameters: DesignParameters;
@@ -189,6 +188,8 @@ export interface PublicPortalContent {
   car: {
     title: string;
     subtitle: string;
+    carModelFbx: string | null;
+    isCarModelBlurred: boolean;
   };
   competition: {
     title: string;

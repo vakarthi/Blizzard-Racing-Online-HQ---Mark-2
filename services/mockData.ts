@@ -136,7 +136,9 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   },
   car: {
       title: "The BR-02 Challenger",
-      subtitle: "A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car."
+      subtitle: "A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car.",
+      carModelFbx: null,
+      isCarModelBlurred: true,
   },
   competition: {
       title: "Competition Readiness",

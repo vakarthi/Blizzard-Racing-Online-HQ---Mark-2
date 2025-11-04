@@ -1,9 +1,11 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { useData, useAuth } from '../../contexts/AppContext';
 import { PublicPortalContent, StatItem, UserRole } from '../../types';
 import { EditIcon, HistoryIcon, SaveIcon, TrashIcon, UploadIcon, XIcon } from '../../components/icons';
+import FbxViewer from '../../components/shared/FbxViewer';
 
 const PortalEditorPage: React.FC = () => {
     const { user } = useAuth();
@@ -19,7 +21,7 @@ const PortalEditorPage: React.FC = () => {
         setIsDirty(false);
     }, [publicPortalContent]);
 
-    const handleInputChange = (section: keyof PublicPortalContent, field: string, value: string) => {
+    const handleInputChange = (section: keyof PublicPortalContent, field: string, value: any) => {
         setEditableContent(prev => ({
             ...prev,
             [section]: {
@@ -34,6 +36,14 @@ const PortalEditorPage: React.FC = () => {
         const reader = new FileReader();
         reader.onloadend = () => {
             handleInputChange(section, field, reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleFbxUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            handleInputChange('car', 'carModelFbx', reader.result as string);
         };
         reader.readAsDataURL(file);
     };
@@ -83,11 +93,52 @@ const PortalEditorPage: React.FC = () => {
     ];
 
     const renderEditor = () => {
-        const currentSection = editableContent[activeSection];
+        const currentSectionData = editableContent[activeSection];
+        
+        if (activeSection === 'car') {
+             return (
+                 <fieldset disabled={isMember} className="space-y-6">
+                    <h2 className="text-2xl font-bold text-brand-accent">Our Car Page Editor</h2>
+                    <div>
+                        <label className="block text-sm font-bold text-brand-text-secondary mb-1">Title</label>
+                        <input type="text" value={editableContent.car.title} onChange={e => handleInputChange('car', 'title', e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-brand-text-secondary mb-1">Subtitle</label>
+                        <textarea value={editableContent.car.subtitle} onChange={e => handleInputChange('car', 'subtitle', e.target.value)} rows={3} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                    </div>
+                    <div className="border-t border-brand-border pt-6 space-y-4">
+                        <h3 className="text-xl font-bold text-brand-text">3D Model</h3>
+                        <div>
+                            <label className="block text-sm font-bold text-brand-text-secondary mb-1">Upload FBX Model</label>
+                            <input type="file" accept=".fbx" onChange={e => e.target.files && handleFbxUpload(e.target.files[0])} className="block w-full text-sm text-brand-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/20 file:text-brand-accent hover:file:bg-brand-accent/30 cursor-pointer"/>
+                            {editableContent.car.carModelFbx && (
+                                <button onClick={() => handleInputChange('car', 'carModelFbx', null)} className="text-xs text-red-400 hover:underline mt-1">Remove Model</button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                id="blur-toggle"
+                                checked={editableContent.car.isCarModelBlurred}
+                                onChange={e => handleInputChange('car', 'isCarModelBlurred', e.target.checked)}
+                                className="h-5 w-5 rounded border-brand-border text-brand-accent focus:ring-brand-accent bg-brand-dark"
+                            />
+                            <label htmlFor="blur-toggle" className="text-sm font-medium text-brand-text">Blur model on public page (for reveals)</label>
+                        </div>
+                        <div>
+                             <label className="block text-sm font-bold text-brand-text-secondary mb-2">Live Preview</label>
+                            <FbxViewer fbxDataUrl={editableContent.car.carModelFbx} isBlurred={editableContent.car.isCarModelBlurred} />
+                        </div>
+                    </div>
+                </fieldset>
+            )
+        }
+        
         return (
             <fieldset disabled={isMember} className="space-y-6">
                 <h2 className="text-2xl font-bold text-brand-accent">{sections.find(s=>s.key === activeSection)?.name} Editor</h2>
-                {Object.entries(currentSection).map(([field, value]) => {
+                {Object.entries(currentSectionData).map(([field, value]) => {
                     if (field === 'stats') { // Special handler for stats array
                         return (
                             <div key="stats-editor">

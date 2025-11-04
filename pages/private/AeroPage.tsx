@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { runAdvancedCfdSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
 import { extractParametersFromFileName } from '../../services/fileAnalysisService';
 import { AeroResult, DesignParameters } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon, BarChartIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
@@ -123,6 +123,73 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
     );
 };
 
+const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> = ({ results, onClear }) => {
+    const bestValues = useMemo(() => ({
+        liftToDragRatio: Math.max(...results.map(r => r.liftToDragRatio)),
+        cl: Math.max(...results.map(r => r.cl)),
+        cd: Math.min(...results.map(r => r.cd)),
+        aeroBalance: results.reduce((best, current) => 
+            (Math.abs(current.aeroBalance - 50) < Math.abs(best.aeroBalance - 50) ? current : best), results[0]
+        ).aeroBalance,
+    }), [results]);
+
+    const metrics: { key: keyof AeroResult; label: string; higherIsBetter?: boolean }[] = [
+        { key: 'liftToDragRatio', label: 'L/D Ratio', higherIsBetter: true },
+        { key: 'cd', label: 'Drag (Cd)', higherIsBetter: false },
+        { key: 'cl', label: 'Lift (Cl)', higherIsBetter: true },
+        { key: 'aeroBalance', label: 'Aero Balance (% F)' },
+        { key: 'convergenceStatus', label: 'Convergence' },
+        { key: 'simulationTime', label: 'Sim Time (s)' },
+    ];
+
+    return (
+        <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in">
+            <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-bold text-brand-text flex items-center gap-3"><BarChartIcon className="w-6 h-6 text-brand-accent"/> Comparison Analysis</h2>
+                 <button onClick={onClear} className="text-sm font-semibold text-brand-accent hover:underline">Clear Selection</button>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px] text-sm">
+                    <thead>
+                        <tr className="border-b-2 border-brand-border">
+                            <th className="text-left p-2 font-semibold text-brand-text-secondary">Metric</th>
+                            {results.map(r => (
+                                <th key={r.id} className="text-center p-2 font-semibold truncate" title={r.parameters.carName}>{r.parameters.carName}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {metrics.map(metric => (
+                            <tr key={metric.key} className="border-b border-brand-border/50">
+                                <td className="p-2 font-semibold text-brand-text-secondary">{metric.label}</td>
+                                {results.map(r => {
+                                    const value = r[metric.key as keyof AeroResult];
+                                    let isBestValue = false;
+                                    if (typeof value === 'number') {
+                                        if (metric.key === 'aeroBalance') {
+                                            isBestValue = value === bestValues.aeroBalance;
+                                        } else if (metric.higherIsBetter) {
+                                            isBestValue = value === bestValues[metric.key as keyof typeof bestValues];
+                                        } else {
+                                            isBestValue = value === bestValues[metric.key as keyof typeof bestValues];
+                                        }
+                                    }
+
+                                    return (
+                                        <td key={`${r.id}-${metric.key}`} className={`text-center p-2 font-mono ${isBestValue ? 'text-green-400 font-bold' : 'text-brand-text'}`}>
+                                            {typeof value === 'number' ? value.toFixed(3) : String(value)}
+                                        </td>
+                                    )
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
 const AeroPage: React.FC = () => {
   const { aeroResults, addAeroResult } = useData();
   const [isSimulating, setIsSimulating] = useState(false);
@@ -132,6 +199,35 @@ const AeroPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
+
+  const bestResultId = useMemo(() => {
+    if (aeroResults.length === 0) return null;
+    return aeroResults.reduce((best, current) => 
+        current.liftToDragRatio > best.liftToDragRatio ? current : best
+    ).id;
+  }, [aeroResults]);
+
+  const comparisonResults = useMemo(() => {
+    // Preserve original sort order from aeroResults for consistency
+    return aeroResults.filter(r => comparisonIds.has(r.id));
+  }, [aeroResults, comparisonIds]);
+  
+  const handleToggleComparison = (resultId: string) => {
+    setComparisonIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(resultId)) {
+            newSet.delete(resultId);
+        } else {
+            newSet.add(resultId);
+        }
+        return newSet;
+    });
+  };
+
+  const clearComparison = () => {
+      setComparisonIds(new Set());
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -195,14 +291,13 @@ const AeroPage: React.FC = () => {
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
-            id: 'temp', 
-            isBest: false,
+            id: 'temp',
             fileName: file.name
         };
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
         const scrutineeringReport = performScrutineering(designParameters);
         
-        const finalResult: Omit<AeroResult, 'id' | 'isBest'> = {
+        const finalResult: Omit<AeroResult, 'id'> = {
             ...simResultData,
             fileName: file.name,
             suggestions,
@@ -228,6 +323,10 @@ const AeroPage: React.FC = () => {
       <h1 className="text-3xl font-bold text-brand-text">Aero Analysis & Scrutineering</h1>
       {isSimulating && <SimulationProgressModal progressData={simulationProgress} />}
       
+      {comparisonResults.length >= 2 && (
+          <AeroComparison results={comparisonResults} onClear={clearComparison} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
             <ErrorBoundary>
@@ -284,31 +383,49 @@ const AeroPage: React.FC = () => {
                 <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border">
                   <h2 className="text-xl font-bold text-brand-text mb-4">Simulation History</h2>
                   <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                      {aeroResults.map((result) => (
-                      <div key={result.id} onClick={() => setSelectedResult(result)} className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition-all ${result.isBest ? 'bg-green-500/10 border-green-500/30 shadow-sm' : 'bg-brand-dark border-brand-border hover:bg-brand-border'}`}>
-                          <div>
-                              <p className="font-bold text-brand-text flex items-center">
-                                  {result.isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
-                                  {result.parameters.carName}
-                              </p>
-                              <p className="text-xs text-brand-text-secondary">{result.fileName} &bull; {new Date(result.timestamp).toLocaleString()}</p>
+                      {aeroResults.map((result) => {
+                        const isSelected = comparisonIds.has(result.id);
+                        const isBest = result.id === bestResultId;
+                        return (
+                          <div key={result.id} className={`p-3 rounded-lg border flex items-center justify-between transition-all ${
+                                isSelected ? 'bg-brand-accent/10 border-brand-accent/50 shadow-md' :
+                                isBest ? 'bg-green-500/10 border-green-500/30' : 
+                                'bg-brand-dark border-brand-border hover:border-brand-accent/30'
+                            }`}
+                          >
+                              <div className="flex items-center">
+                                <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleComparison(result.id)}
+                                    className="h-5 w-5 rounded border-brand-border text-brand-accent focus:ring-brand-accent bg-brand-dark mr-4 flex-shrink-0"
+                                />
+                                <div onClick={() => setSelectedResult(result)} className="cursor-pointer">
+                                  <p className="font-bold text-brand-text flex items-center">
+                                      {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
+                                      {result.parameters.carName}
+                                  </p>
+                                  <p className="text-xs text-brand-text-secondary">{result.fileName} &bull; {new Date(result.timestamp).toLocaleString()}</p>
+                                </div>
+                              </div>
+
+                              <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer">
+                                <div>
+                                    <p className="font-semibold text-brand-text-secondary">L/D</p>
+                                    <p className={`font-bold text-lg ${isBest ? 'text-green-400' : 'text-brand-text'}`}>{result.liftToDragRatio}</p>
+                                </div>
+                                 <div>
+                                    <p className="font-semibold text-brand-text-secondary">Cd</p>
+                                    <p className="text-brand-text">{result.cd}</p>
+                                </div>
+                                 <div>
+                                    <p className="font-semibold text-brand-text-secondary">Cl</p>
+                                    <p className="text-brand-text">{result.cl}</p>
+                                </div>
+                              </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-center">
-                            <div>
-                                <p className="font-semibold text-brand-text-secondary">L/D</p>
-                                <p className={`font-bold text-lg ${result.isBest ? 'text-green-400' : 'text-brand-text'}`}>{result.liftToDragRatio}</p>
-                            </div>
-                             <div>
-                                <p className="font-semibold text-brand-text-secondary">Cd</p>
-                                <p className="text-brand-text">{result.cd}</p>
-                            </div>
-                             <div>
-                                <p className="font-semibold text-brand-text-secondary">Cl</p>
-                                <p className="text-brand-text">{result.cl}</p>
-                            </div>
-                          </div>
-                      </div>
-                      ))}
+                        )
+                      })}
                       {aeroResults.length === 0 && <p className="text-center text-brand-text-secondary p-4">No simulations have been run yet.</p>}
                   </div>
                 </div>
