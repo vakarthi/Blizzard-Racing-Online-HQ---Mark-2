@@ -1,5 +1,4 @@
-import { AeroResult, DesignParameters } from '../types';
-import { getRaceTimePrediction } from './geminiService';
+import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction } from '../types';
 
 // Helper for promise-based sleep
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -58,87 +57,111 @@ export const runVirtualGrandPrixSimulation = async (
         onProgress({ stage: 'Solving Flow Field', progress, log: `Iteration ${iterations}/${totalIterations}... Residuals stable.` });
     }
 
-    // --- Advanced Physics Model v2.2 (Fully Deterministic & Corrected) ---
-    // This upgraded model provides a more realistic simulation of aerodynamic interplay.
-    
-    // Base coefficients for a streamlined body.
-    const frontalAreaFactor = (params.totalWidth / 90) ** 1.5;
-    const wettedAreaFactor = (params.totalLength * params.totalWidth) / (200 * 85);
+    // --- Advanced Physics Model v3.0 (Normalized Coefficients) ---
+    // This model uses a reference area to correctly calculate dimensionless aero coefficients.
+    const A_ref = params.totalWidth * 45;
+    const frontalAreaFactor = (params.totalWidth / 90);
     const lengthToWidthRatio = params.totalLength / params.totalWidth;
-    // Sigmoid function for a smooth effect of slenderness
     const bodySlendernessFactor = 1 / (1 + Math.exp(-(lengthToWidthRatio - 2.5)));
-
-    let Cl_body = 0.4 * bodySlendernessFactor;
-    let Cd_parasitic = 0.08 * frontalAreaFactor * wettedAreaFactor;
-
-    // --- Wing Calculations ---
+    const planformArea = params.totalLength * params.totalWidth;
+    let Cl_body = 0.2 * bodySlendernessFactor * (planformArea / A_ref);
+    let Cd_parasitic = 0.7 * frontalAreaFactor;
     const frontWingArea = params.frontWingSpan * params.frontWingChord;
     const AR_front = params.frontWingChord > 0 ? (params.frontWingSpan ** 2) / frontWingArea : 0;
-    
-    // Using height as a proxy for rear wing chord
     const rearWingEffectiveChord = params.rearWingHeight * 0.75;
     const rearWingArea = params.rearWingSpan * rearWingEffectiveChord;
     const AR_rear = rearWingEffectiveChord > 0 ? (params.rearWingSpan ** 2) / rearWingArea : 0;
-
-    // Front Wing Downforce - also generates 'outwash' to clean air around wheels
     const outwashFactor = (params.frontWingSpan / params.totalWidth);
-    Cd_parasitic *= (1 - outwashFactor * 0.15); // Outwash reduces body/wheel drag
-    // FIX: Corrected lift calculation. The previous formula incorrectly cancelled out the wing chord.
-    // This model now assumes a baseline lift factor and scales by area.
-    const Cl_front = (frontWingArea / 1000) * 0.8;
-
-    // Rear Wing Downforce - heavily affected by wake from the front of the car
-    // Wake is stronger with more front downforce and on shorter cars
-    const wakePenalty = (Cl_front * 1.5) * (1 - (params.totalLength - 170) / 40);
-    const rearWingEfficiency = Math.max(0.1, 1 - wakePenalty); // Rear wing can't have negative efficiency
-    // FIX: Corrected lift calculation for the rear wing.
-    const Cl_rear = (rearWingArea / 1000) * 0.9 * rearWingEfficiency;
-
-    // Ground Effect Simulation - more potent with lower rear wing
+    Cd_parasitic *= (1 - outwashFactor * 0.1);
+    const WING_EFFICIENCY_FACTOR = 1.3;
+    const Cl_front = WING_EFFICIENCY_FACTOR * (frontWingArea / A_ref);
+    const wakePenalty = (Cl_front * 2.5) * (1 - (params.totalLength - 170) / 40);
+    const rearWingEfficiency = Math.max(0.1, 1 - wakePenalty);
+    const Cl_rear = WING_EFFICIENCY_FACTOR * (rearWingArea / A_ref) * rearWingEfficiency;
     const groundEffectFactor = 1 + (1 - (params.rearWingHeight / 50));
-    const groundEffectDownforce = Math.max(0, groundEffectFactor * 0.15 * bodySlendernessFactor);
-    
+    const groundEffectDownforce = Math.max(0, groundEffectFactor * 0.05 * bodySlendernessFactor);
     const cl = Cl_body + Cl_front + Cl_rear + groundEffectDownforce;
-
-    // --- Drag Calculations ---
-    // 1. Parasitic Drag (form drag) - already calculated
-    // 2. Skin Friction Drag - from surface area
     const reynoldsNumberFactor = 1 + (params.totalLength / 210 - 1) * 0.1;
     const Cd_skin = 0.04 * reynoldsNumberFactor;
-    
-    // 3. Induced Drag - a consequence of generating lift, based on Cl^2 / (pi*e*AR)
-    const averageAR = (AR_front + AR_rear) / 2;
-    const oswaldEfficiency = 0.75; // for a complex shape like an F1 car
-    const Cd_induced = averageAR > 0 ? (cl ** 2) / (Math.PI * oswaldEfficiency * averageAR) : 0;
-
+    const totalWingArea = frontWingArea + rearWingArea;
+    const weightedAverageAR = totalWingArea > 0 ? (AR_front * frontWingArea + AR_rear * rearWingArea) / totalWingArea : 1;
+    const oswaldEfficiency = 0.7;
+    const Cd_induced = weightedAverageAR > 0 ? (cl ** 2) / (Math.PI * oswaldEfficiency * weightedAverageAR) : 0;
     let cd = Cd_parasitic + Cd_skin + Cd_induced;
-    
-    // --- Final Metrics ---
     const finalDragBreakdown = {
         pressure: cd > 0 ? (Cd_parasitic + Cd_induced) / cd * 100 : 0,
         skinFriction: cd > 0 ? Cd_skin / cd * 100 : 0
     };
-    
     const totalDownforce = cl;
     const aeroBalance = totalDownforce > 0 ? ((Cl_front + groundEffectDownforce * 0.2) / totalDownforce) * 100 : 50;
 
     // Stage 5: Convergence Check (2s)
-    // Deterministic convergence check based on aero balance
     const isUnstable = aeroBalance < 40 || aeroBalance > 60;
-    // FIX: Explicitly type convergenceStatus to match the AeroResult interface.
     const convergenceStatus: 'Converged' | 'Diverged' = isUnstable ? 'Diverged' : 'Converged';
-
-    // Penalize results if simulation diverged due to instability
-    if (convergenceStatus === 'Diverged') {
-        cd *= 1.5; // Drastically increase drag
-        // cl *= 0.5; // Cl is a result of geometry, divergence shouldn't change it, but it makes drag calculation unstable
-    }
-    
+    if (convergenceStatus === 'Diverged') { cd *= 1.5; }
     onProgress({ stage: 'Checking Convergence', progress: 82, log: `Final convergence criteria ${isUnstable ? 'NOT met. Solution diverged' : 'met'}.` });
     await sleep(2000);
 
-    const liftToDragRatio = cl / cd;
+    // Stage 6: Performance & Consistency Analysis (20m Track)
+    onProgress({ stage: 'Performance & Consistency Analysis', progress: 83, log: 'Initiating 10,000-race simulation for 20m drag strip...' });
+    const NUM_SIMULATIONS = 10000;
+    const raceTimes: number[] = [];
+    const dragCoefficients: number[] = [];
+    const topSpeeds: number[] = [];
+    
+    // F1 in Schools Physics Constants
+    const RACE_DISTANCE = 20; // meters
+    const CO2_THRUST_FORCE = 3.0; // Newtons (average)
+    const CO2_THRUST_DURATION = 0.4; // seconds
+    const VARIATION_FACTOR = 0.02; // 2% variation in conditions
+    const DT = 0.001; // Simulation time step in seconds
+    const mass = params.totalWeight / 1000; // kg
+    const frontalArea = (params.totalWidth / 1000) * (45 / 1000); // m^2 approximation
 
+    for (let i = 0; i < NUM_SIMULATIONS; i++) {
+        const conditionVariation = (Math.random() - 0.5) * VARIATION_FACTOR;
+        const current_cd = cd * (1 + conditionVariation);
+        
+        let time = 0;
+        let distance = 0;
+        let velocity = 0;
+        let maxVelocity = 0;
+
+        while(distance < RACE_DISTANCE) {
+            const thrust = time < CO2_THRUST_DURATION ? CO2_THRUST_FORCE * (1 + conditionVariation) : 0;
+            // FIX: Corrected variable name from AIR_DENSITY to airDensity.
+            const dragForce = 0.5 * airDensity * (velocity**2) * current_cd * frontalArea;
+            const netForce = thrust - dragForce;
+            const acceleration = netForce / mass;
+
+            velocity += acceleration * DT;
+            if (velocity < 0) velocity = 0; // Car can't go backwards
+            if (velocity > maxVelocity) maxVelocity = velocity;
+
+            distance += velocity * DT;
+            time += DT;
+        }
+
+        raceTimes.push(time);
+        topSpeeds.push(maxVelocity);
+        dragCoefficients.push(current_cd);
+
+        if ((i + 1) % 1000 === 0) {
+            await sleep(100);
+            const progress = 83 + ((i + 1) / NUM_SIMULATIONS) * 12;
+            onProgress({ stage: 'Performance & Consistency Analysis', progress, log: `Completed ${i + 1}/${NUM_SIMULATIONS} race simulations...` });
+        }
+    }
+
+    const probabilisticData: ProbabilisticRaceTimePrediction = {
+        bestRaceTime: Math.min(...raceTimes),
+        worstRaceTime: Math.max(...raceTimes),
+        averageRaceTime: raceTimes.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS,
+        averageDrag: parseFloat((dragCoefficients.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS).toFixed(4)),
+        averageTopSpeed: topSpeeds.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS,
+    };
+
+    const liftToDragRatio = cd > 0 ? cl / cd : 0;
     let flowAnalysis = "Flow is highly attached with well-defined, stable wake structures. ";
     if (convergenceStatus === 'Diverged') {
         flowAnalysis = "Major flow separation detected due to severe aerodynamic imbalance. The simulation diverged, and the results are unreliable.";
@@ -148,7 +171,6 @@ export const runVirtualGrandPrixSimulation = async (
         flowAnalysis += "Pressure distribution is optimal, indicating a very stable center of pressure."
     }
 
-    // CFD Result Object
      const cfdResult = {
         parameters: params,
         cd: parseFloat(cd.toFixed(4)),
@@ -163,16 +185,12 @@ export const runVirtualGrandPrixSimulation = async (
         timestamp: new Date().toISOString(),
         meshQuality: parseFloat(meshQuality.toFixed(1)),
         convergenceStatus,
-        simulationTime: 0 // Will be set at the end
+        simulationTime: 0
     };
 
-    // Stage 6: Race Performance Prediction (AI-powered, variable time)
-    onProgress({ stage: 'Predicting Race Performance', progress: 90, log: 'Communicating with AI Performance Model... This is more than CFD.' });
-    const raceTimePrediction = await getRaceTimePrediction(cfdResult);
-
-    // Stage 7: Post-processing (5s)
-    onProgress({ stage: 'Post-processing Results', progress: 98, log: 'Generating high-resolution result plots and reports...' });
-    await sleep(5000);
+    // Stage 7: Post-processing
+    onProgress({ stage: 'Post-processing Results', progress: 95, log: 'Generating high-resolution result plots and reports...' });
+    await sleep(2000);
 
     onProgress({ stage: 'Complete', progress: 100, log: 'Simulation finished.' });
 
@@ -181,7 +199,7 @@ export const runVirtualGrandPrixSimulation = async (
 
     return {
         ...cfdResult,
-        raceTimePrediction,
+        raceTimePrediction: probabilisticData,
         simulationTime: parseFloat(simulationTime.toFixed(1)),
     };
   } catch (e) {

@@ -16,6 +16,9 @@ const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9"x2="15" y2="15"/></svg>
 );
+const SpeedometerIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/></svg>
+)
 
 const SimulationProgressModal: React.FC<{ progressData: { stage: string; progress: number; logs: string[] } | null }> = ({ progressData }) => {
     if (!progressData) return null;
@@ -92,24 +95,21 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
         return <div className="prose prose-sm max-w-none prose-invert" dangerouslySetInnerHTML={{__html: result.suggestions.replace(/\n/g, '<br />')}} />;
     };
     
-    const renderRacePrediction = () => {
+    const renderRaceAnalysis = () => {
         if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
-        const { predictedLapTime, sectorTimes, topSpeed, performanceSummary } = result.raceTimePrediction;
+        const { bestRaceTime, worstRaceTime, averageRaceTime, averageDrag, averageTopSpeed } = result.raceTimePrediction;
+
         return (
             <div className="space-y-4">
                 <div className="text-center bg-brand-dark p-4 rounded-lg">
-                    <p className="text-sm text-brand-text-secondary">Predicted Lap Time (Blizzard GP Circuit)</p>
-                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{predictedLapTime}</p>
+                    <p className="text-sm text-brand-text-secondary">Average Race Time (10,000 Races)</p>
+                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{averageRaceTime.toFixed(3)}s</p>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 1</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s1}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 2</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s2}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 3</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s3}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{topSpeed} <span className="text-lg">km/h</span></p></div>
-                </div>
-                <div className="p-4 bg-brand-dark rounded-lg">
-                    <p className="text-sm font-semibold text-brand-text-secondary mb-2">AI Performance Analysis</p>
-                    <p className="text-brand-text leading-relaxed text-sm">{performanceSummary}</p>
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
+                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{bestRaceTime.toFixed(3)}s</p></div>
+                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{worstRaceTime.toFixed(3)}s</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Drag (Cd)</p><p className="text-2xl font-bold text-brand-text font-mono">{averageDrag.toFixed(4)}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{averageTopSpeed.toFixed(2)} m/s</p></div>
                 </div>
             </div>
         );
@@ -117,14 +117,14 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
 
     return (
         <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.parameters.carName}`}>
-            <div className="flex border-b border-brand-border mb-4">
-                <button onClick={() => setActiveTab('prediction')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'prediction' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><StopwatchIcon className="w-4 h-4" /> Race Prediction</button>
-                <button onClick={() => setActiveTab('analysis')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
-                <button onClick={() => setActiveTab('suggestions')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'suggestions' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><LightbulbIcon className="w-4 h-4" /> Suggestions</button>
-                <button onClick={() => setActiveTab('scrutineering')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'scrutineering' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileTextIcon className="w-4 h-4" /> Scrutineering</button>
+            <div className="flex border-b border-brand-border mb-4 overflow-x-auto">
+                <button onClick={() => setActiveTab('prediction')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'prediction' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><StopwatchIcon className="w-4 h-4" /> Race Analysis</button>
+                <button onClick={() => setActiveTab('analysis')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
+                <button onClick={() => setActiveTab('suggestions')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'suggestions' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><LightbulbIcon className="w-4 h-4" /> Suggestions</button>
+                <button onClick={() => setActiveTab('scrutineering')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'scrutineering' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileTextIcon className="w-4 h-4" /> Scrutineering</button>
             </div>
             <div>
-                {activeTab === 'prediction' && renderRacePrediction()}
+                {activeTab === 'prediction' && renderRaceAnalysis()}
                 {activeTab === 'analysis' && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -228,9 +228,12 @@ const AeroPage: React.FC = () => {
 
   const bestResultId = useMemo(() => {
     if (aeroResults.length === 0) return null;
-    return aeroResults.reduce((best, current) => 
-        current.liftToDragRatio > best.liftToDragRatio ? current : best
-    ).id;
+    // Best result is the one with the fastest average race time.
+    return aeroResults.reduce((best, current) => {
+        if (!best.raceTimePrediction) return current;
+        if (!current.raceTimePrediction) return best;
+        return current.raceTimePrediction.averageRaceTime < best.raceTimePrediction.averageRaceTime ? current : best;
+    }).id;
   }, [aeroResults]);
 
   const comparisonResults = useMemo(() => {
@@ -436,20 +439,24 @@ const AeroPage: React.FC = () => {
 
                               <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer w-full sm:w-auto justify-end mt-2 sm:mt-0">
                                 <div>
-                                    <p className="font-semibold text-brand-text-secondary text-xs">Lap Time</p>
-                                    <p className={`font-bold text-lg font-mono ${result.raceTimePrediction ? 'text-brand-accent' : 'text-brand-text-secondary'}`}>
-                                        {result.raceTimePrediction?.predictedLapTime || 'N/A'}
-                                    </p>
+                                    <p className="font-semibold text-brand-text-secondary text-xs">Avg. Race Time</p>
+                                    <p className="font-bold text-brand-text text-lg">{result.raceTimePrediction ? `${result.raceTimePrediction.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
                                 </div>
-                                <div className="hidden md:block">
-                                    <p className="font-semibold text-brand-text-secondary text-xs">L/D</p>
-                                    <p className={`font-bold text-lg ${isBest ? 'text-green-400' : 'text-brand-text'}`}>{result.liftToDragRatio}</p>
+                                <div className="w-px h-8 bg-brand-border mx-2"></div>
+                                <div>
+                                    <p className="font-semibold text-brand-text-secondary text-xs">L/D Ratio</p>
+                                    <p className="font-bold text-brand-text text-lg">{result.liftToDragRatio}</p>
                                 </div>
                               </div>
                           </div>
                         )
                       })}
-                      {aeroResults.length === 0 && <p className="text-center text-brand-text-secondary p-4">No simulations have been run yet.</p>}
+                      {aeroResults.length === 0 && (
+                          <div className="text-center p-8 text-brand-text-secondary">
+                              <p>No simulations have been run yet.</p>
+                              <p className="text-sm">Upload a STEP file to get started.</p>
+                          </div>
+                      )}
                   </div>
                 </div>
             </ErrorBoundary>

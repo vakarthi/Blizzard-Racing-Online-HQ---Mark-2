@@ -50,15 +50,12 @@ export interface ScrutineeringItem {
   value: string;
 }
 
-export interface RaceTimePrediction {
-  predictedLapTime: string; // e.g., "1:24.351"
-  sectorTimes: {
-    s1: string; // e.g., "28.142"
-    s2: string; // e.g., "35.981"
-    s3: string; // e.g., "20.228"
-  };
-  topSpeed: number; // km/h
-  performanceSummary: string; // AI-generated text analysis
+export interface ProbabilisticRaceTimePrediction {
+    bestRaceTime: number; // seconds
+    worstRaceTime: number; // seconds
+    averageRaceTime: number; // seconds
+    averageDrag: number; // Cd
+    averageTopSpeed: number; // m/s
 }
 
 export interface AeroResult {
@@ -83,7 +80,7 @@ export interface AeroResult {
   // AI Generated Content
   suggestions?: string;
   scrutineeringReport?: ScrutineeringItem[];
-  raceTimePrediction?: RaceTimePrediction;
+  raceTimePrediction?: ProbabilisticRaceTimePrediction;
   
   // Professional Simulation Data
   meshQuality?: number; // %
