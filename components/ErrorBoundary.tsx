@@ -27,6 +27,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   handleRetry = () => {
+    // FIX: Property 'setState' does not exist on type 'ErrorBoundary'. This is fixed by extending React.Component.
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -57,6 +58,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
+    // FIX: Property 'props' does not exist on type 'ErrorBoundary'. This is fixed by extending React.Component.
     return this.props.children;
   }
 }

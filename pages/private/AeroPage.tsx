@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { runAdvancedCfdSimulation } from '../../services/simulationService';
+import { runVirtualGrandPrixSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
 import { extractParametersFromFileName } from '../../services/fileAnalysisService';
 import { AeroResult, DesignParameters } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon, BarChartIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon, BarChartIcon, StopwatchIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
@@ -31,7 +31,7 @@ const SimulationProgressModal: React.FC<{ progressData: { stage: string; progres
         <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fade-in">
             <div className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl border border-brand-border">
                 <div className="p-4 border-b border-brand-border">
-                    <h2 className="text-xl font-bold text-brand-accent">CFD Simulation in Progress</h2>
+                    <h2 className="text-xl font-bold text-brand-accent">Virtual GP Simulation in Progress</h2>
                     <p className="text-sm text-brand-text-secondary">This process is computationally intensive and will take a few minutes.</p>
                 </div>
                 <div className="p-6">
@@ -62,7 +62,7 @@ const SimulationProgressModal: React.FC<{ progressData: { stage: string; progres
 };
 
 const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void }> = ({ result, onClose }) => {
-    const [activeTab, setActiveTab] = useState('analysis');
+    const [activeTab, setActiveTab] = useState('prediction');
 
     const renderScrutineering = () => {
         if (!result.scrutineeringReport) return <div className="text-center p-8 text-brand-text-secondary">No scrutineering report available.</div>;
@@ -91,15 +91,40 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
         if (!result.suggestions) return <div className="text-center p-8 text-brand-text-secondary">No suggestions were generated for this run.</div>;
         return <div className="prose prose-sm max-w-none prose-invert" dangerouslySetInnerHTML={{__html: result.suggestions.replace(/\n/g, '<br />')}} />;
     };
+    
+    const renderRacePrediction = () => {
+        if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
+        const { predictedLapTime, sectorTimes, topSpeed, performanceSummary } = result.raceTimePrediction;
+        return (
+            <div className="space-y-4">
+                <div className="text-center bg-brand-dark p-4 rounded-lg">
+                    <p className="text-sm text-brand-text-secondary">Predicted Lap Time (Blizzard GP Circuit)</p>
+                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{predictedLapTime}</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 1</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s1}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 2</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s2}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sector 3</p><p className="text-2xl font-bold text-brand-text font-mono">{sectorTimes.s3}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{topSpeed} <span className="text-lg">km/h</span></p></div>
+                </div>
+                <div className="p-4 bg-brand-dark rounded-lg">
+                    <p className="text-sm font-semibold text-brand-text-secondary mb-2">AI Performance Analysis</p>
+                    <p className="text-brand-text leading-relaxed text-sm">{performanceSummary}</p>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.parameters.carName}`}>
             <div className="flex border-b border-brand-border mb-4">
-                <button onClick={() => setActiveTab('analysis')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Performance</button>
+                <button onClick={() => setActiveTab('prediction')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'prediction' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><StopwatchIcon className="w-4 h-4" /> Race Prediction</button>
+                <button onClick={() => setActiveTab('analysis')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
                 <button onClick={() => setActiveTab('suggestions')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'suggestions' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><LightbulbIcon className="w-4 h-4" /> Suggestions</button>
                 <button onClick={() => setActiveTab('scrutineering')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'scrutineering' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileTextIcon className="w-4 h-4" /> Scrutineering</button>
             </div>
             <div>
+                {activeTab === 'prediction' && renderRacePrediction()}
                 {activeTab === 'analysis' && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -287,7 +312,7 @@ const AeroPage: React.FC = () => {
             ...extractedParams,
         };
         
-        const simResultData = await runAdvancedCfdSimulation(designParameters, onProgress);
+        const simResultData = await runVirtualGrandPrixSimulation(designParameters, onProgress);
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
@@ -331,7 +356,7 @@ const AeroPage: React.FC = () => {
         <div className="lg:col-span-1">
             <ErrorBoundary>
                 <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full">
-                    <h2 className="text-xl font-bold text-brand-text mb-4">New Simulation</h2>
+                    <h2 className="text-xl font-bold text-brand-text mb-4">New VGP Simulation</h2>
                     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSimulate(); }}>
                         <div>
                             <label htmlFor="carName" className="text-sm font-semibold text-brand-text-secondary">Design Iteration Name</label>
@@ -371,7 +396,7 @@ const AeroPage: React.FC = () => {
                             disabled={isSimulating || !file || !carName.trim()}
                             className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
                         >
-                           <WindIcon className="w-5 h-5 mr-2" /> Start CFD Analysis
+                           <WindIcon className="w-5 h-5 mr-2" /> Start VGP Analysis
                         </button>
                     </form>
                 </div>
@@ -387,40 +412,38 @@ const AeroPage: React.FC = () => {
                         const isSelected = comparisonIds.has(result.id);
                         const isBest = result.id === bestResultId;
                         return (
-                          <div key={result.id} className={`p-3 rounded-lg border flex items-center justify-between transition-all ${
+                          <div key={result.id} className={`p-3 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center justify-between transition-all gap-2 ${
                                 isSelected ? 'bg-brand-accent/10 border-brand-accent/50 shadow-md' :
                                 isBest ? 'bg-green-500/10 border-green-500/30' : 
                                 'bg-brand-dark border-brand-border hover:border-brand-accent/30'
                             }`}
                           >
-                              <div className="flex items-center">
+                              <div className="flex items-center w-full sm:w-auto">
                                 <input 
                                     type="checkbox"
                                     checked={isSelected}
                                     onChange={() => handleToggleComparison(result.id)}
                                     className="h-5 w-5 rounded border-brand-border text-brand-accent focus:ring-brand-accent bg-brand-dark mr-4 flex-shrink-0"
                                 />
-                                <div onClick={() => setSelectedResult(result)} className="cursor-pointer">
+                                <div onClick={() => setSelectedResult(result)} className="cursor-pointer flex-grow">
                                   <p className="font-bold text-brand-text flex items-center">
                                       {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
                                       {result.parameters.carName}
                                   </p>
-                                  <p className="text-xs text-brand-text-secondary">{result.fileName} &bull; {new Date(result.timestamp).toLocaleString()}</p>
+                                  <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
                                 </div>
                               </div>
 
-                              <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer">
+                              <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer w-full sm:w-auto justify-end mt-2 sm:mt-0">
                                 <div>
-                                    <p className="font-semibold text-brand-text-secondary">L/D</p>
+                                    <p className="font-semibold text-brand-text-secondary text-xs">Lap Time</p>
+                                    <p className={`font-bold text-lg font-mono ${result.raceTimePrediction ? 'text-brand-accent' : 'text-brand-text-secondary'}`}>
+                                        {result.raceTimePrediction?.predictedLapTime || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="hidden md:block">
+                                    <p className="font-semibold text-brand-text-secondary text-xs">L/D</p>
                                     <p className={`font-bold text-lg ${isBest ? 'text-green-400' : 'text-brand-text'}`}>{result.liftToDragRatio}</p>
-                                </div>
-                                 <div>
-                                    <p className="font-semibold text-brand-text-secondary">Cd</p>
-                                    <p className="text-brand-text">{result.cd}</p>
-                                </div>
-                                 <div>
-                                    <p className="font-semibold text-brand-text-secondary">Cl</p>
-                                    <p className="text-brand-text">{result.cl}</p>
                                 </div>
                               </div>
                           </div>

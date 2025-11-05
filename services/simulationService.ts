@@ -1,4 +1,5 @@
 import { AeroResult, DesignParameters } from '../types';
+import { getRaceTimePrediction } from './geminiService';
 
 // Helper for promise-based sleep
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -10,7 +11,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  * @param onProgress A callback to report simulation progress.
  * @returns A promise that resolves with the detailed AeroResult.
  */
-export const runAdvancedCfdSimulation = async (
+export const runVirtualGrandPrixSimulation = async (
   params: DesignParameters,
   onProgress: (update: { stage: string; progress: number, log?: string }) => void
 ): Promise<Omit<AeroResult, 'id' | 'isBest' | 'suggestions' | 'scrutineeringReport' | 'fileName'>> => {
@@ -19,9 +20,9 @@ export const runAdvancedCfdSimulation = async (
 
   try {
     // Stage 1: Initialization (3s)
-    onProgress({ stage: 'Initializing Solver', progress: 2, log: 'Solver setup complete. Reading high-resolution geometry data...' });
+    onProgress({ stage: 'Initializing Solver', progress: 1, log: 'Solver setup complete. Reading high-resolution geometry data...' });
     await sleep(1000);
-    onProgress({ stage: 'Initializing Solver', progress: 2, log: `Setting simulation parameters: Inlet velocity ${INLET_VELOCITY.toFixed(1)} m/s...` });
+    onProgress({ stage: 'Initializing Solver', progress: 1, log: `Setting simulation parameters: Inlet velocity ${INLET_VELOCITY.toFixed(1)} m/s...` });
     
     // Calculate Reynolds number for realism
     const airDensity = 1.225; // kg/m^3
@@ -29,21 +30,21 @@ export const runAdvancedCfdSimulation = async (
     const characteristicLength = params.totalLength / 1000; // meters
     const reynoldsNumber = (airDensity * INLET_VELOCITY * characteristicLength) / airViscosity;
     await sleep(2000);
-    onProgress({ stage: 'Initializing Solver', progress: 4, log: `Flow regime calculated: Reynolds number ~${Math.round(reynoldsNumber / 1000)}k. Turbulent model engaged.` });
+    onProgress({ stage: 'Initializing Solver', progress: 2, log: `Flow regime calculated: Reynolds number ~${Math.round(reynoldsNumber / 1000)}k. Turbulent model engaged.` });
 
 
     // Stage 2: Surface Mesh (15s)
-    onProgress({ stage: 'Generating Surface Mesh', progress: 15, log: 'Surface mesh generation started... targeting 25M triangles.' });
+    onProgress({ stage: 'Generating Surface Mesh', progress: 10, log: 'Surface mesh generation started... targeting 25M triangles.' });
     await sleep(15000);
-    onProgress({ stage: 'Generating Surface Mesh', progress: 15, log: 'Surface mesh generated with 25M triangles.' });
+    onProgress({ stage: 'Generating Surface Mesh', progress: 10, log: 'Surface mesh generated with 25M triangles.' });
 
 
     // Stage 3: Volume Mesh (25s)
-    onProgress({ stage: 'Generating Volume Mesh', progress: 35, log: 'Volume mesh generation started... targeting 65M cells.' });
+    onProgress({ stage: 'Generating Volume Mesh', progress: 25, log: 'Volume mesh generation started... targeting 65M cells.' });
     await sleep(25000);
     // Deterministic mesh quality based on design complexity
     const meshQuality = 98.5 - (params.frontWingSpan / 90) - (params.rearWingSpan / 90) - (params.totalWidth / 90) * 1.5;
-    onProgress({ stage: 'Generating Volume Mesh', progress: 35, log: `Volume mesh generated with 65M cells. Mesh quality check: ${meshQuality.toFixed(1)}%` });
+    onProgress({ stage: 'Generating Volume Mesh', progress: 25, log: `Volume mesh generated with 65M cells. Mesh quality check: ${meshQuality.toFixed(1)}%` });
 
 
     // Stage 4: Solving (100s)
@@ -53,11 +54,11 @@ export const runAdvancedCfdSimulation = async (
     for (let i = 1; i <= updateCount; i++) {
         await sleep(solveDuration / updateCount);
         const iterations = Math.floor((i / updateCount) * totalIterations);
-        const progress = 35 + (i / updateCount) * 55; // Solving takes 55% of progress
+        const progress = 25 + (i / updateCount) * 55; // Solving takes 55% of progress
         onProgress({ stage: 'Solving Flow Field', progress, log: `Iteration ${iterations}/${totalIterations}... Residuals stable.` });
     }
 
-    // --- Advanced Physics Model v2.1 (Fully Deterministic) ---
+    // --- Advanced Physics Model v2.2 (Fully Deterministic & Corrected) ---
     // This upgraded model provides a more realistic simulation of aerodynamic interplay.
     
     // Base coefficients for a streamlined body.
@@ -82,13 +83,16 @@ export const runAdvancedCfdSimulation = async (
     // Front Wing Downforce - also generates 'outwash' to clean air around wheels
     const outwashFactor = (params.frontWingSpan / params.totalWidth);
     Cd_parasitic *= (1 - outwashFactor * 0.15); // Outwash reduces body/wheel drag
-    const Cl_front = (frontWingArea / 1000) * (AR_front * 0.1);
+    // FIX: Corrected lift calculation. The previous formula incorrectly cancelled out the wing chord.
+    // This model now assumes a baseline lift factor and scales by area.
+    const Cl_front = (frontWingArea / 1000) * 0.8;
 
     // Rear Wing Downforce - heavily affected by wake from the front of the car
     // Wake is stronger with more front downforce and on shorter cars
     const wakePenalty = (Cl_front * 1.5) * (1 - (params.totalLength - 170) / 40);
     const rearWingEfficiency = Math.max(0.1, 1 - wakePenalty); // Rear wing can't have negative efficiency
-    const Cl_rear = (rearWingArea / 1000) * (AR_rear * 0.1) * rearWingEfficiency;
+    // FIX: Corrected lift calculation for the rear wing.
+    const Cl_rear = (rearWingArea / 1000) * 0.9 * rearWingEfficiency;
 
     // Ground Effect Simulation - more potent with lower rear wing
     const groundEffectFactor = 1 + (1 - (params.rearWingHeight / 50));
@@ -121,7 +125,8 @@ export const runAdvancedCfdSimulation = async (
     // Stage 5: Convergence Check (2s)
     // Deterministic convergence check based on aero balance
     const isUnstable = aeroBalance < 40 || aeroBalance > 60;
-    const convergenceStatus = isUnstable ? 'Diverged' : 'Converged';
+    // FIX: Explicitly type convergenceStatus to match the AeroResult interface.
+    const convergenceStatus: 'Converged' | 'Diverged' = isUnstable ? 'Diverged' : 'Converged';
 
     // Penalize results if simulation diverged due to instability
     if (convergenceStatus === 'Diverged') {
@@ -129,7 +134,7 @@ export const runAdvancedCfdSimulation = async (
         // cl *= 0.5; // Cl is a result of geometry, divergence shouldn't change it, but it makes drag calculation unstable
     }
     
-    onProgress({ stage: 'Checking Convergence', progress: 92, log: `Final convergence criteria ${isUnstable ? 'NOT met. Solution diverged' : 'met'}.` });
+    onProgress({ stage: 'Checking Convergence', progress: 82, log: `Final convergence criteria ${isUnstable ? 'NOT met. Solution diverged' : 'met'}.` });
     await sleep(2000);
 
     const liftToDragRatio = cl / cd;
@@ -143,16 +148,8 @@ export const runAdvancedCfdSimulation = async (
         flowAnalysis += "Pressure distribution is optimal, indicating a very stable center of pressure."
     }
 
-    // Stage 6: Post-processing (5s)
-    onProgress({ stage: 'Post-processing Results', progress: 98, log: 'Generating high-resolution result plots and reports...' });
-    await sleep(5000);
-
-    onProgress({ stage: 'Complete', progress: 100, log: 'Simulation finished.' });
-
-    const endTime = Date.now();
-    const simulationTime = (endTime - startTime) / 1000;
-
-    return {
+    // CFD Result Object
+     const cfdResult = {
         parameters: params,
         cd: parseFloat(cd.toFixed(4)),
         cl: parseFloat(cl.toFixed(4)),
@@ -166,6 +163,25 @@ export const runAdvancedCfdSimulation = async (
         timestamp: new Date().toISOString(),
         meshQuality: parseFloat(meshQuality.toFixed(1)),
         convergenceStatus,
+        simulationTime: 0 // Will be set at the end
+    };
+
+    // Stage 6: Race Performance Prediction (AI-powered, variable time)
+    onProgress({ stage: 'Predicting Race Performance', progress: 90, log: 'Communicating with AI Performance Model... This is more than CFD.' });
+    const raceTimePrediction = await getRaceTimePrediction(cfdResult);
+
+    // Stage 7: Post-processing (5s)
+    onProgress({ stage: 'Post-processing Results', progress: 98, log: 'Generating high-resolution result plots and reports...' });
+    await sleep(5000);
+
+    onProgress({ stage: 'Complete', progress: 100, log: 'Simulation finished.' });
+
+    const endTime = Date.now();
+    const simulationTime = (endTime - startTime) / 1000;
+
+    return {
+        ...cfdResult,
+        raceTimePrediction,
         simulationTime: parseFloat(simulationTime.toFixed(1)),
     };
   } catch (e) {
