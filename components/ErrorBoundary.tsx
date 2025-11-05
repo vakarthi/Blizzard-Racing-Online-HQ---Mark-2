@@ -1,7 +1,3 @@
-
-// FIX: Changed React import to be compatible with environments where esModuleInterop is false.
-// This resolves issues where the component class doesn't correctly inherit from React.Component,
-// leading to errors like 'setState' or 'props' not being found.
 import * as React from 'react';
 import { AlertTriangleIcon } from './icons';
 
@@ -14,7 +10,7 @@ interface State {
   error: Error | null;
 }
 
-// FIX: Extended React.Component to make this a valid class component, which provides access to `this.props`, `this.state`, and lifecycle methods.
+// FIX: The ErrorBoundary class must extend React.Component to use component features like state and props.
 class ErrorBoundary extends React.Component<Props, State> {
   state: State = {
     hasError: false,

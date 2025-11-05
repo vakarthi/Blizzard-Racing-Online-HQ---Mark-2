@@ -55,16 +55,18 @@ export interface ProbabilisticRaceTimePrediction {
     worstRaceTime: number; // seconds
     averageRaceTime: number; // seconds
     averageDrag: number; // Cd
+    bestTopSpeed: number; // m/s
+    worstTopSpeed: number; // m/s
     averageTopSpeed: number; // m/s
 }
 
 export interface AeroResult {
   id: string;
   timestamp: string;
+  fileName: string;
   
   // Input parameters
   parameters: DesignParameters;
-  fileName: string;
 
   // Simulation Outputs
   cd: number; // Coefficient of Drag

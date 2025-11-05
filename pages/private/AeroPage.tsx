@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { runVirtualGrandPrixSimulation } from '../../services/simulationService';
+import { runAerotestCFDSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
-import { extractParametersFromFileName } from '../../services/fileAnalysisService';
-import { AeroResult, DesignParameters } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, UploadCloudIcon, BarChartIcon, StopwatchIcon } from '../../components/icons';
+import { analyzeStepFile } from '../../services/fileAnalysisService';
+import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction } from '../../types';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
@@ -16,9 +16,6 @@ const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9"x2="15" y2="15"/></svg>
 );
-const SpeedometerIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/></svg>
-)
 
 const SimulationProgressModal: React.FC<{ progressData: { stage: string; progress: number; logs: string[] } | null }> = ({ progressData }) => {
     if (!progressData) return null;
@@ -34,7 +31,7 @@ const SimulationProgressModal: React.FC<{ progressData: { stage: string; progres
         <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fade-in">
             <div className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl border border-brand-border">
                 <div className="p-4 border-b border-brand-border">
-                    <h2 className="text-xl font-bold text-brand-accent">Virtual GP Simulation in Progress</h2>
+                    <h2 className="text-xl font-bold text-brand-accent">Aerotest Simulation in Progress</h2>
                     <p className="text-sm text-brand-text-secondary">This process is computationally intensive and will take a few minutes.</p>
                 </div>
                 <div className="p-6">
@@ -98,25 +95,30 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
     const renderRaceAnalysis = () => {
         if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
         const pred = result.raceTimePrediction;
+        
+        // Robustly handle cases where prediction data might be missing (e.g., from old localStorage)
+        const toFixedSafe = (val: number | undefined, digits: number) => (val != null ? val.toFixed(digits) : 'N/A');
 
         return (
             <div className="space-y-4">
-                <div className="text-center bg-brand-dark p-4 rounded-lg">
-                    <p className="text-sm text-brand-text-secondary">Average Race Time (10,000 Races)</p>
-                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{pred.averageRaceTime != null ? `${pred.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestRaceTime, 3)}s</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Time</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageRaceTime, 3)}s</p></div>
+                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstRaceTime, 3)}s</p></div>
+                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestTopSpeed, 2)} m/s</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageTopSpeed, 2)} m/s</p></div>
+                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstTopSpeed, 2)} m/s</p></div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{pred.bestRaceTime != null ? `${pred.bestRaceTime.toFixed(3)}s` : 'N/A'}</p></div>
-                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{pred.worstRaceTime != null ? `${pred.worstRaceTime.toFixed(3)}s` : 'N/A'}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Drag (Cd)</p><p className="text-2xl font-bold text-brand-text font-mono">{pred.averageDrag != null ? pred.averageDrag.toFixed(4) : 'N/A'}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{pred.averageTopSpeed != null ? `${pred.averageTopSpeed.toFixed(2)} m/s` : 'N/A'}</p></div>
+                <div className="text-center bg-brand-dark p-4 rounded-lg mt-4">
+                    <p className="text-sm text-brand-text-secondary">Average Drag Coefficient (Cd)</p>
+                    <p className="text-3xl font-bold text-brand-accent font-mono tracking-tighter">{toFixedSafe(pred.averageDrag, 4)}</p>
                 </div>
             </div>
         );
     };
 
     return (
-        <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.parameters.carName}`}>
+        <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.fileName}`}>
             <div className="flex border-b border-brand-border mb-4 overflow-x-auto">
                 <button onClick={() => setActiveTab('prediction')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'prediction' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><StopwatchIcon className="w-4 h-4" /> Race Analysis</button>
                 <button onClick={() => setActiveTab('analysis')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
@@ -179,7 +181,7 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
                         <tr className="border-b-2 border-brand-border">
                             <th className="text-left p-2 font-semibold text-brand-text-secondary">Metric</th>
                             {results.map(r => (
-                                <th key={r.id} className="text-center p-2 font-semibold truncate" title={r.parameters.carName}>{r.parameters.carName}</th>
+                                <th key={r.id} className="text-center p-2 font-semibold truncate" title={r.fileName}>{r.fileName}</th>
                             ))}
                         </tr>
                     </thead>
@@ -215,29 +217,53 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
     );
 };
 
+
 const AeroPage: React.FC = () => {
   const { aeroResults, addAeroResult } = useData();
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationProgress, setSimulationProgress] = useState<{ stage: string; progress: number; logs: string[] } | null>(null);
   const [selectedResult, setSelectedResult] = useState<AeroResult | null>(null);
-  const [carName, setCarName] = useState('BR-04-Alpha');
-  const [file, setFile] = useState<File | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const [stepFile, setStepFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
+  
+  const handleFileChange = (file: File | null) => {
+    if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
+        setStepFile(file);
+    } else if (file) {
+        alert("Invalid file type. Please upload a .STEP or .STP file.");
+    }
+  };
+
+  const handleDragEvents = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+        setIsDragOver(true);
+    } else if (e.type === 'dragleave') {
+        setIsDragOver(false);
+    }
+  };
+  
+  const handleDrop = (e: DragEvent) => {
+    handleDragEvents(e);
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileChange(e.dataTransfer.files[0]);
+    }
+  };
 
   const bestResultId = useMemo(() => {
     if (aeroResults.length === 0) return null;
-    // Best result is the one with the fastest average race time.
     return aeroResults.reduce((best, current) => {
-        if (!best.raceTimePrediction) return current;
-        if (!current.raceTimePrediction) return best;
-        return current.raceTimePrediction.averageRaceTime < best.raceTimePrediction.averageRaceTime ? current : best;
+        const bestTime = best.raceTimePrediction?.averageRaceTime ?? Infinity;
+        const currentTime = current.raceTimePrediction?.averageRaceTime ?? Infinity;
+        return currentTime < bestTime ? current : best;
     }).id;
   }, [aeroResults]);
 
   const comparisonResults = useMemo(() => {
-    // Preserve original sort order from aeroResults for consistency
     return aeroResults.filter(r => comparisonIds.has(r.id));
   }, [aeroResults, comparisonIds]);
   
@@ -257,44 +283,16 @@ const AeroPage: React.FC = () => {
       setComparisonIds(new Set());
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const openFileExplorer = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleSimulate = async () => {
-    if (!file || !carName.trim()) {
-        alert("Please provide a design name and a STEP file.");
+    if (!stepFile) {
+        alert("Please upload a STEP file to simulate.");
         return;
     }
     setIsSimulating(true);
-    setSimulationProgress({ stage: 'Preparing...', progress: 0, logs: ['Simulation requested...'] });
+    setSimulationProgress({ stage: 'Preparing...', progress: 0, logs: [`Analyzing file: ${stepFile.name}`] });
     try {
+        const parameters = await analyzeStepFile(stepFile);
+        
         const onProgress = (update: { stage: string; progress: number; log?: string }) => {
             setSimulationProgress(prev => {
                 const newLogs = [...(prev?.logs || [])];
@@ -308,34 +306,28 @@ const AeroPage: React.FC = () => {
                 };
             });
         };
-
-        const extractedParams = extractParametersFromFileName(file.name);
-        const designParameters: DesignParameters = {
-            carName,
-            ...extractedParams,
-        };
         
-        const simResultData = await runVirtualGrandPrixSimulation(designParameters, onProgress);
+        const simResultData = await runAerotestCFDSimulation(parameters, onProgress);
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
             id: 'temp',
-            fileName: file.name
+            fileName: stepFile.name,
+            parameters: parameters,
         };
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
-        const scrutineeringReport = performScrutineering(designParameters);
+        const scrutineeringReport = performScrutineering(parameters);
         
         const finalResult: Omit<AeroResult, 'id'> = {
             ...simResultData,
-            fileName: file.name,
+            fileName: stepFile.name,
             suggestions,
             scrutineeringReport
         };
         
         addAeroResult(finalResult);
-        setFile(null);
         
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Pause on completion
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
     } catch (error) {
         console.error("Simulation failed", error);
@@ -358,50 +350,39 @@ const AeroPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
             <ErrorBoundary>
-                <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full">
-                    <h2 className="text-xl font-bold text-brand-text mb-4">New VGP Simulation</h2>
-                    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSimulate(); }}>
-                        <div>
-                            <label htmlFor="carName" className="text-sm font-semibold text-brand-text-secondary">Design Iteration Name</label>
-                            <input
-                                type="text"
-                                id="carName"
-                                value={carName}
-                                onChange={(e) => setCarName(e.target.value)}
-                                className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-semibold text-brand-text-secondary">Upload STEP File</label>
-                            <div
-                                onDragEnter={handleDrag}
-                                onDragLeave={handleDrag}
-                                onDragOver={handleDrag}
-                                onDrop={handleDrop}
-                                onClick={openFileExplorer}
-                                className={`mt-1 p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${dragActive ? 'border-brand-accent bg-brand-accent/10' : 'border-brand-border hover:border-brand-accent'}`}
-                            >
-                                <input ref={fileInputRef} type="file" className="hidden" accept=".step,.stp" onChange={handleFileChange} />
-                                <UploadCloudIcon className="w-10 h-10 mx-auto text-brand-text-secondary mb-2" />
-                                {file ? (
-                                    <p className="text-brand-accent font-semibold">{file.name}</p>
-                                ) : (
-                                    <p className="text-brand-text-secondary">Drag & drop your file here or click to browse</p>
-                                )}
-                                <p className="text-xs text-brand-text-secondary/50 mt-1">Accepted formats: .step, .stp</p>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isSimulating || !file || !carName.trim()}
-                            className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
-                        >
-                           <WindIcon className="w-5 h-5 mr-2" /> Start VGP Analysis
-                        </button>
-                    </form>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full flex flex-col">
+                    <h2 className="text-xl font-bold text-brand-text mb-4">New Aerotest Simulation</h2>
+                    <div 
+                        onDragEnter={handleDragEvents}
+                        onDragOver={handleDragEvents}
+                        onDragLeave={handleDragEvents}
+                        onDrop={handleDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`flex-grow flex flex-col justify-center items-center p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragOver ? 'border-brand-accent bg-brand-accent/10' : 'border-brand-border hover:border-brand-accent/50'}`}
+                    >
+                        <UploadCloudIcon className="w-12 h-12 text-brand-text-secondary mb-2" />
+                        <p className="font-semibold text-brand-text">
+                            {stepFile ? 'File Selected:' : 'Drag & drop STEP file here'}
+                        </p>
+                        <p className="text-sm text-brand-text-secondary">
+                           {stepFile ? stepFile.name : 'or click to browse'}
+                        </p>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : null)}
+                            accept=".step,.stp"
+                            className="hidden"
+                        />
+                    </div>
+                    {stepFile && <button onClick={() => setStepFile(null)} className="text-xs text-red-400 hover:underline text-center mt-2">Clear selection</button>}
+                    <button
+                        onClick={handleSimulate}
+                        disabled={isSimulating || !stepFile}
+                        className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
+                    >
+                       <WindIcon className="w-5 h-5 mr-2" /> Start Aerotest Analysis
+                    </button>
                 </div>
             </ErrorBoundary>
         </div>
@@ -414,6 +395,7 @@ const AeroPage: React.FC = () => {
                       {aeroResults.map((result) => {
                         const isSelected = comparisonIds.has(result.id);
                         const isBest = result.id === bestResultId;
+                        const avgTime = result.raceTimePrediction?.averageRaceTime;
                         return (
                           <div key={result.id} className={`p-3 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center justify-between transition-all gap-2 ${
                                 isSelected ? 'bg-brand-accent/10 border-brand-accent/50 shadow-md' :
@@ -431,7 +413,7 @@ const AeroPage: React.FC = () => {
                                 <div onClick={() => setSelectedResult(result)} className="cursor-pointer flex-grow">
                                   <p className="font-bold text-brand-text flex items-center">
                                       {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
-                                      {result.parameters.carName}
+                                      {result.fileName}
                                   </p>
                                   <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
                                 </div>
@@ -440,7 +422,7 @@ const AeroPage: React.FC = () => {
                               <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer w-full sm:w-auto justify-end mt-2 sm:mt-0">
                                 <div>
                                     <p className="font-semibold text-brand-text-secondary text-xs">Avg. Race Time</p>
-                                    <p className="font-bold text-brand-text text-lg">{result.raceTimePrediction?.averageRaceTime != null ? `${result.raceTimePrediction.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
+                                    <p className="font-bold text-brand-text text-lg">{avgTime != null ? `${avgTime.toFixed(3)}s` : 'N/A'}</p>
                                 </div>
                                 <div className="w-px h-8 bg-brand-border mx-2"></div>
                                 <div>
@@ -454,7 +436,7 @@ const AeroPage: React.FC = () => {
                       {aeroResults.length === 0 && (
                           <div className="text-center p-8 text-brand-text-secondary">
                               <p>No simulations have been run yet.</p>
-                              <p className="text-sm">Upload a STEP file to get started.</p>
+                              <p className="text-sm">Upload a STEP file to run your first analysis.</p>
                           </div>
                       )}
                   </div>
