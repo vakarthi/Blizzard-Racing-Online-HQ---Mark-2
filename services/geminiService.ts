@@ -1,7 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AeroResult, RaceTimePrediction } from '../types';
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
 /**
  * Generates a hyper-accurate race time prediction using the Gemini 2.5 Pro model.
@@ -47,6 +46,7 @@ export const getRaceTimePrediction = async (result: Omit<AeroResult, 'id' | 'fil
     `;
 
     try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-pro',
             contents: prompt,

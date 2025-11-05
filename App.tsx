@@ -5,7 +5,7 @@ import { useAuth } from './contexts/AppContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/shared/LoadingSpinner';
 
-const HqApp = lazy(() => import('./HqApp'));
+const HqApp = lazy(() => import('./pages/HqApp'));
 const PublicPortal = lazy(() => import('./pages/PublicPortal'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 

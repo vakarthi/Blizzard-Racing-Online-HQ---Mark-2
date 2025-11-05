@@ -1,11 +1,11 @@
 
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from '../contexts/AppContext';
 import { UserRole } from '../types';
 import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
+import useInactivityTimeout from '../hooks/useInactivityTimeout';
 import DashboardPage from './private/DashboardPage';
 import AeroPage from './private/AeroPage';
 import ProjectsPage from './private/ProjectsPage';
@@ -41,6 +41,10 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+
+  // Auto-logout after 5 minutes of inactivity.
+  const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+  useInactivityTimeout(logout, INACTIVITY_TIMEOUT_MS);
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));
@@ -177,8 +181,8 @@ const HqApp: React.FC = () => {
                 <Route path="comms" element={<CommunicationsPage />} />
                 <Route path="socials" element={<SocialsPage />} />
                 <Route path="toolbox" element={<ToolboxPage />} />
-                <Route path="settings" element={<SettingsPage />} />
                 <Route path="portal-editor" element={<PortalEditorPage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 {user?.role === UserRole.Manager && <Route path="manager" element={<ManagerPanelGate />} />}
                 <Route path="*" element={<div>Not Found</div>} />
             </Routes>
