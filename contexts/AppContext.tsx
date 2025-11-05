@@ -1,9 +1,8 @@
 
-
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, SetStateAction, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
-import { MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS, MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT } from '../services/mockData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useSyncedStore } from '../hooks/useSyncedStore';
 import { generateAvatar } from '../utils/avatar';
 
 
@@ -87,48 +86,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DataContext = createContext<DataContextType | undefined>(undefined);
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
 
-const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
-
-
 // --- PROVIDER COMPONENT ---
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Auth State
+  // Auth State remains in localStorage as it's session-specific
   const [user, setUser] = useLocalStorage<User | null>('brh-user', null);
   const [biometricConfig, setBiometricConfigState] = useLocalStorage<BiometricConfig | null>('brh-biometric-config', null);
   
-  // Memoize unstable initial values for useLocalStorage to prevent re-subscribing to storage events on every render.
-  const initialAeroResults = useMemo(() => [], []);
-  const initialLoginHistory = useMemo(() => [], []);
-  const initialPortalHistory = useMemo(() => ([{
-    content: INITIAL_PUBLIC_PORTAL_CONTENT,
-    timestamp: new Date().toISOString(),
-    editorId: 'system'
-  }]), []);
-
-  // Data State
-  const [users, setUsers] = useLocalStorage<User[]>('brh-users', MOCK_USERS);
-  const [tasks, setTasks] = useLocalStorage<Task[]>('brh-tasks', MOCK_TASKS);
-  const [aeroResults, setAeroResults] = useLocalStorage<AeroResult[]>('brh-aero', initialAeroResults);
-  const [finances, setFinances] = useLocalStorage<FinancialRecord[]>('brh-finances', MOCK_FINANCES);
-  const [sponsors, setSponsors] = useLocalStorage<Sponsor[]>('brh-sponsors', MOCK_SPONSORS);
-  const [news, setNews] = useLocalStorage<NewsPost[]>('brh-news', MOCK_NEWS);
-  const [carHighlights, setCarHighlights] = useLocalStorage<CarHighlight[]>('brh-car-highlights', MOCK_CAR_HIGHLIGHTS);
-  const [discussionThreads, setDiscussionThreads] = useLocalStorage<DiscussionThread[]>('brh-threads', MOCK_THREADS);
-  const [competitionProgress, setCompetitionProgress] = useLocalStorage<CompetitionProgressItem[]>('brh-comp-progress', MOCK_COMPETITION_PROGRESS);
-  const [protocols, setProtocols] = useLocalStorage<Protocol[]>('brh-protocols', MOCK_PROTOCOLS);
-  const [publicPortalContentHistory, setPublicPortalContentHistory] = useLocalStorage<ContentVersion[]>('brh-portal-history', initialPortalHistory);
-  const [loginHistory, setLoginHistory] = useLocalStorage<LoginRecord[]>('brh-login-history', initialLoginHistory);
-
-  // App State
-  const [announcement, setAnnouncement] = useLocalStorage<string | null>('brh-announcement', 'Welcome to the Blizzard Racing HQ! All systems are operational.');
-  const [competitionDate, setCompetitionDate] = useLocalStorage<string | null>('brh-comp-date', '2024-12-01T09:00:00');
-  const [teamLogoUrl, setTeamLogoUrl] = useLocalStorage<string>('brh-team-logo', DEFAULT_LOGO);
+  // All shared application data now comes from a single, synchronized source.
+  const [store, updateStore] = useSyncedStore();
 
   const logout = useCallback(() => {
     setUser(null);
     window.location.hash = '/login';
   }, [setUser]);
+
+  const setUsers = (action: SetStateAction<User[]>) => {
+    updateStore(currentStore => {
+        const newUsers = action instanceof Function ? action(currentStore.users) : action;
+        return { ...currentStore, users: newUsers };
+    });
+  };
   
   // Security Patch: On initial load, purge any users without a valid domain and log out an invalid active user.
   useEffect(() => {
@@ -153,7 +131,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // This handles cases where a manager modifies a user's role or deletes their account in another tab.
     useEffect(() => {
         if (user) {
-            const userFromMasterList = users.find(u => u.id === user.id);
+            const userFromMasterList = store.users.find(u => u.id === user.id);
             
             if (!userFromMasterList) {
                 // The current user was deleted from the master list; force logout.
@@ -164,19 +142,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 setUser(userFromMasterList);
             }
         }
-    }, [users, user, setUser, logout]);
+    }, [store.users, user, setUser, logout]);
 
 
   // Auth Logic
   const login = async (email: string, pass: string): Promise<User | null> => {
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Security Patch: Enforce domain check at login as a redundant safeguard
-    if (!normalizedEmail.endsWith('@saintolaves.net')) {
-        return null;
-    }
+    if (!normalizedEmail.endsWith('@saintolaves.net')) return null;
 
-    const foundUser = users.find(u => u.email.toLowerCase() === normalizedEmail);
+    const foundUser = store.users.find(u => u.email.toLowerCase() === normalizedEmail);
 
     if (!foundUser) return null;
 
@@ -186,10 +161,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (isValidPassword) {
         setUser(foundUser);
-        setLoginHistory(prev => [
-            { userId: foundUser.id, timestamp: new Date().toISOString() },
-            ...prev
-        ]);
+        updateStore(s => ({ ...s, loginHistory: [{ userId: foundUser.id, timestamp: new Date().toISOString() }, ...s.loginHistory]}));
         return foundUser;
     }
 
@@ -197,268 +169,228 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
-    // This function is for secondary authentication, like accessing the manager panel.
-    // It should be pure and not have side effects like logging the user out.
-    if (!user || user.role !== UserRole.Manager) {
-        // This case should not be reachable due to routing guards, but as a safeguard, deny access.
-        return false;
-    }
-    
-    // Explicitly check the manager password.
-    const isCorrect = password === '__FROSTNOVA__';
-
-    return isCorrect;
+    if (!user || user.role !== UserRole.Manager) return false;
+    return password === '__FROSTNOVA__';
   };
   
   const getBiometricConfig = () => biometricConfig;
+  const setBiometricConfig = (userId: string, credentialId: string) => setBiometricConfigState({ userId, credentialId });
+  const clearBiometricConfig = () => setBiometricConfigState(null);
 
-  const setBiometricConfig = (userId: string, credentialId: string) => {
-    setBiometricConfigState({ userId, credentialId });
+  // --- Data Logic (all functions now use the central `updateStore` dispatcher) ---
+
+  const { publicPortalContent, publicPortalContentHistory } = {
+      publicPortalContent: store.publicPortalContentHistory[0].content,
+      publicPortalContentHistory: store.publicPortalContentHistory,
   };
   
-  const clearBiometricConfig = () => {
-    setBiometricConfigState(null);
-  };
-
-
-  // Data Logic
-  const publicPortalContent = publicPortalContentHistory[0].content;
-
   const updatePublicPortalContent = (newContent: PublicPortalContent) => {
       if (!user) return;
-      const newVersion: ContentVersion = {
-          content: newContent,
-          timestamp: new Date().toISOString(),
-          editorId: user.id
-      };
-      setPublicPortalContentHistory(prev => [newVersion, ...prev]);
+      const newVersion: ContentVersion = { content: newContent, timestamp: new Date().toISOString(), editorId: user.id };
+      updateStore(s => ({ ...s, publicPortalContentHistory: [newVersion, ...s.publicPortalContentHistory]}));
   };
 
   const revertToVersion = (versionIndex: number) => {
-      if (!user || versionIndex <= 0 || versionIndex >= publicPortalContentHistory.length) return;
-      setPublicPortalContentHistory(prev => {
-          const historyCopy = [...prev];
+      if (!user || versionIndex <= 0 || versionIndex >= store.publicPortalContentHistory.length) return;
+      updateStore(s => {
+          const historyCopy = [...s.publicPortalContentHistory];
           const versionToRestore = historyCopy.splice(versionIndex, 1)[0];
-          if (!versionToRestore) return prev;
-          
-          const newCurrentVersion: ContentVersion = {
-              content: versionToRestore.content,
-              timestamp: new Date().toISOString(),
-              editorId: user.id,
-          };
-
-          return [newCurrentVersion, ...historyCopy];
+          if (!versionToRestore) return s;
+          const newCurrentVersion: ContentVersion = { content: versionToRestore.content, timestamp: new Date().toISOString(), editorId: user.id };
+          return { ...s, publicPortalContentHistory: [newCurrentVersion, ...historyCopy] };
       });
   };
 
   const addUser = (user: Omit<User, 'id' | 'avatarUrl'>): boolean => {
-    // Security Patch: Enforce valid email domain for all new users
     if (!user.email.toLowerCase().endsWith('@saintolaves.net')) {
         alert('Security Breach Prevented: Invalid email domain. All team members must use a "@saintolaves.net" email address.');
         return false;
     }
-
-    const newUser: User = {
-      ...user,
-      id: `user-${Date.now()}`,
-      avatarUrl: generateAvatar(user.name),
-    };
-    setUsers(prev => [newUser, ...prev]);
+    const newUser: User = { ...user, id: `user-${Date.now()}`, avatarUrl: generateAvatar(user.name) };
+    updateStore(s => ({ ...s, users: [newUser, ...s.users] }));
     return true;
   };
 
   const updateUser = (userId: string, name: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, name } : u));
-    if(user?.id === userId) {
-        setUser(prev => prev ? {...prev, name} : null);
-    }
+    updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, name } : u) }));
+    if(user?.id === userId) setUser(prev => prev ? {...prev, name} : null);
   };
   
   const updateUserAvatar = (userId: string, avatarDataUrl: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, avatarUrl: avatarDataUrl } : u));
-    if(user?.id === userId) {
-        setUser(prev => prev ? {...prev, avatarUrl: avatarDataUrl} : null);
-    }
+    updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, avatarUrl: avatarDataUrl } : u) }));
+    if(user?.id === userId) setUser(prev => prev ? {...prev, avatarUrl: avatarDataUrl} : null);
   };
 
   const changePassword = async (userId: string, newPassword: string): Promise<boolean> => {
     console.log(`Password for user ${userId} changed to "${newPassword}". This is a mock action.`);
-    // In a real app, this would involve an API call. Here, we simulate success.
     return true;
   };
 
   const addTask = (task: Omit<Task, 'id' | 'status'>) => {
-    const newTask: Task = {
-      ...task,
-      id: `task-${Date.now()}`,
-      status: TaskStatus.ToDo,
-    };
-    setTasks(prev => [newTask, ...prev]);
+    const newTask: Task = { ...task, id: `task-${Date.now()}`, status: TaskStatus.ToDo };
+    updateStore(s => ({ ...s, tasks: [newTask, ...s.tasks] }));
   };
 
   const updateTask = (updatedTask: Task) => {
-    setTasks(prevTasks => prevTasks.map(task => task.id === updatedTask.id ? updatedTask : task));
+    updateStore(s => ({ ...s, tasks: s.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
   };
 
   const deleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    updateStore(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId)}));
   };
   
   const addAeroResult = (result: Omit<AeroResult, 'id'>): AeroResult => {
-      const newResult: AeroResult = {
-          ...result,
-          id: `aero-${Date.now()}`,
-      };
-      setAeroResults(prev => [newResult, ...prev]);
+      const newResult: AeroResult = { ...result, id: `aero-${Date.now()}` };
+      updateStore(s => ({ ...s, aeroResults: [newResult, ...s.aeroResults] }));
       return newResult;
   };
   
   const updateAeroResult = (updatedResult: AeroResult) => {
-    setAeroResults(prevResults => prevResults.map(result => result.id === updatedResult.id ? updatedResult : result));
+    updateStore(s => ({ ...s, aeroResults: s.aeroResults.map(result => result.id === updatedResult.id ? updatedResult : result) }));
   };
 
   const resetAeroResults = () => {
-    setAeroResults([]);
+    updateStore(s => ({ ...s, aeroResults: [] }));
   };
 
   const addFinancialRecord = (record: Omit<FinancialRecord, 'id' | 'date'>) => {
     const newRecord: FinancialRecord = { ...record, id: `fin-${Date.now()}`, date: new Date().toISOString() };
-    setFinances(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    updateStore(s => ({ ...s, finances: [newRecord, ...s.finances].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())}));
   };
 
   const deleteFinancialRecord = (recordId: string) => {
-    setFinances(prev => prev.filter(f => f.id !== recordId));
+    updateStore(s => ({ ...s, finances: s.finances.filter(f => f.id !== recordId)}));
   };
 
   const addSponsor = (sponsor: Omit<Sponsor, 'id' | 'logoUrl' | 'status'>) => {
-    const newSponsor: Sponsor = {
-        ...sponsor,
-        id: `spon-${Date.now()}`,
-        logoUrl: `https://picsum.photos/seed/${sponsor.name.replace(/\s/g, '')}/200/100`,
-        status: 'pending',
-    };
-    setSponsors(prev => [newSponsor, ...prev]);
+    const newSponsor: Sponsor = { ...sponsor, id: `spon-${Date.now()}`, logoUrl: `https://picsum.photos/seed/${sponsor.name.replace(/\s/g, '')}/200/100`, status: 'pending' };
+    updateStore(s => ({ ...s, sponsors: [newSponsor, ...s.sponsors]}));
   };
 
   const updateSponsorStatus = (sponsorId: string, status: 'pending' | 'secured') => {
-    setSponsors(prev => prev.map(s => s.id === sponsorId ? {...s, status} : s));
+    updateStore(s => ({ ...s, sponsors: s.sponsors.map(sp => sp.id === sponsorId ? {...sp, status} : sp)}));
   };
 
   const deleteSponsor = (sponsorId: string) => {
-    setSponsors(prev => prev.filter(s => s.id !== sponsorId));
+    updateStore(s => ({ ...s, sponsors: s.sponsors.filter(sp => sp.id !== sponsorId)}));
   };
 
   const addNewsPost = (post: Omit<NewsPost, 'id' | 'authorId' | 'createdAt'>) => {
     if (!user) return;
-    const newPost: NewsPost = {
-        ...post,
-        id: `news-${Date.now()}`,
-        authorId: user.id,
-        createdAt: new Date().toISOString(),
-    };
-    setNews(prev => [newPost, ...prev]);
+    const newPost: NewsPost = { ...post, id: `news-${Date.now()}`, authorId: user.id, createdAt: new Date().toISOString() };
+    updateStore(s => ({ ...s, news: [newPost, ...s.news] }));
   };
   
   const updateNewsPost = (updatedPost: NewsPost) => {
-    setNews(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+    updateStore(s => ({ ...s, news: s.news.map(p => p.id === updatedPost.id ? updatedPost : p)}));
   };
 
   const deleteNewsPost = (postId: string) => {
-    setNews(prev => prev.filter(p => p.id !== postId));
+    updateStore(s => ({ ...s, news: s.news.filter(p => p.id !== postId)}));
   };
 
   const addCarHighlight = (highlight: Omit<CarHighlight, 'id' | 'imageUrl'>) => {
-    const newHighlight: CarHighlight = {
-        ...highlight,
-        id: `car-${Date.now()}`,
-        imageUrl: `https://picsum.photos/seed/car${Date.now()}/800/600`,
-    };
-    setCarHighlights(prev => [newHighlight, ...prev]);
+    const newHighlight: CarHighlight = { ...highlight, id: `car-${Date.now()}`, imageUrl: `https://picsum.photos/seed/car${Date.now()}/800/600` };
+    updateStore(s => ({ ...s, carHighlights: [newHighlight, ...s.carHighlights]}));
   };
   
   const updateCarHighlight = (updatedHighlight: CarHighlight) => {
-    setCarHighlights(prev => prev.map(h => h.id === updatedHighlight.id ? updatedHighlight : h));
+    updateStore(s => ({ ...s, carHighlights: s.carHighlights.map(h => h.id === updatedHighlight.id ? updatedHighlight : h)}));
   };
 
   const deleteCarHighlight = (highlightId: string) => {
-    setCarHighlights(prev => prev.filter(h => h.id !== highlightId));
+    updateStore(s => ({ ...s, carHighlights: s.carHighlights.filter(h => h.id !== highlightId)}));
   };
 
   const addThread = (title: string, content: string, authorId: string) => {
-    const newPost: DiscussionPost = {
-      id: `post-${Date.now()}`,
-      authorId,
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    const newThread: DiscussionThread = {
-      id: `thread-${Date.now()}`,
-      title,
-      createdBy: authorId,
-      createdAt: new Date().toISOString(),
-      posts: [newPost]
-    };
-    setDiscussionThreads(prev => [newThread, ...prev]);
+    const newPost: DiscussionPost = { id: `post-${Date.now()}`, authorId, content, createdAt: new Date().toISOString() };
+    const newThread: DiscussionThread = { id: `thread-${Date.now()}`, title, createdBy: authorId, createdAt: new Date().toISOString(), posts: [newPost] };
+    updateStore(s => ({ ...s, discussionThreads: [newThread, ...s.discussionThreads]}));
   };
 
   const addPostToThread = (threadId: string, content: string, authorId: string) => {
-    const newPost: DiscussionPost = {
-      id: `post-${Date.now()}`,
-      authorId,
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    setDiscussionThreads(prev => prev.map(thread => 
-      thread.id === threadId 
-        ? { ...thread, posts: [...thread.posts, newPost] }
-        : thread
-    ));
+    const newPost: DiscussionPost = { id: `post-${Date.now()}`, authorId, content, createdAt: new Date().toISOString() };
+    updateStore(s => ({ ...s, discussionThreads: s.discussionThreads.map(thread => thread.id === threadId ? { ...thread, posts: [...thread.posts, newPost] } : thread)}));
   };
 
   const updateCompetitionProgress = (updates: CompetitionProgressItem[]) => {
-    setCompetitionProgress(updates);
+    updateStore(s => ({ ...s, competitionProgress: updates }));
   };
 
   const addProtocol = (protocol: Omit<Protocol, 'id'>) => {
     const newProtocol: Protocol = { ...protocol, id: `proto-${Date.now()}`};
-    setProtocols(prev => [newProtocol, ...prev]);
+    updateStore(s => ({ ...s, protocols: [newProtocol, ...s.protocols]}));
   };
 
   const updateProtocol = (updatedProtocol: Protocol) => {
-    setProtocols(prev => prev.map(p => p.id === updatedProtocol.id ? updatedProtocol : p));
+    updateStore(s => ({ ...s, protocols: s.protocols.map(p => p.id === updatedProtocol.id ? updatedProtocol : p)}));
   };
 
   const deleteProtocol = (protocolId: string) => {
-    setProtocols(prev => prev.filter(p => p.id !== protocolId));
+    updateStore(s => ({ ...s, protocols: s.protocols.filter(p => p.id !== protocolId)}));
   };
 
   const getTeamMember = useCallback((userId: string) => {
-    return users.find(u => u.id === userId);
-  }, [users]);
+    return store.users.find(u => u.id === userId);
+  }, [store.users]);
 
   const loadData = (data: any) => {
-    if (data.users) setUsers(data.users);
-    if (data.tasks) setTasks(data.tasks);
-    if (data.aeroResults) setAeroResults(data.aeroResults);
-    if (data.finances) setFinances(data.finances);
-    if (data.sponsors) setSponsors(data.sponsors);
-    if (data.news) setNews(data.news);
-    if (data.carHighlights) setCarHighlights(data.carHighlights);
-    if (data.discussionThreads) setDiscussionThreads(data.discussionThreads);
-    if (data.announcement) setAnnouncement(data.announcement);
-    if (data.competitionDate) setCompetitionDate(data.competitionDate);
-    if (data.competitionProgress) setCompetitionProgress(data.competitionProgress);
-    if (data.protocols) setProtocols(data.protocols);
-    if (data.teamLogoUrl) setTeamLogoUrl(data.teamLogoUrl);
-    if (data.publicPortalContentHistory) setPublicPortalContentHistory(data.publicPortalContentHistory);
-    if (data.loginHistory) setLoginHistory(data.loginHistory);
+    // This function now replaces the entire store, used for importing backups.
+    updateStore(currentStore => ({
+        ...currentStore,
+        users: data.users || currentStore.users,
+        tasks: data.tasks || currentStore.tasks,
+        aeroResults: data.aeroResults || currentStore.aeroResults,
+        finances: data.finances || currentStore.finances,
+        sponsors: data.sponsors || currentStore.sponsors,
+        news: data.news || currentStore.news,
+        carHighlights: data.carHighlights || currentStore.carHighlights,
+        discussionThreads: data.discussionThreads || currentStore.discussionThreads,
+        announcement: data.announcement !== undefined ? data.announcement : currentStore.announcement,
+        competitionDate: data.competitionDate !== undefined ? data.competitionDate : currentStore.competitionDate,
+        competitionProgress: data.competitionProgress || currentStore.competitionProgress,
+        protocols: data.protocols || currentStore.protocols,
+        teamLogoUrl: data.teamLogoUrl || currentStore.teamLogoUrl,
+        publicPortalContentHistory: data.publicPortalContentHistory || currentStore.publicPortalContentHistory,
+        loginHistory: data.loginHistory || currentStore.loginHistory,
+    }));
   }
 
+  const dataContextValue: DataContextType = {
+      ...store,
+      setUsers,
+      addUser, updateUser, updateUserAvatar, changePassword,
+      addTask, updateTask, deleteTask,
+      addAeroResult, updateAeroResult, resetAeroResults,
+      addFinancialRecord, deleteFinancialRecord,
+      addSponsor, updateSponsorStatus, deleteSponsor,
+      addNewsPost, updateNewsPost, deleteNewsPost,
+      addCarHighlight, updateCarHighlight, deleteCarHighlight,
+      addThread, addPostToThread,
+      updateCompetitionProgress,
+      addProtocol, updateProtocol, deleteProtocol,
+      getTeamMember,
+      loadData,
+      publicPortalContent,
+      publicPortalContentHistory,
+      // FIX: Add missing properties to satisfy the DataContextType interface.
+      updatePublicPortalContent,
+      revertToVersion,
+  };
+
+  const appStateContextValue: AppStateContextType = {
+      announcement: store.announcement,
+      setAnnouncement: (message: string | null) => updateStore(s => ({...s, announcement: message})),
+      competitionDate: store.competitionDate,
+      setCompetitionDate: (date: string) => updateStore(s => ({...s, competitionDate: date})),
+      teamLogoUrl: store.teamLogoUrl,
+      setTeamLogoUrl: (url: string) => updateStore(s => ({...s, teamLogoUrl: url})),
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout, verifyPassword, getBiometricConfig, setBiometricConfig, clearBiometricConfig }}>
-      <DataContext.Provider value={{ users, setUsers, addUser, updateUser, updateUserAvatar, changePassword, tasks, addTask, updateTask, deleteTask, aeroResults, addAeroResult, updateAeroResult, resetAeroResults, finances, addFinancialRecord, deleteFinancialRecord, sponsors, addSponsor, updateSponsorStatus, deleteSponsor, news, addNewsPost, updateNewsPost, deleteNewsPost, carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight, discussionThreads, addThread, addPostToThread, getTeamMember, loadData, competitionProgress, updateCompetitionProgress, protocols, addProtocol, updateProtocol, deleteProtocol, publicPortalContent, publicPortalContentHistory, updatePublicPortalContent, revertToVersion, loginHistory }}>
-        <AppStateContext.Provider value={{ announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl }}>
+      <DataContext.Provider value={dataContextValue}>
+        <AppStateContext.Provider value={appStateContextValue}>
             {children}
         </AppStateContext.Provider>
       </DataContext.Provider>

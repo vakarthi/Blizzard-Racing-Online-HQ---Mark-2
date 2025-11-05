@@ -1,8 +1,12 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+
+// FIX: Changed React import to be compatible with environments where esModuleInterop is false.
+// This resolves issues where the component class doesn't correctly inherit from React.Component,
+// leading to errors like 'setState' or 'props' not being found.
+import * as React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface State {
@@ -21,7 +25,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
 

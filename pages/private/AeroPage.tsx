@@ -97,19 +97,19 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
     
     const renderRaceAnalysis = () => {
         if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
-        const { bestRaceTime, worstRaceTime, averageRaceTime, averageDrag, averageTopSpeed } = result.raceTimePrediction;
+        const pred = result.raceTimePrediction;
 
         return (
             <div className="space-y-4">
                 <div className="text-center bg-brand-dark p-4 rounded-lg">
                     <p className="text-sm text-brand-text-secondary">Average Race Time (10,000 Races)</p>
-                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{averageRaceTime.toFixed(3)}s</p>
+                    <p className="text-5xl font-bold text-brand-accent font-mono tracking-tighter">{pred.averageRaceTime != null ? `${pred.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-center">
-                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{bestRaceTime.toFixed(3)}s</p></div>
-                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{worstRaceTime.toFixed(3)}s</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Drag (Cd)</p><p className="text-2xl font-bold text-brand-text font-mono">{averageDrag.toFixed(4)}</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{averageTopSpeed.toFixed(2)} m/s</p></div>
+                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{pred.bestRaceTime != null ? `${pred.bestRaceTime.toFixed(3)}s` : 'N/A'}</p></div>
+                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{pred.worstRaceTime != null ? `${pred.worstRaceTime.toFixed(3)}s` : 'N/A'}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Drag (Cd)</p><p className="text-2xl font-bold text-brand-text font-mono">{pred.averageDrag != null ? pred.averageDrag.toFixed(4) : 'N/A'}</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Top Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{pred.averageTopSpeed != null ? `${pred.averageTopSpeed.toFixed(2)} m/s` : 'N/A'}</p></div>
                 </div>
             </div>
         );
@@ -440,7 +440,7 @@ const AeroPage: React.FC = () => {
                               <div onClick={() => setSelectedResult(result)} className="flex items-center gap-4 text-sm text-center cursor-pointer w-full sm:w-auto justify-end mt-2 sm:mt-0">
                                 <div>
                                     <p className="font-semibold text-brand-text-secondary text-xs">Avg. Race Time</p>
-                                    <p className="font-bold text-brand-text text-lg">{result.raceTimePrediction ? `${result.raceTimePrediction.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
+                                    <p className="font-bold text-brand-text text-lg">{result.raceTimePrediction?.averageRaceTime != null ? `${result.raceTimePrediction.averageRaceTime.toFixed(3)}s` : 'N/A'}</p>
                                 </div>
                                 <div className="w-px h-8 bg-brand-border mx-2"></div>
                                 <div>
