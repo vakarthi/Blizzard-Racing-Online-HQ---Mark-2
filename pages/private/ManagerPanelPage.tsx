@@ -730,103 +730,50 @@ const ProtocolManagement: React.FC = () => {
                              <div key={index} className="flex items-center gap-2">
                                 <input type="text" value={step} onChange={e => handleStepChange(index, e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-md"/>
                                 <button onClick={() => removeStep(index)} className="text-red-400 p-1 rounded-full hover:bg-red-500/20"><TrashIcon className="w-4 h-4"/></button>
-                            </div>
+                             </div>
                         ))}
-                         <button onClick={addStep} className="text-sm text-brand-accent hover:underline">+ Add Step</button>
+                        <button onClick={addStep} className="text-sm text-brand-accent hover:underline flex items-center gap-1"><PlusCircleIcon className="w-4 h-4"/> Add Step</button>
                     </div>
-                    <div className="flex justify-end">
-                        <button onClick={() => handleSave(protocol)} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">Save Protocol</button>
+                    <div className="pt-4 flex justify-end gap-3">
+                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-brand-border text-brand-text font-semibold rounded-lg">Cancel</button>
+                        <button type="button" onClick={() => handleSave(protocol)} className="px-4 py-2 bg-brand-accent text-brand-dark font-bold rounded-lg">Save Protocol</button>
                     </div>
                 </div>
             </Modal>
         )
-    };
+    }
 
     return (
         <div className="space-y-4">
             {isModalOpen && editingProtocol && <ProtocolEditorModal />}
             <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-brand-text">Manage Protocols</h3>
-                <button onClick={handleAddNew} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> Add Protocol</button>
+                <h3 className="text-xl font-bold text-brand-text">Team Protocols</h3>
+                <button onClick={handleAddNew} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> New Protocol</button>
             </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {protocols.map(p => (
-                    <div key={p.id} className="p-3 bg-brand-dark rounded-lg flex justify-between items-center border border-brand-border">
-                        <div>
-                            <p className="font-semibold text-brand-text">{p.title}</p>
-                            <p className="text-sm text-brand-text-secondary">{p.steps.length} steps</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleEdit(p)} className="text-sm text-brand-accent hover:underline">Edit</button>
-                             <button onClick={() => handleDelete(p.id)} className="text-sm text-red-400 hover:underline">Delete</button>
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
+                {protocols.map(protocol => (
+                    <div key={protocol.id} className="p-3 bg-brand-dark rounded-lg border border-brand-border">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="font-semibold text-brand-text">{protocol.title}</p>
+                                <p className="text-sm text-brand-text-secondary">{protocol.description}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => handleEdit(protocol)} className="text-sm text-brand-accent hover:underline">Edit</button>
+                                <button onClick={() => handleDelete(protocol.id)} className="text-sm text-red-400 hover:underline">Delete</button>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
         </div>
     )
-}
+};
 
-const HQSettings: React.FC = () => {
+const AppSettings: React.FC = () => {
     const { announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl } = useAppState();
-    const data = useData();
-    const { resetAeroResults } = useData();
-    const [newAnnouncement, setNewAnnouncement] = useState(announcement || '');
+    const { loadData, publicPortalContentHistory, loginHistory } = useData(); // for data import/export
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const logoInputRef = useRef<HTMLInputElement>(null);
-
-    const handleSetAnnouncement = () => {
-        setAnnouncement(newAnnouncement);
-        alert("Announcement updated!");
-    };
-    
-    const handleExport = () => {
-        const exportedData = {
-            users: data.users,
-            tasks: data.tasks,
-            aeroResults: data.aeroResults,
-            finances: data.finances,
-            sponsors: data.sponsors,
-            news: data.news,
-            carHighlights: data.carHighlights,
-            discussionThreads: data.discussionThreads,
-            announcement: announcement,
-            competitionDate: competitionDate,
-            competitionProgress: data.competitionProgress,
-            protocols: data.protocols,
-            teamLogoUrl: teamLogoUrl,
-            loginHistory: data.loginHistory,
-        };
-        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(exportedData, null, 2))}`;
-        const link = document.createElement("a");
-        link.href = jsonString;
-        link.download = `blizzard-hq-backup-${new Date().toISOString().split('T')[0]}.json`;
-        link.click();
-    };
-
-    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target?.result;
-                if (typeof text !== 'string') throw new Error("File is not readable");
-                const importedData = JSON.parse(text);
-                 if (window.confirm("Are you sure you want to import this data? This will overwrite all current HQ data.")) {
-                    data.loadData(importedData);
-                    alert("Data imported successfully!");
-                 }
-            } catch (error) {
-                console.error("Failed to parse imported file:", error);
-                alert("Failed to import data. The file may be corrupt or incorrectly formatted.");
-            } finally {
-                if (fileInputRef.current) fileInputRef.current.value = "";
-            }
-        };
-        reader.readAsText(file);
-    };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -834,79 +781,90 @@ const HQSettings: React.FC = () => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setTeamLogoUrl(reader.result as string);
-                alert("Logo updated successfully!");
             };
             reader.readAsDataURL(file);
         }
     };
-    
-    const handleResetAeroData = () => {
-        if (window.confirm("DANGER: Are you sure you want to permanently delete all aerodynamic simulation results? This action cannot be undone.")) {
-            resetAeroResults();
-            alert("All aerodynamic simulation results have been cleared.");
-        }
+
+    const handleExport = () => {
+        // Collect all relevant data from context
+        const dataToExport = {
+          ...useData(), // This grabs the whole data context state
+          announcement,
+          competitionDate,
+          teamLogoUrl,
+          publicPortalContentHistory,
+          loginHistory,
+        };
+        const dataStr = JSON.stringify(dataToExport, null, 2);
+        const blob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `blizzard-racing-hq-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target?.result as string);
+                    if (window.confirm("Are you sure you want to import this data? This will overwrite all current team data.")) {
+                        loadData(importedData);
+                        alert("Data imported successfully.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Failed to parse the import file. Please ensure it's a valid backup file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    
     return (
         <div className="space-y-6">
             <div>
                 <h3 className="text-xl font-bold text-brand-text mb-4">Global Announcement</h3>
-                <p className="text-sm text-brand-text-secondary mb-2">Set a banner message visible to all team members upon login.</p>
-                <div className="flex gap-2">
-                    <input type="text" value={newAnnouncement} onChange={e => setNewAnnouncement(e.target.value)} placeholder="Enter announcement..." className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg"/>
-                    <button onClick={handleSetAnnouncement} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">Set</button>
-                </div>
+                 <input type="text" value={announcement || ''} onChange={e => setAnnouncement(e.target.value)} placeholder="e.g., Team meeting tomorrow at 4 PM" className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
+                 <button onClick={() => setAnnouncement(null)} className="text-xs text-red-400 hover:underline mt-1">Clear Announcement</button>
             </div>
              <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Competition Date</h3>
-                 <p className="text-sm text-brand-text-secondary mb-2">Set the official date and time for the next competition. This will update the countdown on the main dashboard.</p>
-                <input 
-                    type="datetime-local"
-                    value={competitionDate || ''}
-                    onChange={(e) => setCompetitionDate(e.target.value)}
-                    className="p-2 bg-brand-dark border border-brand-border rounded-lg"
-                />
+                <h3 className="text-xl font-bold text-brand-text mb-4">Competition Date</h3>
+                 <input type="datetime-local" value={competitionDate || ''} onChange={e => setCompetitionDate(e.target.value)} className="w-full md:w-1/2 mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
             </div>
              <div className="border-t border-brand-border pt-6">
                 <h3 className="text-xl font-bold text-brand-text mb-4">Team Logo</h3>
-                <p className="text-sm text-brand-text-secondary mb-4">Upload a new logo for the team. It will be displayed on a white background in the sidebar.</p>
                 <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-white rounded-md flex items-center justify-center p-2 border border-brand-border">
-                        <img src={teamLogoUrl} alt="Team Logo" className="max-w-full max-h-full object-contain" />
+                    <div className="bg-white p-2 rounded-md border border-brand-border">
+                        <img src={teamLogoUrl} alt="Team Logo" className="h-16 w-16 object-contain" />
                     </div>
-                    <input type="file" ref={logoInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden" />
-                    <button onClick={() => logoInputRef.current?.click()} className="bg-brand-surface hover:bg-brand-border text-brand-text font-semibold px-4 py-2 rounded-lg flex items-center gap-2">
-                        <UploadIcon className="w-5 h-5"/> Upload New Logo
+                    <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden"/>
+                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-brand-surface hover:bg-brand-border text-sm font-semibold px-4 py-2 rounded-lg">
+                        <UploadIcon className="w-4 h-4"/> Change Logo
                     </button>
                 </div>
             </div>
-             <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Data Management</h3>
-                 <p className="text-sm text-brand-text-secondary mb-4">Export a backup of all application data, or import a file to restore state.</p>
-                 <div className="flex gap-4">
-                     <button onClick={handleExport} className="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 flex items-center gap-2"><DownloadIcon className="w-5 h-5"/> Export All Data</button>
-                     <button onClick={() => fileInputRef.current?.click()} className="bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 flex items-center gap-2"><UploadIcon className="w-5 h-5"/> Import Data</button>
-                     <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
-                 </div>
-                 <p className="text-xs text-red-400 mt-2">Warning: Importing data will overwrite everything currently in the HQ.</p>
-            </div>
-
-            <div className="border-t border-red-500/30 pt-6 mt-6">
-                <h3 className="text-xl font-bold text-red-400 mb-4 flex items-center gap-2">
-                    <AlertTriangleIcon className="w-6 h-6"/> Danger Zone
-                </h3>
-                <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
-                        <div>
-                            <p className="font-semibold text-red-300">Reset All Aero Simulation Data</p>
-                            <p className="text-sm text-red-400/80 mt-1">This will permanently delete all historical simulation results. This action cannot be undone.</p>
-                        </div>
-                        <button 
-                            onClick={handleResetAeroData} 
-                            className="mt-3 md:mt-0 bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 flex-shrink-0"
-                        >
-                            Reset Aero Data
-                        </button>
+            <div className="border-t border-brand-border pt-6">
+                <h3 className="text-xl font-bold text-brand-text mb-4">Data Management</h3>
+                 <p className="text-sm text-brand-text-secondary mb-4">Export a full backup of all team data, or import a previous backup to restore the system state.</p>
+                <div className="flex gap-4">
+                    <button onClick={handleExport} className="flex items-center gap-2 bg-blue-500/20 text-blue-300 font-bold py-2 px-4 rounded-lg hover:bg-blue-500/30">
+                        <DownloadIcon className="w-5 h-5"/> Export Data
+                    </button>
+                     <input type="file" id="import-file" onChange={handleImport} accept=".json" className="hidden"/>
+                    <label htmlFor="import-file" className="flex items-center gap-2 bg-yellow-500/20 text-yellow-300 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500/30 cursor-pointer">
+                        <UploadIcon className="w-5 h-5"/> Import Data
+                    </label>
+                </div>
+                 <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-lg text-sm flex items-start gap-2">
+                    <AlertTriangleIcon className="w-8 h-8 flex-shrink-0" />
+                    <div>
+                        <span className="font-bold">Warning:</span> Importing data is a destructive action that will permanently overwrite all existing information. This cannot be undone. Always export a backup first.
                     </div>
                 </div>
             </div>
@@ -915,55 +873,39 @@ const HQSettings: React.FC = () => {
 };
 
 
-// --- MAIN PANEL PAGE ---
+// --- MAIN COMPONENT ---
 
-type Tab = 'team' | 'activity' | 'finance' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
+type Tab = 'users' | 'activity' | 'finances' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
 
 const ManagerPanelPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<Tab>('team');
+    const [activeTab, setActiveTab] = useState<Tab>('users');
     
-    const tabs: {id: Tab, name: string, icon: React.ReactNode}[] = [
-        { id: 'team', name: 'Team', icon: <UsersIcon className="w-5 h-5" /> },
-        { id: 'activity', name: 'User Activity', icon: <BarChartIcon className="w-5 h-5" /> },
-        { id: 'finance', name: 'Finance', icon: <DollarSignIcon className="w-5 h-5" /> },
-        { id: 'projects', name: 'Project Analytics', icon: <PieChartIcon className="w-5 h-5" /> },
-        { id: 'tasks', name: 'Task Control', icon: <ClipboardListIcon className="w-5 h-5" /> },
-        { id: 'sponsors', name: 'Sponsors', icon: <TrophyIcon className="w-5 h-5" /> },
-        { id: 'content', name: 'Content', icon: <NewspaperIcon className="w-5 h-5" /> },
-        { id: 'competition', name: 'Competition', icon: <FlagIcon className="w-5 h-5" /> },
-        { id: 'protocols', name: 'Protocols', icon: <FileCheckIcon className="w-5 h-5" /> },
-        { id: 'settings', name: 'HQ Settings', icon: <Settings2Icon className="w-5 h-5" /> },
+    const tabs = [
+        { id: 'users', name: 'User Management', icon: <UsersIcon className="w-5 h-5"/>, component: <UserManagement /> },
+        { id: 'activity', name: 'User Activity', icon: <BarChartIcon className="w-5 h-5"/>, component: <UserActivity /> },
+        { id: 'finances', name: 'Financial Command', icon: <DollarSignIcon className="w-5 h-5"/>, component: <FinancialCommand /> },
+        { id: 'projects', name: 'Project Analytics', icon: <PieChartIcon className="w-5 h-5"/>, component: <ProjectAnalytics /> },
+        { id: 'tasks', name: 'Task Control', icon: <ClipboardListIcon className="w-5 h-5"/>, component: <TaskControl /> },
+        { id: 'sponsors', name: 'Sponsorship Hub', icon: <TrophyIcon className="w-5 h-5"/>, component: <SponsorshipHub /> },
+        { id: 'content', name: 'Content Management', icon: <NewspaperIcon className="w-5 h-5"/>, component: <ContentManagement /> },
+        { id: 'competition', name: 'Competition Prep', icon: <FlagIcon className="w-5 h-5"/>, component: <CompetitionManagement /> },
+        { id: 'protocols', name: 'Protocols', icon: <FileCheckIcon className="w-5 h-5"/>, component: <ProtocolManagement /> },
+        { id: 'settings', name: 'App Settings', icon: <Settings2Icon className="w-5 h-5"/>, component: <AppSettings /> },
     ];
 
-    const renderContent = () => {
-        switch (activeTab) {
-            case 'team': return <UserManagement />;
-            case 'activity': return <UserActivity />;
-            case 'finance': return <FinancialCommand />;
-            case 'projects': return <ProjectAnalytics />;
-            case 'tasks': return <TaskControl />;
-            case 'sponsors': return <SponsorshipHub />;
-            case 'content': return <ContentManagement />;
-            case 'competition': return <CompetitionManagement />;
-            case 'protocols': return <ProtocolManagement />;
-            case 'settings': return <HQSettings />;
-            default: return null;
-        }
-    }
+    const activeComponent = tabs.find(tab => tab.id === activeTab)?.component;
 
     return (
         <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-brand-text mb-2">Manager Command Center</h1>
-            <p className="text-brand-text-secondary mb-6">Oversee all team operations from a single dashboard.</p>
-            
+            <h1 className="text-3xl font-bold text-brand-text mb-6">Manager Command Center</h1>
             <div className="flex flex-col lg:flex-row gap-8">
                 <div className="lg:w-1/4">
                     <nav className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
                         {tabs.map(tab => (
-                             <button
+                            <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 w-full flex-shrink-0 text-left p-3 rounded-lg font-semibold transition-colors ${
+                                onClick={() => setActiveTab(tab.id as Tab)}
+                                className={`flex items-center flex-shrink-0 gap-3 w-full text-left p-3 rounded-lg font-semibold transition-colors ${
                                     activeTab === tab.id ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'
                                 }`}
                             >
@@ -975,7 +917,7 @@ const ManagerPanelPage: React.FC = () => {
                 </div>
                 <div className="lg:w-3/4">
                     <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border min-h-[60vh]">
-                        {renderContent()}
+                        {activeComponent}
                     </div>
                 </div>
             </div>
@@ -983,4 +925,5 @@ const ManagerPanelPage: React.FC = () => {
     );
 };
 
+// FIX: Added a default export for the ManagerPanelPage component to resolve the import error in ManagerPanelGate.
 export default ManagerPanelPage;
