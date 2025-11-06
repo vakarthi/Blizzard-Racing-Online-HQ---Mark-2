@@ -191,7 +191,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const revertToVersion = (versionIndex: number) => {
-      if (!user || versionIndex <= 0 || versionIndex >= store.publicPortalContentHistory.length) return;
+      if (!user || versionIndex < 0 || versionIndex >= store.publicPortalContentHistory.length) return;
       updateStore(s => {
           const historyCopy = [...s.publicPortalContentHistory];
           const versionToRestore = historyCopy.splice(versionIndex, 1)[0];
@@ -213,12 +213,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateUser = (userId: string, name: string) => {
     updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, name } : u) }));
-    if(user?.id === userId) setUser(prev => prev ? {...prev, name} : null);
   };
   
   const updateUserAvatar = (userId: string, avatarDataUrl: string) => {
     updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, avatarUrl: avatarDataUrl } : u) }));
-    if(user?.id === userId) setUser(prev => prev ? {...prev, avatarUrl: avatarDataUrl} : null);
   };
 
   const changePassword = async (userId: string, newPassword: string): Promise<boolean> => {
@@ -373,7 +371,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       loadData,
       publicPortalContent,
       publicPortalContentHistory,
-      // FIX: Add missing properties to satisfy the DataContextType interface.
       updatePublicPortalContent,
       revertToVersion,
   };

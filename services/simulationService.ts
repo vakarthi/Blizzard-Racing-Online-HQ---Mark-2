@@ -19,7 +19,7 @@ export const runAerotestCFDSimulation = async (
 
   try {
     // Stage 1: Initialization
-    onProgress({ stage: 'Initializing Aerotest Solver', progress: 1, log: 'Aerotest Solver v4.1 Initializing...' });
+    onProgress({ stage: 'Initializing Aerotest Solver', progress: 1, log: 'Aerotest Solver v4.2 Initializing...' });
     onProgress({ stage: 'Initializing Aerotest Solver', progress: 1, log: `Reading parameters for model: ${params.carName}` });
     await sleep(1000);
     onProgress({ stage: 'Initializing Aerotest Solver', progress: 1, log: `Setting simulation conditions: Inlet velocity ${INLET_VELOCITY.toFixed(1)} m/s...` });
@@ -114,14 +114,20 @@ export const runAerotestCFDSimulation = async (
     let bestTopSpeed = 0;
     let worstTopSpeed = Infinity;
     
-    // F1 in Schools Physics Constants
+    // --- Aerotest Physics Model v4.2 (High-Fidelity Race Simulation) ---
     const RACE_DISTANCE = 20; // meters
-    const CO2_THRUST_FORCE = 3.0; // Newtons (average)
+    const PEAK_THRUST = 7.0; // Newtons
+    const PEAK_DURATION = 0.05; // seconds
+    const SUSTAINED_THRUST = 2.4; // Newtons
     const CO2_THRUST_DURATION = 0.4; // seconds
+    const ROLLING_RESISTANCE_COEFFICIENT = 0.005;
+    const GRAVITATIONAL_ACCELERATION = 9.81; // m/s^2
+    const TETHER_FRICTION_FORCE = 0.02; // Newtons
     const VARIATION_FACTOR = 0.02; // 2% variation in conditions
     const DT = 0.001; // Simulation time step in seconds
     const mass = params.totalWeight / 1000; // kg
     const frontalArea = (params.totalWidth / 1000) * (45 / 1000); // m^2 approximation
+    const rollingResistanceForce = ROLLING_RESISTANCE_COEFFICIENT * mass * GRAVITATIONAL_ACCELERATION;
 
     for (let i = 0; i < NUM_SIMULATIONS; i++) {
         const conditionVariation = (Math.random() - 0.5) * VARIATION_FACTOR;
@@ -133,10 +139,18 @@ export const runAerotestCFDSimulation = async (
         let maxVelocity = 0;
 
         while(distance < RACE_DISTANCE) {
-            const thrust = time < CO2_THRUST_DURATION ? CO2_THRUST_FORCE * (1 + conditionVariation) : 0;
-            // FIX: Corrected variable name from AIR_DENSITY to airDensity.
+            let thrust = 0;
+            if (time < CO2_THRUST_DURATION) {
+                if (time < PEAK_DURATION) {
+                    thrust = PEAK_THRUST;
+                } else {
+                    thrust = SUSTAINED_THRUST;
+                }
+                thrust *= (1 + conditionVariation);
+            }
+            
             const dragForce = 0.5 * airDensity * (velocity**2) * current_cd * frontalArea;
-            const netForce = thrust - dragForce;
+            const netForce = thrust - dragForce - rollingResistanceForce - TETHER_FRICTION_FORCE;
             const acceleration = netForce / mass;
 
             velocity += acceleration * DT;
