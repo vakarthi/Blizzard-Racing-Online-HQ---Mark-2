@@ -154,6 +154,10 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   contact: {
       title: "Contact Us",
       subtitle: "Have a question or a partnership inquiry? We'd love to hear from you."
+  },
+  aerotest: {
+      title: "Aerotest Premium",
+      subtitle: "Leverage our competition-proven CFD analysis tools for your own project. Unparalleled accuracy, available to the public."
   }
 };
 

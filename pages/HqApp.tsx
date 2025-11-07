@@ -3,7 +3,7 @@ import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from '../contexts/AppContext';
 import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon } from '../components/icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
 import useInactivityTimeout from '../hooks/useInactivityTimeout';
 import DashboardPage from './private/DashboardPage';
@@ -17,6 +17,7 @@ import ToolboxPage from './private/ToolboxPage';
 import SettingsPage from './private/SettingsPage';
 import CommandPalette from '../components/hq/CommandPalette';
 import PortalEditorPage from './private/PortalEditorPage';
+import LeadsPage from './private/LeadsPage';
 
 interface NavItem {
   path: string;
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
+  { path: 'leads', name: 'Leads', icon: <BriefcaseIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
   { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
   { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
   { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
@@ -180,6 +182,7 @@ const HqApp: React.FC = () => {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="comms" element={<CommunicationsPage />} />
                 <Route path="socials" element={<SocialsPage />} />
+                <Route path="leads" element={<LeadsPage />} />
                 <Route path="toolbox" element={<ToolboxPage />} />
                 <Route path="portal-editor" element={<PortalEditorPage />} />
                 <Route path="settings" element={<SettingsPage />} />

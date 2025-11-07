@@ -1,6 +1,7 @@
+
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
-  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord
+  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry
 } from '../types';
 import {
   MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS,
@@ -21,6 +22,7 @@ export interface AppStore {
   protocols: Protocol[];
   publicPortalContentHistory: ContentVersion[];
   loginHistory: LoginRecord[];
+  inquiries: Inquiry[];
   announcement: string | null;
   competitionDate: string | null;
   teamLogoUrl: string;
@@ -57,6 +59,7 @@ const getInitialState = (): AppStore => {
             editorId: 'system'
         }],
         loginHistory: [],
+        inquiries: [],
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
         competitionDate: '2024-12-01T09:00:00',
         teamLogoUrl: DEFAULT_LOGO,

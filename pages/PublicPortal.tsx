@@ -1,10 +1,12 @@
 
 
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon } from '../components/icons';
+import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon } from '../components/icons';
 import FbxViewer from '../components/shared/FbxViewer';
 
 // --- Components for Public Pages ---
@@ -306,6 +308,85 @@ const ContactPage: React.FC = () => {
     );
 };
 
+const AerotestPremiumPage: React.FC = () => {
+    const { publicPortalContent, addInquiry } = useData();
+    const { aerotest: aerotestContent } = publicPortalContent;
+    const [submitted, setSubmitted] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', company: '', message: '' });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        addInquiry(formData);
+        setSubmitted(true);
+    };
+
+    return (
+        <div className="container mx-auto px-6 py-12 animate-fade-in">
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aerotestContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aerotestContent.subtitle}</p>
+
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className="space-y-6">
+                    <h2 className="text-3xl font-bold text-brand-accent">Gain a Competitive Edge</h2>
+                    <p className="text-brand-text-secondary leading-relaxed">
+                        Our Aerotest Premium service utilizes the same high-fidelity Computational Fluid Dynamics (CFD) solver that powers our own award-winning designs. We offer dedicated simulation time on our compute cluster to provide you with actionable aerodynamic insights.
+                    </p>
+                    <div className="mt-4 p-3 bg-brand-dark rounded-lg border border-brand-accent/30 flex items-start gap-3">
+                        <InfoIcon className="w-5 h-5 text-brand-accent flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-brand-text-secondary">
+                            Note: Aerotest Premium is a computationally intensive service. For the best experience when viewing results and models, we recommend a computer with 4 or more CPU cores.
+                        </p>
+                    </div>
+                    <ul className="space-y-4">
+                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Unrivaled Precision</h3><p className="text-sm text-brand-text-secondary">Over 12,000 times more accurate than our standard Aerotest solver, capturing aerodynamic effects other tools miss.</p></div></li>
+                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Trillion-Cell Mesh</h3><p className="text-sm text-brand-text-secondary">Simulations run on an industry-leading virtual mesh of up to 45 trillion cells, capturing minute details of airflow.</p></div></li>
+                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Extreme Iteration Depth</h3><p className="text-sm text-brand-text-secondary">With a target of over 500 billion iterations, our solver ensures the highest degree of convergence and physical accuracy.</p></div></li>
+                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Dedicated Compute Time</h3><p className="text-sm text-brand-text-secondary">Due to extreme computational demand, simulations are queued on our high-performance cluster and typically take 1-2 days to complete.</p></div></li>
+                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Comprehensive Reporting</h3><p className="text-sm text-brand-text-secondary">Receive a full report including drag/lift coefficients, flow visualization, and actionable suggestions.</p></div></li>
+                    </ul>
+                </div>
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                {submitted ? (
+                    <div className="text-center h-full flex flex-col justify-center">
+                        <h2 className="text-2xl font-bold text-green-400 mb-2">Inquiry Sent!</h2>
+                        <p className="text-brand-text">Thank you for your interest in Aerotest Premium. A member of our team will be in touch with you shortly to discuss pricing and project details.</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                         <h2 className="text-2xl font-bold text-brand-text mb-4">Request a Quote</h2>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-brand-text-secondary">Full Name</label>
+                            <input type="text" id="name" name="name" onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-brand-text-secondary">Email Address</label>
+                            <input type="email" id="email" name="email" onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
+                        </div>
+                         <div>
+                            <label htmlFor="company" className="block text-sm font-medium text-brand-text-secondary">Company / Team Name (Optional)</label>
+                            <input type="text" id="company" name="company" onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
+                        </div>
+                        <div>
+                            <label htmlFor="message" className="block text-sm font-medium text-brand-text-secondary">Brief Project Description</label>
+                            <textarea id="message" name="message" onChange={handleChange} rows={4} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent"></textarea>
+                        </div>
+                        <div>
+                            <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-brand-dark bg-brand-accent hover:bg-brand-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-accent">
+                                Contact Us
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+            </div>
+        </div>
+    );
+};
+
 
 // --- Public Portal Layout ---
 
@@ -318,6 +399,7 @@ const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         { name: 'The Team', path: '/team', icon: <UsersIcon className="w-5 h-5"/> },
         { name: 'Our Car', path: '/car', icon: <CarIcon className="w-5 h-5"/> },
         { name: 'Competition', path: '/competition', icon: <FlagIcon className="w-5 h-5"/> },
+        { name: 'Aerotest Premium', path: '/aerotest-premium', icon: <SparklesIcon className="w-5 h-5"/> },
         { name: 'Sponsors', path: '/sponsors', icon: <TrophyIcon className="w-5 h-5"/> },
         { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
         { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
@@ -393,6 +475,7 @@ const PublicPortal: React.FC = () => {
                 <Route path="sponsors" element={<SponsorsPage />} />
                 <Route path="news" element={<NewsPage />} />
                 <Route path="contact" element={<ContactPage />} />
+                <Route path="aerotest-premium" element={<AerotestPremiumPage />} />
                 <Route index element={<PublicHomePage />} />
             </Routes>
         </PublicLayout>

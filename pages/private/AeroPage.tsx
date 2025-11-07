@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { runAerotestCFDSimulation } from '../../services/simulationService';
+import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
 import { analyzeStepFile } from '../../services/fileAnalysisService';
 import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
@@ -228,6 +228,7 @@ const AeroPage: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
+  const [tier, setTier] = useState<'standard' | 'premium'>('standard');
   
   const handleFileChange = (file: File | null) => {
     if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
@@ -308,7 +309,8 @@ const AeroPage: React.FC = () => {
             });
         };
         
-        const simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+        const simulationFunction = tier === 'premium' ? runAerotestPremiumCFDSimulation : runAerotestCFDSimulation;
+        const simResultData = await simulationFunction(parameters, onProgress);
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
@@ -323,7 +325,8 @@ const AeroPage: React.FC = () => {
             ...simResultData,
             fileName: stepFile.name,
             suggestions,
-            scrutineeringReport
+            scrutineeringReport,
+            tier,
         };
         
         addAeroResult(finalResult);
@@ -353,6 +356,15 @@ const AeroPage: React.FC = () => {
             <ErrorBoundary>
                 <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full flex flex-col">
                     <h2 className="text-xl font-bold text-brand-text mb-4">New Aerotest Simulation</h2>
+                    
+                    <div className="mb-4">
+                        <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Tier</label>
+                        <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
+                            <button onClick={() => setTier('standard')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
+                            <button onClick={() => setTier('premium')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tier === 'premium' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}><SparklesIcon className="w-4 h-4"/> Premium</button>
+                        </div>
+                    </div>
+
                     <div 
                         onDragEnter={handleDragEvents}
                         onDragOver={handleDragEvents}
@@ -415,6 +427,7 @@ const AeroPage: React.FC = () => {
                                   <p className="font-bold text-brand-text flex items-center">
                                       {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
                                       {result.fileName}
+                                      {result.tier === 'premium' && <span className="ml-2 text-xs font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1"><SparklesIcon className="w-3 h-3" /> Premium</span>}
                                   </p>
                                   <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
                                 </div>

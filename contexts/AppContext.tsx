@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
-import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord } from '../types';
+import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSyncedStore } from '../hooks/useSyncedStore';
 import { generateAvatar } from '../utils/avatar';
@@ -70,6 +70,8 @@ export interface DataContextType {
   updatePublicPortalContent: (newContent: PublicPortalContent) => void;
   revertToVersion: (versionIndex: number) => void;
   loginHistory: LoginRecord[];
+  inquiries: Inquiry[];
+  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => void;
 }
 
 interface AppStateContextType {
@@ -328,6 +330,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateStore(s => ({ ...s, protocols: s.protocols.filter(p => p.id !== protocolId)}));
   };
 
+  const addInquiry = (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => {
+    const newInquiry: Inquiry = { ...inquiry, id: `inq-${Date.now()}`, timestamp: new Date().toISOString() };
+    updateStore(s => ({...s, inquiries: [newInquiry, ...s.inquiries]}));
+  };
+
   const getTeamMember = useCallback((userId: string) => {
     return store.users.find(u => u.id === userId);
   }, [store.users]);
@@ -351,6 +358,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         teamLogoUrl: data.teamLogoUrl || currentStore.teamLogoUrl,
         publicPortalContentHistory: data.publicPortalContentHistory || currentStore.publicPortalContentHistory,
         loginHistory: data.loginHistory || currentStore.loginHistory,
+        inquiries: data.inquiries || currentStore.inquiries,
     }));
   }
 
@@ -367,6 +375,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addThread, addPostToThread,
       updateCompetitionProgress,
       addProtocol, updateProtocol, deleteProtocol,
+      addInquiry,
       getTeamMember,
       loadData,
       publicPortalContent,

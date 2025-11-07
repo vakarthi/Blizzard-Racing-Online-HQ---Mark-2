@@ -64,6 +64,7 @@ export interface AeroResult {
   id: string;
   timestamp: string;
   fileName: string;
+  tier?: 'standard' | 'premium';
   
   // Input parameters
   parameters: DesignParameters;
@@ -218,6 +219,10 @@ export interface PublicPortalContent {
     title: string;
     subtitle: string;
   };
+  aerotest: {
+    title: string;
+    subtitle: string;
+  };
 }
 
 export interface ContentVersion {
@@ -228,5 +233,14 @@ export interface ContentVersion {
 
 export interface LoginRecord {
   userId: string;
+  timestamp: string;
+}
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  message: string;
   timestamp: string;
 }
