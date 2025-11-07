@@ -90,146 +90,126 @@ const TeamPage: React.FC = () => {
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{teamContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{teamContent.subtitle}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{teamContent.subtitle}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {users.map(member => (
-                    <div key={member.id} className="text-center bg-brand-dark-secondary p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow border border-brand-border">
-                        <img src={member.avatarUrl} alt={member.name} className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-brand-border"/>
+                    <div key={member.id} className="bg-brand-dark-secondary rounded-lg shadow-lg border border-brand-border p-6 text-center">
+                        <img src={member.avatarUrl} alt={member.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-brand-border object-cover" />
                         <h3 className="text-xl font-bold text-brand-text">{member.name}</h3>
                         <p className="text-brand-accent font-semibold">{member.role}</p>
                     </div>
                 ))}
             </div>
         </div>
-    );
-};
+    )
+}
 
-const OurCarPage: React.FC = () => {
+const CarPage: React.FC = () => {
     const { carHighlights, publicPortalContent } = useData();
     const { car: carContent } = publicPortalContent;
     const publicHighlights = carHighlights.filter(h => h.isPublic);
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{carContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{carContent.subtitle}</p>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{carContent.subtitle}</p>
             
-            {/* New 3D Viewer Section */}
-            <section className="mb-16">
-                 {carContent.carModelFbx ? (
-                    <FbxViewer fbxDataUrl={carContent.carModelFbx} isBlurred={carContent.isCarModelBlurred} />
-                 ) : (
-                    <div className="w-full h-[50vh] bg-brand-dark/50 rounded-lg border border-brand-border flex items-center justify-center text-brand-text-secondary">
-                        <p>3D Model of the BR-03 Coming Soon...</p>
-                    </div>
-                 )}
-            </section>
+            <div className="mb-12">
+                <FbxViewer fbxDataUrl={carContent.carModelFbx} isBlurred={carContent.isCarModelBlurred} />
+            </div>
 
-            <div className="space-y-16">
-                {publicHighlights.map((highlight, index) => (
-                    <div key={highlight.id} className={`flex flex-col md:flex-row items-center gap-8 ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-                        <div className="md:w-1/2">
-                            <img src={highlight.imageUrl} alt={highlight.title} className="rounded-lg shadow-2xl w-full h-auto object-cover border-2 border-brand-border"/>
+            <div className="max-w-4xl mx-auto space-y-8">
+                {publicHighlights.map(highlight => (
+                    <div key={highlight.id} className="bg-brand-dark-secondary rounded-lg shadow-lg overflow-hidden border border-brand-border md:flex">
+                         <div className="md:w-1/2">
+                            <img src={highlight.imageUrl} alt={highlight.title} className="h-full w-full object-cover" />
                         </div>
-                        <div className="md:w-1/2">
-                            <h2 className="text-3xl font-bold text-brand-text mb-3">{highlight.title}</h2>
-                            <p className="text-brand-text-secondary leading-relaxed">{highlight.description}</p>
+                        <div className="p-8 md:w-1/2">
+                            <h2 className="text-2xl font-bold text-brand-accent mb-3">{highlight.title}</h2>
+                            <p className="text-brand-text-secondary">{highlight.description}</p>
                         </div>
                     </div>
                 ))}
             </div>
         </div>
-    );
-};
-
-const CompetitionCountdown: React.FC = () => {
-    const { competitionDate } = useAppState();
-    const targetDate = useMemo(() => competitionDate ? new Date(competitionDate) : null, [competitionDate]);
-    const [timeLeft, setTimeLeft] = useState(targetDate ? targetDate.getTime() - new Date().getTime() : 0);
-
-    useEffect(() => {
-        if (!targetDate) return;
-        const timer = setInterval(() => {
-            setTimeLeft(targetDate.getTime() - new Date().getTime());
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [targetDate]);
-
-    if (!targetDate || isNaN(targetDate.getTime())) {
-        return (
-             <div className="text-center p-6 bg-brand-dark rounded-xl text-brand-text shadow-lg border border-brand-border">
-                <h3 className="text-lg font-semibold text-yellow-400 mb-2">Competition date is not yet announced.</h3>
-                <p className="text-brand-text-secondary">Please check back for updates!</p>
-            </div>
-        )
-    }
-
-    const isPast = timeLeft < 0;
-    const absTimeLeft = Math.abs(timeLeft);
-
-    const days = Math.floor(absTimeLeft / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((absTimeLeft / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((absTimeLeft / 1000 / 60) % 60);
-    const seconds = Math.floor((absTimeLeft / 1000) % 60);
-
-    return (
-        <div className="text-center p-8 bg-brand-dark-secondary rounded-xl text-brand-text shadow-lg border border-brand-border">
-            <h3 className="text-2xl font-semibold text-brand-accent mb-4">{isPast ? "Competition Is Live!" : "Countdown to Competition"}</h3>
-            <div className="flex justify-center space-x-4 md:space-x-8 text-4xl font-bold">
-                <div>{days}<span className="block text-sm font-normal text-brand-text-secondary">Days</span></div>
-                <div>{hours}<span className="block text-sm font-normal text-brand-text-secondary">Hours</span></div>
-                <div>{minutes}<span className="block text-sm font-normal text-brand-text-secondary">Minutes</span></div>
-                <div>{seconds}<span className="block text-sm font-normal text-brand-text-secondary">Seconds</span></div>
-            </div>
-        </div>
-    );
-};
+    )
+}
 
 const CompetitionPage: React.FC = () => {
     const { competitionProgress, publicPortalContent } = useData();
     const { competition: competitionContent } = publicPortalContent;
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{competitionContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{competitionContent.subtitle}</p>
-            <div className="max-w-4xl mx-auto space-y-8">
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border space-y-6">
-                    {competitionProgress.map((item, index) => (
-                        <div key={item.category}>
-                            <div className="flex justify-between items-baseline mb-1">
-                                <span className="text-md font-semibold text-brand-text">{item.category}</span>
-                                <span className="text-md font-bold text-brand-text-secondary">{item.progress}%</span>
-                            </div>
-                            <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
-                                <div className={`${colors[index % colors.length]} h-full rounded-full transition-all duration-500`} style={{ width: `${item.progress}%` }}></div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <CompetitionCountdown />
-            </div>
-        </div>
-    );
-};
+    const { competitionDate } = useAppState();
 
-const SponsorsPage: React.FC = () => {
-    const { sponsors, publicPortalContent } = useData();
-    const { sponsors: sponsorsContent } = publicPortalContent;
-    const securedSponsors = sponsors.filter(s => s.status === 'secured');
+    const colors = useMemo(() => ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'], []);
+
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{sponsorsContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{sponsorsContent.subtitle}</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                {securedSponsors.map(sponsor => (
-                    <div key={sponsor.id} className="bg-brand-text/5 p-6 rounded-lg shadow-md flex items-center justify-center hover:shadow-xl transition-shadow border border-brand-border">
-                        <img src={sponsor.logoUrl} alt={sponsor.name} className="max-h-16 w-auto object-contain" />
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{competitionContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{competitionContent.subtitle}</p>
+            
+            {competitionDate && (
+                <div className="text-center mb-12 p-4 bg-brand-accent/10 border border-brand-accent/20 rounded-lg max-w-lg mx-auto">
+                    <p className="font-bold text-brand-accent">Next Competition Date</p>
+                    <p className="text-xl text-brand-text">{new Date(competitionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                </div>
+            )}
+            
+            <div className="max-w-3xl mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border space-y-6">
+                {competitionProgress.map((item, index) => (
+                    <div key={item.category}>
+                        <div className="flex justify-between items-baseline mb-1">
+                            <span className="font-semibold text-brand-text">{item.category}</span>
+                            <span className="font-bold text-brand-text-secondary">{item.progress}%</span>
+                        </div>
+                        <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
+                            <div className={`${colors[index % colors.length]} h-full rounded-full transition-all duration-500`} style={{ width: `${item.progress}%` }}></div>
+                        </div>
                     </div>
                 ))}
             </div>
         </div>
     );
 };
+
+
+const SponsorsPage: React.FC = () => {
+    const { sponsors, publicPortalContent } = useData();
+    const { sponsors: sponsorsContent } = publicPortalContent;
+
+    const tiers = ['Platinum', 'Gold', 'Silver', 'Bronze'];
+    const groupedSponsors = useMemo(() => {
+        const groups: { [key: string]: typeof sponsors } = {};
+        tiers.forEach(tier => {
+            groups[tier] = sponsors.filter(s => s.tier === tier && s.status === 'secured');
+        });
+        return groups;
+    }, [sponsors]);
+
+    return (
+        <div className="container mx-auto px-6 py-12 animate-fade-in">
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{sponsorsContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{sponsorsContent.subtitle}</p>
+            
+            <div className="space-y-12">
+                {tiers.map(tier => (
+                    groupedSponsors[tier].length > 0 && (
+                        <div key={tier}>
+                            <h2 className="text-2xl font-bold text-brand-accent mb-6 text-center">{tier} Partners</h2>
+                            <div className="flex flex-wrap justify-center items-center gap-8">
+                                {groupedSponsors[tier].map(sponsor => (
+                                    <div key={sponsor.id} className="bg-brand-dark-secondary p-6 rounded-lg shadow-md border border-brand-border">
+                                        <img src={sponsor.logoUrl} alt={sponsor.name} className="h-16 w-48 object-contain" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )
+                ))}
+            </div>
+        </div>
+    )
+};
+
 
 const NewsPage: React.FC = () => {
     const { news, getTeamMember, publicPortalContent } = useData();
@@ -239,20 +219,113 @@ const NewsPage: React.FC = () => {
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{newsContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{newsContent.subtitle}</p>
-            <div className="space-y-8 max-w-3xl mx-auto">
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{newsContent.subtitle}</p>
+
+            <div className="max-w-3xl mx-auto space-y-8">
                 {publicNews.map(post => {
                     const author = getTeamMember(post.authorId);
                     return (
-                    <div key={post.id} className="bg-brand-dark-secondary p-8 rounded-lg shadow-md border border-brand-border">
-                        <h2 className="text-2xl font-bold text-brand-text mb-2">{post.title}</h2>
-                        <div className="text-sm text-brand-text-secondary mb-4">
-                            By {author?.name || 'Blizzard Racing'} on {new Date(post.createdAt).toLocaleDateString()}
+                        <div key={post.id} className="bg-brand-dark-secondary rounded-lg shadow-lg p-8 border border-brand-border">
+                            <h2 className="text-2xl font-bold text-brand-text mb-2">{post.title}</h2>
+                            <p className="text-sm text-brand-text-secondary mb-4">
+                                By {author?.name || 'Blizzard Racing'} on {new Date(post.createdAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-brand-text-secondary leading-relaxed whitespace-pre-line">{post.content}</p>
                         </div>
-                        <p className="text-brand-text-secondary leading-relaxed">{post.content}</p>
+                    )
+                })}
+                 {publicNews.length === 0 && (
+                    <div className="text-center text-brand-text-secondary p-12 bg-brand-dark-secondary rounded-lg border border-brand-border">
+                        No public news articles have been posted yet. Check back soon!
                     </div>
                 )}
-                )}
+            </div>
+        </div>
+    )
+}
+
+const AerotestPage: React.FC = () => {
+    const { publicPortalContent, addInquiry } = useData();
+    const { aerotest: aerotestContent } = publicPortalContent;
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [company, setCompany] = useState('');
+    const [message, setMessage] = useState('');
+    const [formSubmitted, setFormSubmitted] = useState(false);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        addInquiry({ name, email, company, message });
+        setFormSubmitted(true);
+    };
+
+    return (
+        <div className="container mx-auto px-6 py-12 animate-fade-in">
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aerotestContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aerotestContent.subtitle}</p>
+            
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                {/* Description Column */}
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                    <h2 className="text-2xl font-bold text-brand-accent mb-4">Unparalleled Fidelity</h2>
+                    <p className="text-brand-text-secondary leading-relaxed text-lg">
+                        It operates on a mesh of 7 decillion triangles, resolving the airflow within a volumetric mesh of 253.125 sexdecillion cells. The solver then performs 2.8125 quindecillion iterative calculations to solve the complete Navier-Stokes equations with near-perfect accuracy. The results are not an approximation; they are a digital reality so precise that physical wind tunnels introduce unacceptable levels of error by comparison. Requires a 4TB installation and access to high-performance computing clusters.
+                    </p>
+                    <div className="mt-6 pt-6 border-t border-brand-border space-y-4">
+                        <div className="flex items-start gap-3">
+                            <SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
+                            <div>
+                                <h3 className="font-bold text-brand-text">Beyond Reality</h3>
+                                <p className="text-sm text-brand-text-secondary">Achieve a level of accuracy that physical testing cannot match.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <FlagIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
+                            <div>
+                                <h3 className="font-bold text-brand-text">Competition Proven</h3>
+                                <p className="text-sm text-brand-text-secondary">The same core technology that drives our award-winning designs.</p>
+                            </div>
+                        </div>
+                         <div className="flex items-start gap-3">
+                            <InfoIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
+                            <div>
+                                <h3 className="font-bold text-brand-text">Consultation Available</h3>
+                                <p className="text-sm text-brand-text-secondary">Our engineers can help you interpret the results and suggest design improvements.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Contact Form Column */}
+                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                    <h2 className="text-2xl font-bold text-brand-accent mb-4">Request a Consultation</h2>
+                    {formSubmitted ? (
+                        <div className="text-center py-12">
+                            <h3 className="text-xl font-bold text-green-400">Thank you!</h3>
+                            <p className="text-brand-text-secondary mt-2">Your inquiry has been submitted. Our engineering team will get back to you shortly.</p>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                             <div>
+                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Full Name</label>
+                                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                            </div>
+                             <div>
+                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Email Address</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                            </div>
+                             <div>
+                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Company (Optional)</label>
+                                <input type="text" value={company} onChange={e => setCompany(e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Project Details</label>
+                                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                            </div>
+                            <button type="submit" className="w-full bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">Submit Inquiry</button>
+                        </form>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -262,225 +335,120 @@ const NewsPage: React.FC = () => {
 const ContactPage: React.FC = () => {
     const { publicPortalContent } = useData();
     const { contact: contactContent } = publicPortalContent;
-    const [submitted, setSubmitted] = useState(false);
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setSubmitted(true);
-    };
 
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{contactContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-2xl mx-auto">{contactContent.subtitle}</p>
-            <div className="max-w-xl mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                {submitted ? (
-                    <div className="text-center">
-                        <h2 className="text-2xl font-bold text-green-400 mb-2">Thank You!</h2>
-                        <p className="text-brand-text">Your message has been sent. We'll get back to you shortly.</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-brand-text-secondary">Full Name</label>
-                            <input type="text" id="name" required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-brand-text-secondary">Email Address</label>
-                            <input type="email" id="email" required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
-                        </div>
-                        <div>
-                            <label htmlFor="message" className="block text-sm font-medium text-brand-text-secondary">Message</label>
-                            <textarea id="message" rows={4} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent"></textarea>
-                        </div>
-                        <div>
-                            <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-brand-dark bg-brand-accent hover:bg-brand-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-accent">
-                                Send Message
-                            </button>
-                        </div>
-                    </form>
-                )}
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{contactContent.subtitle}</p>
+
+            <div className="max-w-lg mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
+                <p className="text-brand-text-secondary">
+                    For all inquiries, including sponsorships and media requests, please reach out to our team manager.
+                </p>
+                <div className="mt-4">
+                    <a href="mailto:shrivatsakarth.kart@saintolaves.net" className="font-bold text-brand-accent text-lg hover:underline">
+                        shrivatsakarth.kart@saintolaves.net
+                    </a>
+                </div>
+                <p className="text-sm text-brand-text-secondary mt-6">
+                    We are based at St. Olave's Grammar School, Orpington.
+                </p>
             </div>
         </div>
-    );
-};
+    )
+}
 
-const AerotestPremiumPage: React.FC = () => {
-    const { publicPortalContent, addInquiry } = useData();
-    // Fix: Provide a fallback object to prevent a crash if the 'aerotest' property is missing from the state.
-    // This can happen if a user has an older version of the app's state stored in their localStorage.
-    const aerotestContent = publicPortalContent.aerotest || {
-        title: "Aerotest Premium",
-        subtitle: "Leverage our competition-proven CFD analysis tools for your own project. Unparalleled accuracy, available to the public."
-    };
-    const [submitted, setSubmitted] = useState(false);
-    const [formData, setFormData] = useState({ name: '', email: '', company: '', message: '' });
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        addInquiry(formData);
-        setSubmitted(true);
-    };
-
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aerotestContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aerotestContent.subtitle}</p>
-
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6">
-                    <h2 className="text-3xl font-bold text-brand-accent">Gain a Competitive Edge</h2>
-                    <p className="text-brand-text-secondary leading-relaxed">
-                        Our Aerotest Premium service utilizes the same high-fidelity Computational Fluid Dynamics (CFD) solver that powers our own award-winning designs. We offer dedicated simulation time on our compute cluster to provide you with actionable aerodynamic insights.
-                    </p>
-                    <div className="mt-4 p-3 bg-brand-dark rounded-lg border border-brand-accent/30 flex items-start gap-3">
-                        <InfoIcon className="w-5 h-5 text-brand-accent flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-brand-text-secondary">
-                            Note: Aerotest Premium is a computationally intensive service. For the best experience when viewing results and models, we recommend a computer with 4 or more CPU cores.
-                        </p>
-                    </div>
-                    <ul className="space-y-4">
-                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Unrivaled Precision</h3><p className="text-sm text-brand-text-secondary">Over 12,000 times more accurate than our standard Aerotest solver, capturing aerodynamic effects other tools miss.</p></div></li>
-                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Trillion-Cell Mesh</h3><p className="text-sm text-brand-text-secondary">Simulations run on an industry-leading virtual mesh of up to 45 trillion cells, capturing minute details of airflow.</p></div></li>
-                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Extreme Iteration Depth</h3><p className="text-sm text-brand-text-secondary">With a target of over 500 billion iterations, our solver ensures the highest degree of convergence and physical accuracy.</p></div></li>
-                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Dedicated Compute Time</h3><p className="text-sm text-brand-text-secondary">Due to extreme computational demand, simulations are queued on our high-performance cluster and typically take 1-2 days to complete.</p></div></li>
-                        <li className="flex items-start gap-3"><SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1" /><div><h3 className="font-semibold text-brand-text">Comprehensive Reporting</h3><p className="text-sm text-brand-text-secondary">Receive a full report including drag/lift coefficients, flow visualization, and actionable suggestions.</p></div></li>
-                    </ul>
-                </div>
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                {submitted ? (
-                    <div className="text-center h-full flex flex-col justify-center">
-                        <h2 className="text-2xl font-bold text-green-400 mb-2">Inquiry Sent!</h2>
-                        <p className="text-brand-text">Thank you for your interest in Aerotest Premium. A member of our team will be in touch with you shortly to discuss pricing and project details.</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                         <h2 className="text-2xl font-bold text-brand-text mb-4">Request a Quote</h2>
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-brand-text-secondary">Full Name</label>
-                            <input type="text" id="name" name="name" onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-brand-text-secondary">Email Address</label>
-                            <input type="email" id="email" name="email" onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
-                        </div>
-                         <div>
-                            <label htmlFor="company" className="block text-sm font-medium text-brand-text-secondary">Company / Team Name (Optional)</label>
-                            <input type="text" id="company" name="company" onChange={handleChange} className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent" />
-                        </div>
-                        <div>
-                            <label htmlFor="message" className="block text-sm font-medium text-brand-text-secondary">Brief Project Description</label>
-                            <textarea id="message" name="message" onChange={handleChange} rows={4} required className="mt-1 block w-full px-3 py-2 bg-brand-dark border border-brand-border rounded-md shadow-sm focus:outline-none focus:ring-brand-accent focus:border-brand-accent"></textarea>
-                        </div>
-                        <div>
-                            <button type="submit" className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-brand-dark bg-brand-accent hover:bg-brand-accent-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-accent">
-                                Contact Us
-                            </button>
-                        </div>
-                    </form>
-                )}
-            </div>
-            </div>
-        </div>
-    );
-};
-
-
-// --- Public Portal Layout ---
-
-const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [menuOpen, setMenuOpen] = useState(false);
-    const { teamLogoUrl } = useAppState();
-    const navItems = [
-        { name: 'Home', path: '/', icon: <HomeIcon className="w-5 h-5"/> },
-        { name: 'About Us', path: '/about', icon: <InfoIcon className="w-5 h-5"/> },
-        { name: 'The Team', path: '/team', icon: <UsersIcon className="w-5 h-5"/> },
-        { name: 'Our Car', path: '/car', icon: <CarIcon className="w-5 h-5"/> },
-        { name: 'Competition', path: '/competition', icon: <FlagIcon className="w-5 h-5"/> },
-        { name: 'Aerotest Premium', path: '/aerotest-premium', icon: <SparklesIcon className="w-5 h-5"/> },
-        { name: 'Sponsors', path: '/sponsors', icon: <TrophyIcon className="w-5 h-5"/> },
-        { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
-        { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
-    ];
-    
-    const NavLinks = ({isMobile = false}: {isMobile?: boolean}) => (
-        <>
-            {navItems.map(item => (
-                <NavLink 
-                    key={item.name} 
-                    to={item.path} 
-                    onClick={() => setMenuOpen(false)}
-                    end={item.path === '/'}
-                    className={({isActive}) => `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-brand-accent text-brand-dark' : 'text-brand-text hover:bg-brand-text/10'}`}
-                >
-                    {item.icon} {item.name}
-                </NavLink>
-            ))}
-        </>
-    );
-
-    return (
-        <div className="min-h-screen bg-brand-dark font-sans">
-            <header className="bg-brand-dark-secondary/80 backdrop-blur-sm shadow-lg sticky top-0 z-30 border-b border-brand-border">
-                <div className="container mx-auto px-6">
-                    <div className="flex items-center justify-between h-20">
-                        <Link to="/" className="flex items-center text-brand-text text-xl font-bold">
-                           <div className="bg-white p-1 rounded-md mr-2">
-                                <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
-                           </div>
-                            Blizzard Racing
-                        </Link>
-                        <nav className="hidden md:flex items-center space-x-2">
-                           <NavLinks />
-                        </nav>
-                        <div className="md:hidden">
-                            <button onClick={() => setMenuOpen(!menuOpen)} className="text-brand-text">
-                                {menuOpen ? <XIcon className="w-6 h-6"/> : <MenuIcon className="w-6 h-6"/>}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {/* Mobile Menu */}
-                {menuOpen && (
-                    <div className="md:hidden bg-brand-dark-secondary/95 p-4 space-y-2">
-                        <NavLinks isMobile={true}/>
-                    </div>
-                )}
-            </header>
-            <main>{children}</main>
-            <footer className="bg-brand-dark-secondary text-brand-text-secondary py-12 border-t border-brand-border">
-                <div className="container mx-auto px-6 text-center">
-                    <p>&copy; {new Date().getFullYear()} Blizzard Racing. All Rights Reserved.</p>
-                    <Link to="/login" className="text-sm text-brand-accent hover:underline mt-4 inline-flex items-center gap-1">
-                        Team HQ Login <ExternalLinkIcon className="w-4 h-4"/>
-                    </Link>
-                </div>
-            </footer>
-        </div>
-    );
-};
-
-// --- Public Portal Router ---
+// --- Main Layout ---
 
 const PublicPortal: React.FC = () => {
-    return (
-        <PublicLayout>
-            <Routes>
-                <Route path="about" element={<AboutPage />} />
-                <Route path="team" element={<TeamPage />} />
-                <Route path="car" element={<OurCarPage />} />
-                <Route path="competition" element={<CompetitionPage />} />
-                <Route path="sponsors" element={<SponsorsPage />} />
-                <Route path="news" element={<NewsPage />} />
-                <Route path="contact" element={<ContactPage />} />
-                <Route path="aerotest-premium" element={<AerotestPremiumPage />} />
-                <Route index element={<PublicHomePage />} />
-            </Routes>
-        </PublicLayout>
-    );
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { teamLogoUrl } = useAppState();
+
+  const navItems = [
+    { name: 'Home', path: '/', icon: <HomeIcon className="w-5 h-5"/> },
+    { name: 'About', path: '/about', icon: <InfoIcon className="w-5 h-5"/> },
+    { name: 'The Team', path: '/team', icon: <UsersIcon className="w-5 h-5"/> },
+    { name: 'The Car', path: '/car', icon: <CarIcon className="w-5 h-5"/> },
+    { name: 'Competition', path: '/competition', icon: <TrophyIcon className="w-5 h-5"/> },
+    { name: 'Sponsors', path: '/sponsors', icon: <SparklesIcon className="w-5 h-5"/> },
+    { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
+    { name: 'Aerotest', path: '/aerotest', icon: <SparklesIcon className="w-5 h-5"/> },
+    { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
+  ];
+
+  return (
+    <div className="min-h-screen bg-brand-dark text-brand-text">
+      {/* Header */}
+      <header className="sticky top-0 bg-brand-dark-secondary/80 backdrop-blur-md z-30 border-b border-brand-border">
+        <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+          <Link to="/" className="flex items-center gap-3">
+             <div className="bg-white p-1 rounded-md border border-brand-border">
+                <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
+            </div>
+            <span className="text-xl font-bold text-brand-text hidden sm:block">Blizzard Racing</span>
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden lg:flex items-center space-x-2">
+            {navItems.map(item => (
+                <NavLink key={item.name} to={item.path} end={item.path === '/'} className={({isActive}) => `px-3 py-2 rounded-md text-sm font-semibold transition-colors ${isActive ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'}`}>{item.name}</NavLink>
+            ))}
+            <a href="#/login" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-full text-sm hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block ml-4">
+              Team HQ
+            </a>
+          </nav>
+
+          {/* Mobile Nav Button */}
+          <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="fixed inset-0 bg-brand-dark-secondary z-20 pt-20 lg:hidden animate-fade-in">
+          <nav className="container mx-auto px-6 flex flex-col items-center space-y-4">
+            {navItems.map(item => (
+              <NavLink key={item.name} to={item.path} end={item.path==='/'} onClick={() => setMenuOpen(false)} className={({isActive}) => `w-full text-center flex items-center justify-center gap-3 py-3 text-lg font-semibold rounded-lg ${isActive ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-text-secondary'}`}>
+                {item.icon} {item.name}
+              </NavLink>
+            ))}
+             <a href="#/login" className="w-full text-center bg-brand-accent text-brand-dark font-bold py-3 rounded-full text-lg mt-4">
+              Team HQ
+            </a>
+          </nav>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main>
+        <Routes>
+          <Route path="/" element={<PublicHomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/car" element={<CarPage />} />
+          <Route path="/competition" element={<CompetitionPage />} />
+          <Route path="/sponsors" element={<SponsorsPage />} />
+          <Route path="/news" element={<NewsPage />} />
+          <Route path="/aerotest" element={<AerotestPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="*" element={<div className="text-center py-20">404 - Page Not Found</div>} />
+        </Routes>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-brand-dark-secondary border-t border-brand-border">
+        <div className="container mx-auto px-6 py-8 text-center text-brand-text-secondary">
+          <p>&copy; {new Date().getFullYear()} Blizzard Racing. All Rights Reserved.</p>
+          <p className="text-sm mt-2">F1 in Schools STEM Challenge Team from St. Olave's Grammar School</p>
+           <div className="mt-4">
+                <a href="#/login" className="text-sm text-brand-accent hover:underline">Team HQ Portal</a>
+           </div>
+        </div>
+      </footer>
+    </div>
+  );
 };
 
 export default PublicPortal;

@@ -71,7 +71,8 @@ export interface DataContextType {
   revertToVersion: (versionIndex: number) => void;
   loginHistory: LoginRecord[];
   inquiries: Inquiry[];
-  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => void;
+  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => void;
+  updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
 }
 
 interface AppStateContextType {
@@ -330,9 +331,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateStore(s => ({ ...s, protocols: s.protocols.filter(p => p.id !== protocolId)}));
   };
 
-  const addInquiry = (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => {
-    const newInquiry: Inquiry = { ...inquiry, id: `inq-${Date.now()}`, timestamp: new Date().toISOString() };
+  const addInquiry = (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => {
+    const newInquiry: Inquiry = { ...inquiry, id: `inq-${Date.now()}`, timestamp: new Date().toISOString(), status: 'pending' };
     updateStore(s => ({...s, inquiries: [newInquiry, ...s.inquiries]}));
+  };
+
+  const updateInquiryStatus = (inquiryId: string, status: 'accepted' | 'rejected') => {
+    updateStore(s => ({
+        ...s,
+        inquiries: s.inquiries.map(inq =>
+            inq.id === inquiryId ? { ...inq, status } : inq
+        )
+    }));
   };
 
   const getTeamMember = useCallback((userId: string) => {
@@ -376,6 +386,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updateCompetitionProgress,
       addProtocol, updateProtocol, deleteProtocol,
       addInquiry,
+      updateInquiryStatus,
       getTeamMember,
       loadData,
       publicPortalContent,

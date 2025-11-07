@@ -175,8 +175,8 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
       subtitle: "Have a question or a partnership inquiry? We'd love to hear from you."
   },
   aerotest: {
-      title: "Aerotest Premium",
-      subtitle: "Leverage our competition-proven CFD analysis tools for your own project. Unparalleled accuracy, available to the public."
+      title: "Aerotest: Simulation Engine",
+      subtitle: "This is not a commercial CFD package. It is a research-grade physics simulation engine thousands of times more powerful than the current industry standard."
   }
 };
 

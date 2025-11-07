@@ -1,9 +1,10 @@
-// FIX: Changed to use named imports for React Component to resolve type errors for class component properties.
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+// FIX: Changed React import to a namespace import to resolve type errors for class component properties.
+import * as React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface State {
@@ -11,7 +12,7 @@ interface State {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+class ErrorBoundary extends React.Component<Props, State> {
   state: State = {
     hasError: false,
     error: null,
@@ -21,7 +22,7 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
 

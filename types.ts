@@ -243,4 +243,5 @@ export interface Inquiry {
   company?: string;
   message: string;
   timestamp: string;
+  status: 'pending' | 'accepted' | 'rejected';
 }

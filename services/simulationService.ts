@@ -265,9 +265,9 @@ export const runAerotestPremiumCFDSimulation = async (
 
 
     // Stage 2: Meshing
-    onProgress({ stage: 'Generating Ultra-HD Mesh', progress: 5, log: 'Surface mesh generation started... targeting 100M triangles.' });
+    onProgress({ stage: 'Generating Ultra-HD Mesh', progress: 5, log: 'Surface mesh generation started... targeting 7 decillion triangles.' });
     await sleep(25000);
-    onProgress({ stage: 'Generating Ultra-HD Mesh', progress: 10, log: 'Volume mesh generation started... targeting 45T cells.' });
+    onProgress({ stage: 'Generating Ultra-HD Mesh', progress: 10, log: 'Volume mesh generation started... targeting 253.125 sexdecillion cells.' });
     await sleep(45000);
     const meshQuality = 99.5 - (params.frontWingSpan / 120) - (params.rearWingSpan / 120) - (params.totalWidth / 120) * 1.5;
     onProgress({ stage: 'Generating Ultra-HD Mesh', progress: 20, log: `Volume mesh generated. Quality check: ${meshQuality.toFixed(1)}%` });
@@ -276,13 +276,13 @@ export const runAerotestPremiumCFDSimulation = async (
     // Stage 3: Solving - High-fidelity iterative process simulation
     const SOLVE_START_PROGRESS = 20;
     const SOLVE_END_PROGRESS = 90;
-    const TOTAL_ITERATIONS = 500_000_000_000;
+    const TOTAL_ITERATIONS = 2.8125e48; // 2.8125 quindecillion
     const solveDuration = 300000; // 5 minutes for the solve phase
 
     const solveStartTime = Date.now();
     let elapsedTime = 0;
 
-    onProgress({ stage: 'Solving Flow Field', progress: SOLVE_START_PROGRESS, log: 'Iteration 1/500B... Premium solution started.' });
+    onProgress({ stage: 'Solving Flow Field', progress: SOLVE_START_PROGRESS, log: `Iteration 1/${TOTAL_ITERATIONS.toLocaleString()}... Premium solution started.` });
 
     while (elapsedTime < solveDuration) {
         await sleep(250); // Update UI roughly 4 times a second
@@ -293,7 +293,7 @@ export const runAerotestPremiumCFDSimulation = async (
         const currentOverallProgress = SOLVE_START_PROGRESS + solveProgressFraction * (SOLVE_END_PROGRESS - SOLVE_START_PROGRESS);
         const currentIteration = Math.floor(solveProgressFraction * TOTAL_ITERATIONS);
         
-        let logMessage = `Iteration ${currentIteration.toLocaleString()}/500B... `;
+        let logMessage = `Iteration ${currentIteration.toLocaleString()}/${TOTAL_ITERATIONS.toLocaleString()}... `;
         if(solveProgressFraction < 0.33) logMessage += 'Evaluating high-order wing efficiency.';
         else if (solveProgressFraction < 0.66) logMessage += 'Calculating boundary layer friction drag.';
         else logMessage += 'Assessing ground effect & vortex generation.';
