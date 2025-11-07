@@ -1,4 +1,5 @@
-import * as React from 'react';
+// FIX: Changed import statement to be consistent with the project, resolving type errors for class component properties.
+import React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -10,8 +11,6 @@ interface State {
   error: Error | null;
 }
 
-// FIX: Extended React.Component to make ErrorBoundary a valid class component,
-// which provides access to `this.props` and `this.setState`.
 class ErrorBoundary extends React.Component<Props, State> {
   state: State = {
     hasError: false,

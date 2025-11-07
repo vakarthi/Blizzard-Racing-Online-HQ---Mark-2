@@ -53,6 +53,15 @@ export const MOCK_CAR_HIGHLIGHTS: CarHighlight[] = [
 
 export const MOCK_THREADS: DiscussionThread[] = [
     {
+        id: 'thread-3',
+        title: 'where',
+        createdBy: 'user-1',
+        createdAt: '2024-08-02T12:00:00Z',
+        posts: [
+            { id: 'post-3-1', authorId: 'user-1', content: 'is the meeting spot for tomorrow?', createdAt: '2024-08-02T12:00:00Z' },
+        ]
+    },
+    {
         id: 'thread-1',
         title: 'Rear Wing Strategy for Nationals',
         createdBy: 'user-2',

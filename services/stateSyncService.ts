@@ -75,12 +75,11 @@ window.addEventListener('storage', (event: StorageEvent) => {
     if (event.key === STORAGE_KEY && event.newValue) {
         try {
             const newState: AppStore = JSON.parse(event.newValue);
-            // Update the in-memory store and notify subscribers only if the state has actually changed.
-            // This prevents potential re-render loops.
-            if (JSON.stringify(store) !== JSON.stringify(newState)) {
-                store = newState;
-                subscribers.forEach(callback => callback(store));
-            }
+            // Update the in-memory store and notify subscribers.
+            // Removed the stringify check. It might cause an extra render,
+            // but it's more robust against key-ordering issues in JSON.
+            store = newState;
+            subscribers.forEach(callback => callback(store));
         } catch (e) {
             console.error("Failed to parse state from storage event:", e);
         }
