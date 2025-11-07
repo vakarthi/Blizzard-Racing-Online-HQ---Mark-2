@@ -1,4 +1,3 @@
-
 import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction } from '../types';
 
 // Helper for promise-based sleep
@@ -244,7 +243,8 @@ export const runAerotestCFDSimulation = async (
  */
 export const runAerotestPremiumCFDSimulation = async (
   params: DesignParameters,
-  onProgress: (update: { stage: string; progress: number, log?: string }) => void
+  onProgress: (update: { stage: string; progress: number, log?: string }) => void,
+  thrustModel: 'standard' | 'competition'
 ): Promise<Omit<AeroResult, 'id' | 'suggestions' | 'scrutineeringReport' | 'fileName'>> => {
   const startTime = Date.now();
   const INLET_VELOCITY = 20; // m/s
@@ -358,19 +358,39 @@ export const runAerotestPremiumCFDSimulation = async (
     let bestTopSpeed = 0;
     let worstTopSpeed = Infinity;
     
-    // --- Aerotest Physics Model v5.1 (High-Fidelity Race Simulation) ---
+    // --- Aerotest Physics Model v5.1 & v5.2 (High-Fidelity Race Simulation) ---
     const RACE_DISTANCE = 20; // meters
-    const PEAK_THRUST = 7.0; // Newtons
-    const PEAK_DURATION = 0.05; // seconds
-    const SUSTAINED_THRUST = 2.4; // Newtons
-    const CO2_THRUST_DURATION = 0.4; // seconds
-    const ROLLING_RESISTANCE_COEFFICIENT = 0.0048; // Lower resistance
     const GRAVITATIONAL_ACCELERATION = 9.81; // m/s^2
-    const TETHER_FRICTION_FORCE = 0.018; // Lower friction
-    const VARIATION_FACTOR = 0.015; // 1.5% variation in conditions (more consistent)
     const DT = 0.0005; // Smaller time step
     const mass = params.totalWeight / 1000; // kg
     const frontalArea = (params.totalWidth / 1000) * (45 / 1000); // m^2 approximation
+    
+    // Model-specific constants
+    let PEAK_THRUST: number, PEAK_DURATION: number, SUSTAINED_THRUST: number, CO2_THRUST_DURATION: number;
+    let ROLLING_RESISTANCE_COEFFICIENT: number, TETHER_FRICTION_FORCE: number, VARIATION_FACTOR: number;
+
+    if (thrustModel === 'competition') {
+        // v5.2 Competition Grade Model - Simulates a 'hot' CO2 canister and ideal conditions
+        onProgress({ stage: 'Performance & Consistency Analysis', progress: 91, log: 'Using Competition Grade (v5.2) thrust model...' });
+        PEAK_THRUST = 9.5;
+        PEAK_DURATION = 0.045;
+        SUSTAINED_THRUST = 3.0;
+        CO2_THRUST_DURATION = 0.38;
+        ROLLING_RESISTANCE_COEFFICIENT = 0.0045;
+        TETHER_FRICTION_FORCE = 0.015;
+        VARIATION_FACTOR = 0.01; // Lower variation for more consistent "ideal" runs
+    } else {
+        // v5.1 Standard Model
+        onProgress({ stage: 'Performance & Consistency Analysis', progress: 91, log: 'Using Standard (v5.1) thrust model...' });
+        PEAK_THRUST = 7.0;
+        PEAK_DURATION = 0.05;
+        SUSTAINED_THRUST = 2.4;
+        CO2_THRUST_DURATION = 0.4;
+        ROLLING_RESISTANCE_COEFFICIENT = 0.0048;
+        TETHER_FRICTION_FORCE = 0.018;
+        VARIATION_FACTOR = 0.015;
+    }
+
     const rollingResistanceForce = ROLLING_RESISTANCE_COEFFICIENT * mass * GRAVITATIONAL_ACCELERATION;
 
     for (let i = 0; i < NUM_SIMULATIONS; i++) {
@@ -428,6 +448,7 @@ export const runAerotestPremiumCFDSimulation = async (
      const cfdResult = {
         parameters: params,
         tier: 'premium' as const,
+        thrustModel: thrustModel,
         cd: parseFloat(cd.toFixed(4)),
         cl: parseFloat(cl.toFixed(4)),
         liftToDragRatio: parseFloat(liftToDragRatio.toFixed(3)),

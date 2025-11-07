@@ -113,6 +113,11 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
                 <div className="text-center bg-brand-dark p-4 rounded-lg mt-4">
                     <p className="text-sm text-brand-text-secondary">Average Drag Coefficient (Cd)</p>
                     <p className="text-3xl font-bold text-brand-accent font-mono tracking-tighter">{toFixedSafe(pred.averageDrag, 4)}</p>
+                    {result.thrustModel && (
+                      <p className="text-xs text-brand-text-secondary mt-2">
+                        Thrust Model: <span className="font-semibold capitalize">{result.thrustModel} (v{result.thrustModel === 'competition' ? '5.2' : '5.1'})</span>
+                      </p>
+                    )}
                 </div>
             </div>
         );
@@ -229,6 +234,7 @@ const AeroPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
   const [tier, setTier] = useState<'standard' | 'premium'>('standard');
+  const [thrustModel, setThrustModel] = useState<'standard' | 'competition'>('standard');
   
   const handleFileChange = (file: File | null) => {
     if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
@@ -309,14 +315,19 @@ const AeroPage: React.FC = () => {
             });
         };
         
-        const simulationFunction = tier === 'premium' ? runAerotestPremiumCFDSimulation : runAerotestCFDSimulation;
-        const simResultData = await simulationFunction(parameters, onProgress);
+        let simResultData;
+        if (tier === 'premium') {
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
+        } else {
+            simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+        }
         
         const tempResultForAnalysis: AeroResult = {
             ...simResultData,
             id: 'temp',
             fileName: stepFile.name,
             parameters: parameters,
+            thrustModel: tier === 'premium' ? thrustModel : undefined,
         };
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
         const scrutineeringReport = performScrutineering(parameters);
@@ -364,6 +375,23 @@ const AeroPage: React.FC = () => {
                             <button onClick={() => setTier('premium')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tier === 'premium' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}><SparklesIcon className="w-4 h-4"/> Premium</button>
                         </div>
                     </div>
+
+                    {tier === 'premium' && (
+                        <div className="mb-4 animate-fade-in">
+                            <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Thrust Model</label>
+                            <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
+                                <button onClick={() => setThrustModel('standard')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${thrustModel === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
+                                    Standard (v5.1)
+                                </button>
+                                <button onClick={() => setThrustModel('competition')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${thrustModel === 'competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
+                                    Competition (v5.2)
+                                </button>
+                            </div>
+                            <p className="text-xs text-brand-text-secondary mt-2">
+                                'Competition' simulates a 'hot' CO2 canister for potentially faster, real-world race conditions.
+                            </p>
+                        </div>
+                    )}
 
                     <div 
                         onDragEnter={handleDragEvents}

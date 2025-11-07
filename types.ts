@@ -65,6 +65,7 @@ export interface AeroResult {
   timestamp: string;
   fileName: string;
   tier?: 'standard' | 'premium';
+  thrustModel?: 'standard' | 'competition';
   
   // Input parameters
   parameters: DesignParameters;

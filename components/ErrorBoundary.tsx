@@ -1,6 +1,7 @@
 
-// FIX: Changed React import to a namespace import to resolve type errors for class component properties.
-import * as React from 'react';
+// FIX: Changed React import from a namespace import (`import * as React`) to a default import.
+// This ensures the class correctly extends React.Component and inherits properties like `props` and `setState`.
+import React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
