@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
@@ -310,7 +306,12 @@ const ContactPage: React.FC = () => {
 
 const AerotestPremiumPage: React.FC = () => {
     const { publicPortalContent, addInquiry } = useData();
-    const { aerotest: aerotestContent } = publicPortalContent;
+    // Fix: Provide a fallback object to prevent a crash if the 'aerotest' property is missing from the state.
+    // This can happen if a user has an older version of the app's state stored in their localStorage.
+    const aerotestContent = publicPortalContent.aerotest || {
+        title: "Aerotest Premium",
+        subtitle: "Leverage our competition-proven CFD analysis tools for your own project. Unparalleled accuracy, available to the public."
+    };
     const [submitted, setSubmitted] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', company: '', message: '' });
 
