@@ -52,6 +52,16 @@ export const MOCK_CAR_HIGHLIGHTS: CarHighlight[] = [
 ];
 
 export const MOCK_THREADS: DiscussionThread[] = [
+     {
+        id: 'thread-4',
+        title: 'CFD Analysis of BR-03 Sidepods',
+        createdBy: 'user-2',
+        createdAt: '2024-08-03T11:00:00Z',
+        posts: [
+            { id: 'post-4-1', authorId: 'user-2', content: 'Initial results from the new sidepod simulation are looking very promising. Drag is down 3% with a slight increase in downforce. I\'ve attached the report.', createdAt: '2024-08-03T11:00:00Z' },
+            { id: 'post-4-2', authorId: 'user-1', content: 'Great work Anish, this is a fantastic result. Let\'s get this fast-tracked for manufacturing.', createdAt: '2024-08-03T12:30:00Z' },
+        ]
+    },
     {
         id: 'thread-3',
         title: 'where',

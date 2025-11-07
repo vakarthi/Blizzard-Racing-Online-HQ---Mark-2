@@ -71,13 +71,14 @@ const subscribers = new Set<(store: AppStore) => void>();
 // New: Listener for storage events from other tabs.
 // This is more robust than BroadcastChannel for ensuring state sync.
 window.addEventListener('storage', (event: StorageEvent) => {
-    // Check if the change happened to our specific storage key and has a new value.
-    if (event.key === STORAGE_KEY && event.newValue) {
+    // FIX: Instead of relying on event.newValue, which can be inconsistent,
+    // we re-read from localStorage directly whenever a change to our key is detected.
+    if (event.key === STORAGE_KEY) {
         try {
-            const newState: AppStore = JSON.parse(event.newValue);
-            // Update the in-memory store and notify subscribers.
-            // Removed the stringify check. It might cause an extra render,
-            // but it's more robust against key-ordering issues in JSON.
+            const serializedState = localStorage.getItem(STORAGE_KEY);
+            if (!serializedState) return; // This can happen on a 'clear' event.
+
+            const newState: AppStore = JSON.parse(serializedState);
             store = newState;
             subscribers.forEach(callback => callback(store));
         } catch (e) {
