@@ -29,7 +29,6 @@ export interface AppStore {
 }
 
 const STORAGE_KEY = 'brh-synced-store';
-const SYNC_CHANNEL_NAME = 'brh-sync-channel';
 
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
@@ -68,23 +67,32 @@ const getInitialState = (): AppStore => {
 
 let store: AppStore = getInitialState();
 const subscribers = new Set<(store: AppStore) => void>();
-const channel = new BroadcastChannel(SYNC_CHANNEL_NAME);
 
-// When another tab sends a message, update our store and notify components
-channel.onmessage = (event: MessageEvent<AppStore>) => {
-  store = event.data;
-  // Also update our own localStorage to be in sync
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
-  subscribers.forEach(callback => callback(store));
-};
+// New: Listener for storage events from other tabs.
+// This is more robust than BroadcastChannel for ensuring state sync.
+window.addEventListener('storage', (event: StorageEvent) => {
+    // Check if the change happened to our specific storage key and has a new value.
+    if (event.key === STORAGE_KEY && event.newValue) {
+        try {
+            const newState: AppStore = JSON.parse(event.newValue);
+            // Update the in-memory store and notify subscribers only if the state has actually changed.
+            // This prevents potential re-render loops.
+            if (JSON.stringify(store) !== JSON.stringify(newState)) {
+                store = newState;
+                subscribers.forEach(callback => callback(store));
+            }
+        } catch (e) {
+            console.error("Failed to parse state from storage event:", e);
+        }
+    }
+});
 
-const saveAndBroadcast = (newState: AppStore) => {
+// Simplified function to save state, which implicitly triggers the sync event.
+const saveState = (newState: AppStore) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-    // The message is posted, and the onmessage handler in other tabs will pick it up.
-    channel.postMessage(newState);
   } catch (e) {
-    console.error("Failed to save state or broadcast:", e);
+    console.error("Failed to save state to localStorage:", e);
   }
 };
 
@@ -98,8 +106,8 @@ export const stateSyncService = {
 
   updateStore: (updater: (currentStore: AppStore) => AppStore) => {
     const newState = updater(store);
-    store = newState;
-    saveAndBroadcast(newState);
-    subscribers.forEach(callback => callback(store));
+    store = newState; // 1. Update the local, in-memory store for the current tab.
+    saveState(newState); // 2. Persist to localStorage, which triggers the 'storage' event for all other tabs.
+    subscribers.forEach(callback => callback(store)); // 3. Notify local subscribers in the current tab to trigger UI updates.
   },
 };
