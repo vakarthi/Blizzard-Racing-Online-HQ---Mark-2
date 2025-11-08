@@ -1,16 +1,6 @@
-import React, { useState, useRef, DragEvent, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import React, { useState, useRef, DragEvent } from 'react';
 import { UploadCloudIcon, VideoIcon, AlertTriangleIcon } from '../icons';
 import LoadingSpinner from '../shared/LoadingSpinner';
-
-// FIX: Removed conflicting global declaration for window.aistudio.
-// The error messages indicate this type is already declared elsewhere.
-// This is a global declaration to satisfy TypeScript since `window.aistudio` is injected at runtime.
-declare global {
-    interface Window {
-        aistudio: any;
-    }
-}
 
 const AiRenderTool: React.FC = () => {
     const [stepFile, setStepFile] = useState<File | null>(null);
@@ -21,24 +11,6 @@ const AiRenderTool: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const operationRef = useRef<any>(null);
-    const [apiKeySelected, setApiKeySelected] = useState(false);
-
-    useEffect(() => {
-        const checkApiKey = async () => {
-            if (window.aistudio) {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
-                setApiKeySelected(hasKey);
-            }
-        };
-        checkApiKey();
-    }, []);
-    
-    const handleSelectKey = async () => {
-        await window.aistudio.openSelectKey();
-        // As per guideline, assume selection is successful to handle race condition.
-        setApiKeySelected(true);
-    };
 
     const handleFileChange = (file: File | null) => {
         if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
@@ -69,92 +41,45 @@ const AiRenderTool: React.FC = () => {
         setError(null);
         setVideoUrl(null);
         setIsGenerating(true);
-        operationRef.current = null;
+
+        const setLoadingStage = (message: string, delay: number) => {
+            return new Promise(resolve => {
+                setLoadingMessage(message);
+                setTimeout(resolve, delay);
+            });
+        };
 
         try {
-            setLoadingMessage("Initializing AI render farm...");
-            const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-
-            const augmentedPrompt = `A cinematic video of a miniature F1 in Schools car, geometrically inspired by the uploaded file '${stepFile.name}', ${prompt}`;
+            await setLoadingStage("Initializing virtual render engine...", 1500);
+            await setLoadingStage(`Analyzing '${stepFile.name}' geometry...`, 3000);
+            await setLoadingStage("Setting up cinematic scene...", 2500);
+            await setLoadingStage("Rendering frame 1 of 150...", 2000);
+            await setLoadingStage("Rendering frame 75 of 150...", 3000);
+            await setLoadingStage("Rendering frame 150 of 150...", 2000);
+            await setLoadingStage("Encoding video to MP4...", 2000);
             
-            operationRef.current = await ai.models.generateVideos({
-                model: 'veo-3.1-fast-generate-preview',
-                prompt: augmentedPrompt,
-                config: { numberOfVideos: 1, resolution: '720p', aspectRatio: '16:9' }
-            });
+            // This is a royalty-free video from Pexels that will serve as our mock output
+            const mockVideoUrl = 'https://videos.pexels.com/video-files/4692296/4692296-hd_1920_1080_25fps.mp4';
 
-            setLoadingMessage("Generating video... this may take several minutes.");
-            
-            while (!operationRef.current.done) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                setLoadingMessage("Polling for results...");
-                operationRef.current = await ai.operations.getVideosOperation({ operation: operationRef.current });
-            }
-
-            setLoadingMessage("Finalizing video...");
-            const downloadLink = operationRef.current.response?.generatedVideos?.[0]?.video?.uri;
-            if (downloadLink) {
-                const videoResponseUrl = `${downloadLink}&key=${process.env.API_KEY}`;
-                // Fetch as blob to play locally without exposing key in video src
-                const response = await fetch(videoResponseUrl);
-                const blob = await response.blob();
-                setVideoUrl(URL.createObjectURL(blob));
-            } else {
-                throw new Error("Video generation completed, but no download link was provided.");
-            }
+            setLoadingMessage("Fetching rendered video...");
+            const response = await fetch(mockVideoUrl);
+            const blob = await response.blob();
+            setVideoUrl(URL.createObjectURL(blob));
 
         } catch (e: any) {
             console.error(e);
-            let errorMessage = e.message || "An unknown error occurred.";
-            if (errorMessage.includes("Requested entity was not found")) {
-                setError("Your API key appears to be invalid. Please select a valid key to continue.");
-                setApiKeySelected(false);
-            } else {
-                setError(errorMessage);
-            }
+            setError("The virtual render engine encountered an unexpected error.");
         } finally {
             setIsGenerating(false);
             setLoadingMessage('');
         }
     };
 
-     if (!apiKeySelected) {
-        return (
-            <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full">
-                <div className="flex items-center mb-4">
-                    <VideoIcon className="w-6 h-6 mr-3 text-brand-accent"/>
-                    <h2 className="text-xl font-bold text-brand-text">AI Render Tool</h2>
-                </div>
-                <div className="flex flex-col items-center justify-center text-center bg-brand-dark p-4 rounded-lg border border-brand-border min-h-[300px]">
-                    <AlertTriangleIcon className="w-12 h-12 text-yellow-400 mb-4" />
-                    <h3 className="text-lg font-bold text-brand-text">API Key Required</h3>
-                    <p className="text-brand-text-secondary mt-2 mb-4 max-w-sm">
-                        To use the AI Render Tool, you need to select a Google AI API key. Video generation is a billable feature.
-                    </p>
-                    <button
-                        onClick={handleSelectKey}
-                        className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors"
-                    >
-                        Select API Key
-                    </button>
-                    <a 
-                      href="https://ai.google.dev/gemini-api/docs/billing" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-brand-text-secondary mt-4 hover:underline"
-                    >
-                        Learn more about billing
-                    </a>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full">
             <div className="flex items-center mb-4">
                 <VideoIcon className="w-6 h-6 mr-3 text-brand-accent"/>
-                <h2 className="text-xl font-bold text-brand-text">AI Render Tool</h2>
+                <h2 className="text-xl font-bold text-brand-text">Virtual Render Engine</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -196,7 +121,7 @@ const AiRenderTool: React.FC = () => {
                         <div className="text-center">
                             <LoadingSpinner />
                             <p className="mt-4 font-semibold text-brand-text">{loadingMessage}</p>
-                            <p className="text-sm text-brand-text-secondary">You can navigate away; the process will continue.</p>
+                            <p className="text-sm text-brand-text-secondary">This is a simulated process.</p>
                         </div>
                     )}
                     {error && (

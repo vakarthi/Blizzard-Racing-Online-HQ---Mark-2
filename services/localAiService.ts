@@ -65,10 +65,9 @@ const RESPONDERS: Responder[] = [
     // --- Data Analysis ---
     {
         regex: /best (aero|design|car)/i,
-        // Fix: The 'isBest' property does not exist on AeroResult. The best result is determined by the highest lift-to-drag ratio.
         handler: (_, data) => {
             if (!data.aeroResults || data.aeroResults.length === 0) {
-                return "There are no simulation results marked as 'best' yet. Run some simulations to find the optimal design!";
+                return "There are no simulation results to analyze yet. Run some simulations to find the optimal design!";
             }
             
             const bestResult = data.aeroResults.reduce((best, current) => 

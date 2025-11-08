@@ -1,5 +1,4 @@
 
-
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
   DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask
@@ -35,15 +34,8 @@ const STORAGE_KEY = 'brh-synced-store';
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
 const getInitialState = (): AppStore => {
-    try {
-        const serializedState = localStorage.getItem(STORAGE_KEY);
-        if (serializedState) return JSON.parse(serializedState);
-    } catch (e) {
-        console.error("Could not load state from localStorage, initializing with default.", e);
-    }
-
-    // If nothing in storage or parsing fails, create initial state
-    return {
+    // This is the source of truth for the shape of the store.
+    const defaultState: AppStore = {
         users: MOCK_USERS,
         tasks: MOCK_TASKS,
         aeroResults: [],
@@ -66,6 +58,23 @@ const getInitialState = (): AppStore => {
         competitionDate: '2024-12-01T09:00:00',
         teamLogoUrl: DEFAULT_LOGO,
     };
+
+    try {
+        const serializedState = localStorage.getItem(STORAGE_KEY);
+        if (serializedState) {
+            const loadedState = JSON.parse(serializedState);
+            // By spreading the defaultState first, then the loadedState, we ensure
+            // that any properties missing from the loaded (older) state are gracefully
+            // initialized from the default state. This prevents crashes when new
+            // properties are added to the application, such as the `backgroundTasks` array.
+            return { ...defaultState, ...loadedState };
+        }
+    } catch (e) {
+        console.error("Could not load state from localStorage, initializing with default.", e);
+    }
+
+    // If nothing in storage or parsing fails, return the default state
+    return defaultState;
 };
 
 let store: AppStore = getInitialState();
