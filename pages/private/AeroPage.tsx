@@ -2,67 +2,12 @@
 
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../../services/simulationService';
-import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
-import { analyzeStepFile } from '../../services/fileAnalysisService';
-import { AeroResult, ProbabilisticRaceTimePrediction } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon } from '../../components/icons';
+import { AeroResult, ProbabilisticRaceTimePrediction, BackgroundTask } from '../../types';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
 
-// Add new icons for the page
-const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    // FIX: Corrected a typo in the viewBox attribute (was "0 0 24" 24", now "0 0 24 24") which caused multiple SVG parsing errors.
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-);
-const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    // FIX: Added missing space between attributes in the line element.
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-);
-
-const SimulationProgressModal: React.FC<{ progressData: { stage: string; progress: number; logs: string[] } | null }> = ({ progressData }) => {
-    if (!progressData) return null;
-
-    const { stage, progress, logs } = progressData;
-    const logsEndRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [logs]);
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fade-in">
-            <div className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl border border-brand-border">
-                <div className="p-4 border-b border-brand-border">
-                    <h2 className="text-xl font-bold text-brand-accent">Aerotest Simulation in Progress</h2>
-                    <p className="text-sm text-brand-text-secondary">This process is computationally intensive and will take a few minutes.</p>
-                </div>
-                <div className="p-6">
-                    <div className="mb-4">
-                        <div className="flex justify-between items-baseline mb-1">
-                            <span className="text-md font-semibold text-brand-text">{stage}</span>
-                            <span className="text-md font-bold text-brand-text-secondary">{progress.toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
-                            <div className="bg-brand-accent h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
-                        </div>
-                    </div>
-                    <div className="bg-brand-dark p-3 rounded-md border border-brand-border h-48 overflow-y-auto font-mono text-sm text-brand-text-secondary">
-                        {logs.map((log, index) => (
-                            <p key={index} className="animate-fade-in">{`> ${log}`}</p>
-                        ))}
-                        <div ref={logsEndRef} />
-                    </div>
-                    {progress === 100 && stage === 'Complete' && (
-                        <div className="text-center mt-4 text-green-400 font-semibold animate-fade-in">
-                            Simulation complete! Finalizing results...
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void }> = ({ result, onClose }) => {
     const [activeTab, setActiveTab] = useState('prediction');
@@ -231,11 +176,35 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
     );
 };
 
+const RunningSimulation: React.FC<{ task: BackgroundTask }> = ({ task }) => {
+    return (
+        <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
+            <div className="flex justify-between items-center mb-2">
+                <p className="font-semibold text-brand-text truncate pr-4">{task.fileName}</p>
+                <div className="flex items-center gap-2 text-sm text-brand-text-secondary">
+                    <LoadingSpinner />
+                    <span>Running...</span>
+                </div>
+            </div>
+            <div className="mb-2">
+                <div className="flex justify-between items-baseline mb-1 text-sm">
+                    <span className="font-semibold text-brand-text-secondary">{task.stage}</span>
+                    <span className="font-bold text-brand-text-secondary">{task.progress.toFixed(0)}%</span>
+                </div>
+                <div className="w-full bg-brand-surface rounded-full h-2.5 border border-brand-border/50">
+                    <div className="bg-brand-accent h-full rounded-full transition-all duration-500" style={{ width: `${task.progress}%` }}></div>
+                </div>
+            </div>
+            {task.latestLog && (
+                <p className="font-mono text-xs text-brand-text-secondary mt-2 truncate">{`> ${task.latestLog}`}</p>
+            )}
+        </div>
+    );
+};
+
 
 const AeroPage: React.FC = () => {
-  const { aeroResults, addAeroResult } = useData();
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simulationProgress, setSimulationProgress] = useState<{ stage: string; progress: number; logs: string[] } | null>(null);
+  const { aeroResults, runSimulationTask, backgroundTasks } = useData();
   const [selectedResult, setSelectedResult] = useState<AeroResult | null>(null);
   const [stepFile, setStepFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -243,6 +212,9 @@ const AeroPage: React.FC = () => {
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
   const [tier, setTier] = useState<'standard' | 'premium'>('standard');
   const [thrustModel, setThrustModel] = useState<'standard' | 'competition' | 'pro-competition'>('standard');
+  
+  const runningSimulations = backgroundTasks.filter(t => t.type === 'simulation' && t.status === 'running');
+  const isSimulating = runningSimulations.length > 0;
   
   useEffect(() => {
     // Reset thrust model if switching back to standard tier
@@ -311,56 +283,25 @@ const AeroPage: React.FC = () => {
         alert("Please upload a STEP file to simulate.");
         return;
     }
-    setIsSimulating(true);
-    setSimulationProgress({ stage: 'Preparing...', progress: 0, logs: [`Analyzing file: ${stepFile.name}`] });
-    
-    try {
-        const parameters = await analyzeStepFile(stepFile);
-        
-        const onProgress = (update: { stage: string; progress: number; log?: string }) => {
-            setSimulationProgress(prev => {
-                const newLogs = [...(prev?.logs || [])];
-                if (update.log && newLogs[newLogs.length - 1] !== update.log) {
-                    newLogs.push(update.log);
-                }
-                return { stage: update.stage, progress: update.progress, logs: newLogs.slice(-10) };
-            });
-        };
-        
-        let simResultData;
-        if (tier === 'standard') {
-            simResultData = await runAerotestCFDSimulation(parameters, onProgress);
-        } else {
-            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
-        }
-        
-        const tempResultForAnalysis: AeroResult = {
-            ...simResultData, id: 'temp', fileName: stepFile.name, parameters,
-        };
-        const suggestions = generateAeroSuggestions(tempResultForAnalysis);
-        const scrutineeringReport = performScrutineering(parameters);
-        
-        addAeroResult({ ...simResultData, fileName: stepFile.name, suggestions, scrutineeringReport });
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-    } catch (error) {
-        console.error("Simulation failed", error);
-        alert("Simulation failed. Please check the console.");
-    } finally {
-        setIsSimulating(false);
-        setSimulationProgress(null);
-        setStepFile(null);
-    }
+    runSimulationTask(stepFile, tier, thrustModel);
+    setStepFile(null);
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
       <h1 className="text-3xl font-bold text-brand-text">Aerotest Simulation Suite</h1>
-      {isSimulating && <SimulationProgressModal progressData={simulationProgress} />}
       
       {comparisonResults.length >= 2 && (
           <AeroComparison results={comparisonResults} onClear={clearComparison} />
+      )}
+      
+      {runningSimulations.length > 0 && (
+        <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in">
+            <h2 className="text-xl font-bold text-brand-text mb-4">Simulations in Progress</h2>
+            <div className="space-y-4">
+                {runningSimulations.map(task => <RunningSimulation key={task.id} task={task} />)}
+            </div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -420,7 +361,7 @@ const AeroPage: React.FC = () => {
                     {stepFile && <button onClick={() => setStepFile(null)} className="text-xs text-red-400 hover:underline text-center mt-2">Clear selection</button>}
                     <button
                         onClick={handleSimulate}
-                        disabled={isSimulating || !stepFile}
+                        disabled={!stepFile}
                         className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
                     >
                        <WindIcon className="w-5 h-5 mr-2" /> Run {tier === 'standard' ? 'Standard' : 'Premium'} Simulation

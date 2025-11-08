@@ -1,4 +1,5 @@
 
+
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from '../contexts/AppContext';
@@ -18,6 +19,7 @@ import SettingsPage from './private/SettingsPage';
 import CommandPalette from '../components/hq/CommandPalette';
 import PortalEditorPage from './private/PortalEditorPage';
 import LeadsPage from './private/LeadsPage';
+import NotificationManager from '../components/hq/NotificationManager';
 
 interface NavItem {
   path: string;
@@ -167,6 +169,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
         </div>
         <Icicle />
       </main>
+      <NotificationManager />
     </div>
   );
 };

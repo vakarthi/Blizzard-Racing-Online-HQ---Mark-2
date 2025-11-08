@@ -1,9 +1,13 @@
 
+
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
-import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry } from '../types';
+import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSyncedStore } from '../hooks/useSyncedStore';
 import { generateAvatar } from '../utils/avatar';
+import { analyzeStepFile } from '../services/fileAnalysisService';
+import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../services/simulationService';
+import { generateAeroSuggestions, performScrutineering } from '../services/localSimulationService';
 
 
 // --- CONTEXT DEFINITIONS ---
@@ -73,6 +77,8 @@ export interface DataContextType {
   inquiries: Inquiry[];
   addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => void;
   updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
+  backgroundTasks: BackgroundTask[];
+  runSimulationTask: (file: File, tier: 'standard' | 'premium', thrustModel: 'standard' | 'competition' | 'pro-competition') => void;
 }
 
 interface AppStateContextType {
@@ -181,6 +187,85 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const clearBiometricConfig = () => setBiometricConfigState(null);
 
   // --- Data Logic (all functions now use the central `updateStore` dispatcher) ---
+  const addAeroResult = (result: Omit<AeroResult, 'id'>): AeroResult => {
+      const newResult: AeroResult = { ...result, id: `aero-${Date.now()}` };
+      updateStore(s => ({ ...s, aeroResults: [newResult, ...s.aeroResults] }));
+      return newResult;
+  };
+
+  const runSimulationTask = (file: File, tier: 'standard' | 'premium', thrustModel: 'standard' | 'competition' | 'pro-competition') => {
+    const taskId = `sim-${Date.now()}`;
+    const newTask: BackgroundTask = {
+      id: taskId,
+      type: 'simulation',
+      status: 'running',
+      progress: 0,
+      stage: 'Preparing...',
+      startTime: new Date().toISOString(),
+      fileName: file.name,
+    };
+
+    updateStore(s => ({ ...s, backgroundTasks: [newTask, ...s.backgroundTasks] }));
+
+    // This is an async IIFE, "fire and forget"
+    (async () => {
+      try {
+        updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Analyzing Geometry...', progress: 1, latestLog: `Analyzing file: ${file.name}` } : t) }));
+        const parameters = await analyzeStepFile(file);
+        
+        const onProgress = (update: { stage: string; progress: number; log?: string }) => {
+            updateStore(s => ({
+              ...s,
+              backgroundTasks: s.backgroundTasks.map(t => {
+                if (t.id === taskId) {
+                  return { ...t, stage: update.stage, progress: update.progress, latestLog: update.log };
+                }
+                return t;
+              })
+            }));
+        };
+        
+        let simResultData;
+        if (tier === 'standard') {
+            simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+        } else {
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
+        }
+        
+        const tempResultForAnalysis: AeroResult = {
+            ...simResultData, id: 'temp', fileName: file.name, parameters,
+        };
+        const suggestions = generateAeroSuggestions(tempResultForAnalysis);
+        const scrutineeringReport = performScrutineering(parameters);
+        
+        const newResult = addAeroResult({ ...simResultData, fileName: file.name, suggestions, scrutineeringReport });
+
+        updateStore(s => ({
+          ...s,
+          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {
+            ...t,
+            status: 'completed',
+            progress: 100,
+            stage: 'Complete',
+            endTime: new Date().toISOString(),
+            resultId: newResult.id,
+          } : t)
+        }));
+
+      } catch (e: any) {
+        console.error("Simulation task failed:", e);
+        updateStore(s => ({
+          ...s,
+          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {
+            ...t,
+            status: 'error',
+            endTime: new Date().toISOString(),
+            error: e.message || String(e),
+          } : t)
+        }));
+      }
+    })();
+  };
 
   const { publicPortalContent, publicPortalContentHistory } = {
       publicPortalContent: store.publicPortalContentHistory[0].content,
@@ -238,12 +323,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteTask = (taskId: string) => {
     updateStore(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId)}));
-  };
-  
-  const addAeroResult = (result: Omit<AeroResult, 'id'>): AeroResult => {
-      const newResult: AeroResult = { ...result, id: `aero-${Date.now()}` };
-      updateStore(s => ({ ...s, aeroResults: [newResult, ...s.aeroResults] }));
-      return newResult;
   };
   
   const updateAeroResult = (updatedResult: AeroResult) => {
@@ -369,6 +448,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         publicPortalContentHistory: data.publicPortalContentHistory || currentStore.publicPortalContentHistory,
         loginHistory: data.loginHistory || currentStore.loginHistory,
         inquiries: data.inquiries || currentStore.inquiries,
+        backgroundTasks: data.backgroundTasks || currentStore.backgroundTasks,
     }));
   }
 
@@ -393,6 +473,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       publicPortalContentHistory,
       updatePublicPortalContent,
       revertToVersion,
+      runSimulationTask,
   };
 
   const appStateContextValue: AppStateContextType = {

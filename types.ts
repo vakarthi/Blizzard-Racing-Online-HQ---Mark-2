@@ -251,3 +251,17 @@ export interface Inquiry {
   timestamp: string;
   status: 'pending' | 'accepted' | 'rejected';
 }
+
+export interface BackgroundTask {
+  id: string;
+  type: 'simulation';
+  status: 'running' | 'completed' | 'error';
+  progress: number;
+  stage: string;
+  latestLog?: string;
+  startTime: string;
+  endTime?: string;
+  resultId?: string;
+  fileName: string;
+  error?: string;
+}
