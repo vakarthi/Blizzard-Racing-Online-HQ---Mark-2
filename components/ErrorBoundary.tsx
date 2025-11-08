@@ -1,7 +1,4 @@
-
-// FIX: Changed React import from a namespace import (`import * as React`) to a default import.
-// This ensures the class correctly extends React.Component and inherits properties like `props` and `setState`.
-import React from 'react';
+import * as React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -14,6 +11,7 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
+  // FIX: Initialize state as a class property for conciseness.
   state: State = {
     hasError: false,
     error: null,
@@ -27,6 +25,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
+  // FIX: Use an arrow function for the event handler to automatically bind `this`.
   handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load

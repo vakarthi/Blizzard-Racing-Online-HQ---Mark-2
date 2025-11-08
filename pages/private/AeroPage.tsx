@@ -1,21 +1,23 @@
 
+
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../../services/localSimulationService';
 import { analyzeStepFile } from '../../services/fileAnalysisService';
-import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction } from '../../types';
+import { AeroResult, ProbabilisticRaceTimePrediction } from '../../types';
 import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 
 // Add new icons for the page
-// FIX: Corrected typo in viewBox attribute (was "0 0 24" 24", is now "0 0 24 24").
 const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    // FIX: Corrected a typo in the viewBox attribute (was "0 0 24" 24", now "0 0 24 24") which caused multiple SVG parsing errors.
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
 );
 const XCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9"x2="15" y2="15"/></svg>
+    // FIX: Added missing space between attributes in the line element.
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
 );
 
 const SimulationProgressModal: React.FC<{ progressData: { stage: string; progress: number; logs: string[] } | null }> = ({ progressData }) => {
@@ -96,9 +98,8 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
     const renderRaceAnalysis = () => {
         if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
         const pred = result.raceTimePrediction;
-        
-        // Robustly handle cases where prediction data might be missing (e.g., from old localStorage)
         const toFixedSafe = (val: number | undefined, digits: number) => (val != null ? val.toFixed(digits) : 'N/A');
+        const thrustVersion = result.thrustModel === 'pro-competition' ? '5.3' : result.thrustModel === 'competition' ? '5.2' : '5.1';
 
         return (
             <div className="space-y-4">
@@ -106,16 +107,23 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
                     <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestRaceTime, 3)}s</p></div>
                     <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Time</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageRaceTime, 3)}s</p></div>
                     <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstRaceTime, 3)}s</p></div>
-                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestTopSpeed, 2)} m/s</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageTopSpeed, 2)} m/s</p></div>
-                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstTopSpeed, 2)} m/s</p></div>
+                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Finish Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestFinishLineSpeed, 2)} m/s</p></div>
+                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Finish Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageFinishLineSpeed, 2)} m/s</p></div>
+                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Finish Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstFinishLineSpeed, 2)} m/s</p></div>
                 </div>
+                {result.tier === 'premium' && pred.launchVariance != null && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                         <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Launch Variance</p><p className="text-xl font-bold text-brand-text font-mono">±{toFixedSafe(pred.launchVariance, 1)} ms</p></div>
+                         <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Track Sensitivity</p><p className="text-xl font-bold text-brand-text font-mono">±{toFixedSafe(pred.trackConditionSensitivity, 1)} ms</p></div>
+                         <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Canister Delta</p><p className="text-xl font-bold text-brand-text font-mono">±{toFixedSafe(pred.canisterPerformanceDelta, 1)} ms</p></div>
+                    </div>
+                )}
                 <div className="text-center bg-brand-dark p-4 rounded-lg mt-4">
                     <p className="text-sm text-brand-text-secondary">Average Drag Coefficient (Cd)</p>
                     <p className="text-3xl font-bold text-brand-accent font-mono tracking-tighter">{toFixedSafe(pred.averageDrag, 4)}</p>
-                    {result.thrustModel && (
+                    {result.thrustModel && result.tier === 'premium' && (
                       <p className="text-xs text-brand-text-secondary mt-2">
-                        Thrust Model: <span className="font-semibold capitalize">{result.thrustModel} (v{result.thrustModel === 'competition' ? '5.2' : '5.1'})</span>
+                        Thrust Model: <span className="font-semibold capitalize">{result.thrustModel.replace('-', ' ')} (v{thrustVersion})</span>
                       </p>
                     )}
                 </div>
@@ -234,7 +242,14 @@ const AeroPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
   const [tier, setTier] = useState<'standard' | 'premium'>('standard');
-  const [thrustModel, setThrustModel] = useState<'standard' | 'competition'>('standard');
+  const [thrustModel, setThrustModel] = useState<'standard' | 'competition' | 'pro-competition'>('standard');
+  
+  useEffect(() => {
+    // Reset thrust model if switching back to standard tier
+    if (tier === 'standard') {
+      setThrustModel('standard');
+    }
+  }, [tier]);
   
   const handleFileChange = (file: File | null) => {
     if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
@@ -298,6 +313,7 @@ const AeroPage: React.FC = () => {
     }
     setIsSimulating(true);
     setSimulationProgress({ stage: 'Preparing...', progress: 0, logs: [`Analyzing file: ${stepFile.name}`] });
+    
     try {
         const parameters = await analyzeStepFile(stepFile);
         
@@ -307,40 +323,24 @@ const AeroPage: React.FC = () => {
                 if (update.log && newLogs[newLogs.length - 1] !== update.log) {
                     newLogs.push(update.log);
                 }
-                return {
-                    stage: update.stage,
-                    progress: update.progress,
-                    logs: newLogs.slice(-10) // Keep log from getting too long
-                };
+                return { stage: update.stage, progress: update.progress, logs: newLogs.slice(-10) };
             });
         };
         
         let simResultData;
-        if (tier === 'premium') {
-            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
-        } else {
+        if (tier === 'standard') {
             simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+        } else {
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
         }
         
         const tempResultForAnalysis: AeroResult = {
-            ...simResultData,
-            id: 'temp',
-            fileName: stepFile.name,
-            parameters: parameters,
-            thrustModel: tier === 'premium' ? thrustModel : undefined,
+            ...simResultData, id: 'temp', fileName: stepFile.name, parameters,
         };
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
         const scrutineeringReport = performScrutineering(parameters);
         
-        const finalResult: Omit<AeroResult, 'id'> = {
-            ...simResultData,
-            fileName: stepFile.name,
-            suggestions,
-            scrutineeringReport,
-            tier,
-        };
-        
-        addAeroResult(finalResult);
+        addAeroResult({ ...simResultData, fileName: stepFile.name, suggestions, scrutineeringReport });
         
         await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -350,12 +350,13 @@ const AeroPage: React.FC = () => {
     } finally {
         setIsSimulating(false);
         setSimulationProgress(null);
+        setStepFile(null);
     }
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <h1 className="text-3xl font-bold text-brand-text">Aero Analysis & Scrutineering</h1>
+      <h1 className="text-3xl font-bold text-brand-text">Aerotest Simulation Suite</h1>
       {isSimulating && <SimulationProgressModal progressData={simulationProgress} />}
       
       {comparisonResults.length >= 2 && (
@@ -366,33 +367,33 @@ const AeroPage: React.FC = () => {
         <div className="lg:col-span-1">
             <ErrorBoundary>
                 <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border h-full flex flex-col">
-                    <h2 className="text-xl font-bold text-brand-text mb-4">New Aerotest Simulation</h2>
+                    <h2 className="text-xl font-bold text-brand-text mb-4">New Simulation</h2>
                     
                     <div className="mb-4">
                         <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Tier</label>
                         <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
-                            <button onClick={() => setTier('standard')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
-                            <button onClick={() => setTier('premium')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-1 ${tier === 'premium' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}><SparklesIcon className="w-4 h-4"/> Premium</button>
+                             <button onClick={() => setTier('standard')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
+                             <button onClick={() => setTier('premium')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'premium' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Premium</button>
                         </div>
                     </div>
 
                     {tier === 'premium' && (
-                        <div className="mb-4 animate-fade-in">
+                         <div className="mb-4 animate-fade-in">
                             <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Thrust Model</label>
-                            <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
-                                <button onClick={() => setThrustModel('standard')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${thrustModel === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
+                            <div className="flex flex-col gap-1 bg-brand-dark p-1 rounded-lg border border-brand-border">
+                                <button onClick={() => setThrustModel('standard')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
                                     Standard (v5.1)
                                 </button>
-                                <button onClick={() => setThrustModel('competition')} className={`w-1/2 p-2 rounded-md text-sm font-bold transition-colors ${thrustModel === 'competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
+                                <button onClick={() => setThrustModel('competition')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
                                     Competition (v5.2)
                                 </button>
+                                <button onClick={() => setThrustModel('pro-competition')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'pro-competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
+                                    Pro Competition (v5.3)
+                                </button>
                             </div>
-                            <p className="text-xs text-brand-text-secondary mt-2">
-                                'Competition' simulates a 'hot' CO2 canister for potentially faster, real-world race conditions.
-                            </p>
                         </div>
                     )}
-
+                    
                     <div 
                         onDragEnter={handleDragEvents}
                         onDragOver={handleDragEvents}
@@ -422,7 +423,7 @@ const AeroPage: React.FC = () => {
                         disabled={isSimulating || !stepFile}
                         className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
                     >
-                       <WindIcon className="w-5 h-5 mr-2" /> Start Aerotest Analysis
+                       <WindIcon className="w-5 h-5 mr-2" /> Run {tier === 'standard' ? 'Standard' : 'Premium'} Simulation
                     </button>
                 </div>
             </ErrorBoundary>

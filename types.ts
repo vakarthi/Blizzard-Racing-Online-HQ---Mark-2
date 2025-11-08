@@ -55,9 +55,14 @@ export interface ProbabilisticRaceTimePrediction {
     worstRaceTime: number; // seconds
     averageRaceTime: number; // seconds
     averageDrag: number; // Cd
-    bestTopSpeed: number; // m/s
-    worstTopSpeed: number; // m/s
-    averageTopSpeed: number; // m/s
+    bestFinishLineSpeed: number; // m/s
+    worstFinishLineSpeed: number; // m/s
+    averageFinishLineSpeed: number; // m/s
+    
+    // NEW for Premium simulation
+    launchVariance?: number; // ms, standard deviation of launch reaction time
+    trackConditionSensitivity?: number; // ms, time difference between optimal and suboptimal track
+    canisterPerformanceDelta?: number; // ms, time difference between best and worst canister performance
 }
 
 export interface AeroResult {
@@ -65,7 +70,7 @@ export interface AeroResult {
   timestamp: string;
   fileName: string;
   tier?: 'standard' | 'premium';
-  thrustModel?: 'standard' | 'competition';
+  thrustModel?: 'standard' | 'competition' | 'pro-competition';
   
   // Input parameters
   parameters: DesignParameters;

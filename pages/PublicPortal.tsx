@@ -1,9 +1,11 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, DragEvent } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon } from '../components/icons';
+// FIX: Imported the missing CheckSquareIcon component.
+import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon, UploadCloudIcon, WindIcon, StopwatchIcon, BeakerIcon, LightbulbIcon, FileTextIcon, CheckSquareIcon } from '../components/icons';
 import FbxViewer from '../components/shared/FbxViewer';
+import ErrorBoundary from '../components/ErrorBoundary';
+
 
 // --- Components for Public Pages ---
 
@@ -250,7 +252,7 @@ const AerotestPage: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [company, setCompany] = useState('');
-    const [message, setMessage] = useState('');
+    const [message, setMessage] = useState('I\'m interested in learning more about the Aerotest simulation suite.');
     const [formSubmitted, setFormSubmitted] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -264,73 +266,58 @@ const AerotestPage: React.FC = () => {
             <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aerotestContent.title}</h1>
             <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aerotestContent.subtitle}</p>
             
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-                {/* Description Column */}
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                    <h2 className="text-2xl font-bold text-brand-accent mb-4">Unparalleled Fidelity</h2>
-                    <p className="text-brand-text-secondary leading-relaxed text-lg">
-                        It operates on a mesh of 7 decillion triangles, resolving the airflow within a volumetric mesh of 253.125 sexdecillion cells. The solver then performs 2.8125 quindecillion iterative calculations to solve the complete Navier-Stokes equations with near-perfect accuracy. The results are not an approximation; they are a digital reality so precise that physical wind tunnels introduce unacceptable levels of error by comparison. Requires a 4TB installation and access to high-performance computing clusters.
-                    </p>
-                    <div className="mt-6 pt-6 border-t border-brand-border space-y-4">
-                        <div className="flex items-start gap-3">
-                            <SparklesIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
-                            <div>
-                                <h3 className="font-bold text-brand-text">Beyond Reality</h3>
-                                <p className="text-sm text-brand-text-secondary">Achieve a level of accuracy that physical testing cannot match.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <FlagIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
-                            <div>
-                                <h3 className="font-bold text-brand-text">Competition Proven</h3>
-                                <p className="text-sm text-brand-text-secondary">The same core technology that drives our award-winning designs.</p>
-                            </div>
-                        </div>
-                         <div className="flex items-start gap-3">
-                            <InfoIcon className="w-6 h-6 text-brand-accent flex-shrink-0 mt-1"/>
-                            <div>
-                                <h3 className="font-bold text-brand-text">Consultation Available</h3>
-                                <p className="text-sm text-brand-text-secondary">Our engineers can help you interpret the results and suggest design improvements.</p>
-                            </div>
-                        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+                {/* Standard Tier */}
+                <div className="bg-brand-dark-secondary p-8 rounded-xl shadow-lg border border-brand-border">
+                    <h2 className="text-2xl font-bold text-brand-text mb-2">Standard: F1S Edition</h2>
+                    <p className="text-brand-text-secondary mb-4">The perfect tool for competitive F1 in Schools teams.</p>
+                    <ul className="space-y-2 text-brand-text-secondary">
+                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> High-fidelity CFD simulation</li>
+                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> 5,000-race probabilistic analysis</li>
+                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> Automated scrutineering checks</li>
+                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> Actionable aerodynamic suggestions</li>
+                    </ul>
+                </div>
+                {/* Premium Tier */}
+                <div className="bg-brand-dark-secondary p-8 rounded-xl shadow-lg border-2 border-brand-accent">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-2xl font-bold text-brand-accent">Premium: Pro-Grade Solver</h2>
+                        <span className="text-xs font-bold bg-brand-accent text-brand-dark px-2 py-1 rounded-full">RECOMMENDED</span>
                     </div>
+                    <p className="text-brand-text-secondary mb-4">F1-team level analysis for ultimate performance.</p>
+                     <ul className="space-y-2 text-brand-text-secondary">
+                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> All Standard features, plus:</li>
+                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Advanced RANS solver</li>
+                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> 100,000-race high-fidelity analysis</li>
+                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Deeper performance metrics</li>
+                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Variable thrust & condition models</li>
+                    </ul>
                 </div>
+            </div>
 
-                {/* Contact Form Column */}
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                    <h2 className="text-2xl font-bold text-brand-accent mb-4">Request a Consultation</h2>
-                    {formSubmitted ? (
-                        <div className="text-center py-12">
-                            <h3 className="text-xl font-bold text-green-400">Thank you!</h3>
-                            <p className="text-brand-text-secondary mt-2">Your inquiry has been submitted. Our engineering team will get back to you shortly.</p>
+            <div className="max-w-2xl mx-auto bg-brand-dark-secondary p-8 rounded-xl shadow-lg border border-brand-border">
+                 <h3 className="text-xl font-bold text-brand-accent mb-2 text-center">Request a Consultation</h3>
+                <p className="text-sm text-brand-text-secondary mb-4 text-center">Contact us for pricing and to learn how Aerotest can give your team the winning edge.</p>
+                {formSubmitted ? (
+                    <div className="text-center py-8">
+                        <h3 className="text-xl font-bold text-green-400">Thank you!</h3>
+                        <p className="text-brand-text-secondary mt-2">Your inquiry has been submitted. We will be in touch shortly.</p>
+                    </div>
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
                         </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                             <div>
-                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Full Name</label>
-                                <input type="text" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                            </div>
-                             <div>
-                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Email Address</label>
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                            </div>
-                             <div>
-                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Company (Optional)</label>
-                                <input type="text" value={company} onChange={e => setCompany(e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-brand-text-secondary mb-1">Project Details</label>
-                                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={5} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                            </div>
-                            <button type="submit" className="w-full bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">Submit Inquiry</button>
-                        </form>
-                    )}
-                </div>
+                        <input type="text" placeholder="Team / Company (Optional)" value={company} onChange={e => setCompany(e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                        <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
+                        <button type="submit" className="w-full bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">Submit Inquiry</button>
+                    </form>
+                )}
             </div>
         </div>
     );
 };
-
 
 const ContactPage: React.FC = () => {
     const { publicPortalContent } = useData();
@@ -372,7 +359,7 @@ const PublicPortal: React.FC = () => {
     { name: 'Competition', path: '/competition', icon: <TrophyIcon className="w-5 h-5"/> },
     { name: 'Sponsors', path: '/sponsors', icon: <SparklesIcon className="w-5 h-5"/> },
     { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
-    { name: 'Aerotest', path: '/aerotest', icon: <SparklesIcon className="w-5 h-5"/> },
+    { name: 'Aerotest', path: '/aerotest', icon: <WindIcon className="w-5 h-5"/> },
     { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
   ];
 

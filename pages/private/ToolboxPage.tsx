@@ -3,6 +3,7 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import UnitConverter from '../../components/tools/UnitConverter';
 import InteractiveChecklist from '../../components/tools/InteractiveChecklist';
 import WeightBalanceCalculator from '../../components/tools/WeightBalanceCalculator';
+import AiRenderTool from '../../components/tools/AiRenderTool';
 
 const ToolboxPage: React.FC = () => {
   return (
@@ -11,6 +12,11 @@ const ToolboxPage: React.FC = () => {
       <p className="text-brand-text-secondary">A collection of smart utilities to streamline your workflow.</p>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div className="lg:col-span-2">
+            <ErrorBoundary>
+                <AiRenderTool />
+            </ErrorBoundary>
+        </div>
         <ErrorBoundary>
             <UnitConverter />
         </ErrorBoundary>
