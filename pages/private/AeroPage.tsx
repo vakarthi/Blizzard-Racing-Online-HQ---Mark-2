@@ -3,10 +3,11 @@
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, ProbabilisticRaceTimePrediction, BackgroundTask } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, VideoIcon, FileCheckIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
 
 
 const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void }> = ({ result, onClose }) => {
@@ -75,6 +76,50 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
             </div>
         );
     };
+    
+    const renderVerificationChecks = () => {
+        if (!result.verificationChecks) return <div className="text-center p-8 text-brand-text-secondary">No verification checks were performed for this run.</div>;
+        return (
+            <div className="space-y-3">
+                {result.verificationChecks.map((check, index) => (
+                    <div key={index} className={`p-3 rounded-lg border ${check.status === 'PASS' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                        <div className="flex items-center font-semibold">
+                            {check.status === 'PASS' ? <CheckCircleIcon className="w-5 h-5 text-green-400 mr-2" /> : <XCircleIcon className="w-5 h-5 text-red-400 mr-2" />}
+                            <span className={check.status === 'PASS' ? 'text-green-300' : 'text-red-300'}>{check.name}</span>
+                        </div>
+                        <p className="text-sm pl-7 mt-1 text-brand-text-secondary">{check.message}</p>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    const renderValidationLog = () => {
+        if ((!result.validationLog || result.validationLog.length === 0) && !result.auditLog) {
+            return <div className="text-center p-8 text-brand-text-secondary">No validation or audit logs available for this run.</div>;
+        }
+        return (
+            <div className="space-y-3 font-mono text-sm">
+                {result.auditLog && (
+                    <div className={`p-3 rounded-md flex items-start gap-3 ${result.auditLog.includes('WARNING') ? 'bg-yellow-500/10 text-yellow-300' : 'bg-blue-500/10 text-blue-300'}`}>
+                        {result.auditLog.includes('WARNING') ? 
+                            <ShieldAlertIcon className="w-5 h-5 flex-shrink-0 mt-0.5"/> :
+                            <ShieldCheckIcon className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-300"/>}
+                        <span>{result.auditLog}</span>
+                    </div>
+                )}
+                {result.validationLog && result.validationLog.map((log, index) => {
+                    const isPass = log.startsWith('PASSED:');
+                    return (
+                        <div key={index} className={`p-3 rounded-md flex items-start gap-3 ${isPass ? 'bg-green-500/10 text-green-300' : 'bg-yellow-500/10 text-yellow-300'}`}>
+                            {isPass ? <CheckCircleIcon className="w-5 h-5 flex-shrink-0 mt-0.5"/> : <AlertTriangleIcon className="w-5 h-5 flex-shrink-0 mt-0.5"/>}
+                            <span>{log}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.fileName}`}>
@@ -83,8 +128,11 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
                 <button onClick={() => setActiveTab('analysis')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
                 <button onClick={() => setActiveTab('suggestions')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'suggestions' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><LightbulbIcon className="w-4 h-4" /> Suggestions</button>
                 <button onClick={() => setActiveTab('scrutineering')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'scrutineering' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileTextIcon className="w-4 h-4" /> Scrutineering</button>
+                <button onClick={() => setActiveTab('verification')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'verification' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><ShieldCheckIcon className="w-4 h-4" /> Verification</button>
+                <button onClick={() => setActiveTab('validation')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'validation' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileCheckIcon className="w-4 h-4" /> Validation</button>
+                <button onClick={() => setActiveTab('flow')} disabled={!result.flowFieldData} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'flow' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'} disabled:text-gray-600 disabled:cursor-not-allowed`}><VideoIcon className="w-4 h-4" /> Flow Viz</button>
             </div>
-            <div>
+            <div className="relative">
                 {activeTab === 'prediction' && renderRaceAnalysis()}
                 {activeTab === 'analysis' && (
                     <div className="space-y-4">
@@ -94,16 +142,73 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
                             <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">L/D Ratio</p><p className="text-2xl font-bold text-green-400">{result.liftToDragRatio}</p></div>
                             <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Aero Balance</p><p className="text-2xl font-bold text-brand-text">{result.aeroBalance}% F</p></div>
                         </div>
-                        <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm font-semibold text-brand-text-secondary">Flow Analysis</p><p className="text-brand-text mt-1">{result.flowAnalysis}</p></div>
+                        <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm font-semibold text-brand-text-secondary">Solver Flow Analysis</p><p className="text-brand-text mt-1">{result.flowAnalysis}</p></div>
+                        {result.aiFlowFeatures && result.aiFlowFeatures.length > 0 && (
+                             <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm font-semibold text-brand-text-secondary">AI Feature Detection</p><ul className="list-disc list-inside text-brand-text mt-1 text-sm space-y-1">
+                                {result.aiFlowFeatures.map((feature, i) => <li key={i}>{feature}</li>)}
+                             </ul></div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                              <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Mesh Quality</p><p className="text-2xl font-bold text-brand-text">{result.meshQuality}%</p></div>
                              <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Convergence</p><p className={`text-2xl font-bold ${result.convergenceStatus === 'Converged' ? 'text-green-400' : 'text-red-400'}`}>{result.convergenceStatus}</p></div>
                              <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Sim Time</p><p className="text-2xl font-bold text-brand-text">{result.simulationTime} s</p></div>
                         </div>
+                        <div className="p-4 bg-brand-dark rounded-lg text-sm space-y-2">
+                             <p className="font-semibold text-brand-text-secondary">Solver Details</p>
+                             <div className="flex justify-between font-mono text-xs"><span>Mesh Cells:</span> <span className="font-bold text-brand-text">{result.meshCellCount?.toLocaleString()}</span></div>
+                             {result.autoSelectedSettings && (
+                                 <>
+                                  <div className="flex justify-between font-mono text-xs"><span>Flow Regime:</span> <span className="font-bold text-brand-text">{result.autoSelectedSettings.flowRegime}</span></div>
+                                  <div className="flex justify-between font-mono text-xs"><span>Turbulence Model:</span> <span className="font-bold text-brand-text">{result.autoSelectedSettings.turbulenceModel}</span></div>
+                                 </>
+                             )}
+                             {result.solverSettings && (
+                                <>
+                                 <div className="flex justify-between font-mono text-xs"><span>Discretization (Momentum):</span> <span className="font-bold text-brand-text">{result.solverSettings.spatialDiscretization.momentum}</span></div>
+                                 <div className="flex justify-between font-mono text-xs"><span>Solver:</span> <span className="font-bold text-brand-text">{result.solverSettings.solver} ({result.solverSettings.precision})</span></div>
+                                </>
+                             )}
+                             {result.aiCorrectionModel && (
+                                <div className="pt-2 border-t border-brand-border/50">
+                                    <p className="font-semibold text-brand-text-secondary text-xs">AI Correction Layer:</p>
+                                    <div className="font-mono text-xs space-y-1 mt-1">
+                                        <div className="flex justify-between"><span>Model Version:</span> <span className="font-bold text-brand-text">{result.aiCorrectionModel.version}</span></div>
+                                        <div className="flex justify-between"><span>Model Confidence:</span> <span className="font-bold text-brand-text">{(result.aiCorrectionModel.confidence * 100).toFixed(1)}%</span></div>
+                                        <div className={`flex justify-between ${result.aiCorrectionModel.correctionApplied ? 'text-green-400' : 'text-yellow-400'}`}>
+                                            <span>Status:</span>
+                                            <span className="font-bold">{result.aiCorrectionModel.correctionApplied ? 'Correction Applied' : 'Correction Discarded'}</span>
+                                        </div>
+                                        {result.aiCorrectionModel.correctionApplied && result.aiCorrectionModel.originalCd && (
+                                            <div className="flex justify-between"><span>Cd Change:</span> <span className="font-bold text-brand-text">{result.aiCorrectionModel.originalCd.toFixed(4)} → {result.cd.toFixed(4)}</span></div>
+                                        )}
+                                        {result.aiCorrectionModel.reason && (
+                                            <div className="text-gray-500 pt-1">
+                                                <span>{`> ${result.aiCorrectionModel.reason}`}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                             {result.finalResiduals && (
+                                <div className="pt-2 border-t border-brand-border/50">
+                                    <p className="font-semibold text-brand-text-secondary text-xs">Final Residuals:</p>
+                                    <div className="grid grid-cols-2 gap-x-4">
+                                        {Object.entries(result.finalResiduals).map(([key, value]) => (
+                                            <div key={key} className="flex justify-between font-mono text-xs"><span>{key}:</span> <span className="font-bold text-brand-text">{(value as number).toExponential(2)}</span></div>
+                                        ))}
+                                    </div>
+                                </div>
+                             )}
+                        </div>
                     </div>
                 )}
                 {activeTab === 'suggestions' && renderSuggestions()}
                 {activeTab === 'scrutineering' && renderScrutineering()}
+                {activeTab === 'verification' && renderVerificationChecks()}
+                {activeTab === 'validation' && renderValidationLog()}
+                {activeTab === 'flow' && result.flowFieldData && (
+                    <FlowFieldVisualizer flowFieldData={result.flowFieldData} parameters={result.parameters} />
+                )}
             </div>
         </Modal>
     );
@@ -210,18 +315,9 @@ const AeroPage: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
-  const [tier, setTier] = useState<'standard' | 'premium'>('standard');
-  const [thrustModel, setThrustModel] = useState<'standard' | 'competition' | 'pro-competition'>('standard');
+  const [quality, setQuality] = useState<'standard' | 'high-fidelity'>('standard');
   
   const runningSimulations = backgroundTasks.filter(t => t.type === 'simulation' && t.status === 'running');
-  const isSimulating = runningSimulations.length > 0;
-  
-  useEffect(() => {
-    // Reset thrust model if switching back to standard tier
-    if (tier === 'standard') {
-      setThrustModel('standard');
-    }
-  }, [tier]);
   
   const handleFileChange = (file: File | null) => {
     if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
@@ -283,7 +379,7 @@ const AeroPage: React.FC = () => {
         alert("Please upload a STEP file to simulate.");
         return;
     }
-    runSimulationTask(stepFile, tier, thrustModel);
+    runSimulationTask(stepFile, quality);
     setStepFile(null);
   };
 
@@ -311,29 +407,12 @@ const AeroPage: React.FC = () => {
                     <h2 className="text-xl font-bold text-brand-text mb-4">New Simulation</h2>
                     
                     <div className="mb-4">
-                        <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Tier</label>
+                        <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Quality</label>
                         <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
-                             <button onClick={() => setTier('standard')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
-                             <button onClick={() => setTier('premium')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${tier === 'premium' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Premium</button>
+                             <button onClick={() => setQuality('standard')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${quality === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
+                             <button onClick={() => setQuality('high-fidelity')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${quality === 'high-fidelity' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>High-Fidelity</button>
                         </div>
                     </div>
-
-                    {tier === 'premium' && (
-                         <div className="mb-4 animate-fade-in">
-                            <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Thrust Model</label>
-                            <div className="flex flex-col gap-1 bg-brand-dark p-1 rounded-lg border border-brand-border">
-                                <button onClick={() => setThrustModel('standard')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
-                                    Standard (v5.1)
-                                </button>
-                                <button onClick={() => setThrustModel('competition')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
-                                    Competition (v5.2)
-                                </button>
-                                <button onClick={() => setThrustModel('pro-competition')} className={`w-full p-2 rounded-md text-xs font-bold transition-colors ${thrustModel === 'pro-competition' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>
-                                    Pro Competition (v5.3)
-                                </button>
-                            </div>
-                        </div>
-                    )}
                     
                     <div 
                         onDragEnter={handleDragEvents}
@@ -361,10 +440,10 @@ const AeroPage: React.FC = () => {
                     {stepFile && <button onClick={() => setStepFile(null)} className="text-xs text-red-400 hover:underline text-center mt-2">Clear selection</button>}
                     <button
                         onClick={handleSimulate}
-                        disabled={!stepFile}
+                        disabled={!stepFile || runningSimulations.length > 0}
                         className="w-full mt-4 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary disabled:text-brand-dark flex items-center justify-center"
                     >
-                       <WindIcon className="w-5 h-5 mr-2" /> Run {tier === 'standard' ? 'Standard' : 'Premium'} Simulation
+                       <WindIcon className="w-5 h-5 mr-2" /> Run Simulation
                     </button>
                 </div>
             </ErrorBoundary>
@@ -397,7 +476,7 @@ const AeroPage: React.FC = () => {
                                   <p className="font-bold text-brand-text flex items-center">
                                       {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
                                       {result.fileName}
-                                      {result.tier === 'premium' && <span className="ml-2 text-xs font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1"><SparklesIcon className="w-3 h-3" /> Premium</span>}
+                                      {result.tier === 'premium' && <span className="ml-2 text-xs font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1"><SparklesIcon className="w-3 h-3" /> High-Fidelity</span>}
                                   </p>
                                   <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
                                 </div>

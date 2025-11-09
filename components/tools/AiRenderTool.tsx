@@ -51,7 +51,9 @@ const AiRenderTool: React.FC = () => {
 
         try {
             await setLoadingStage("Initializing virtual render engine...", 1500);
-            await setLoadingStage(`Analyzing '${stepFile.name}' geometry...`, 3000);
+            await setLoadingStage(`Analyzing '${stepFile.name}' CAD geometry...`, 2500);
+            await setLoadingStage("Converting STEP to render mesh...", 3000);
+            await setLoadingStage("Applying procedural PBR materials...", 2000);
             await setLoadingStage("Setting up cinematic scene...", 2500);
             await setLoadingStage("Rendering frame 1 of 150...", 2000);
             await setLoadingStage("Rendering frame 75 of 150...", 3000);

@@ -65,6 +65,25 @@ export interface ProbabilisticRaceTimePrediction {
     canisterPerformanceDelta?: number; // ms, time difference between best and worst canister performance
 }
 
+export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
+
+export interface SolverSettings {
+    solver: 'Coupled Implicit';
+    precision: 'Double';
+    spatialDiscretization: {
+        gradient: 'Least Squares Cell-Based';
+        momentum: 'Second Order Upwind';
+        turbulence: 'Second Order Upwind';
+    };
+    turbulenceModel: 'k-ω SST' | 'Spalart-Allmaras' | 'Detached Eddy Simulation (DES)';
+}
+
+export interface VerificationCheck {
+    name: string;
+    status: 'PASS' | 'FAIL' | 'WARNING';
+    message: string;
+}
+
 export interface AeroResult {
   id: string;
   timestamp: string;
@@ -93,8 +112,36 @@ export interface AeroResult {
   
   // Professional Simulation Data
   meshQuality?: number; // %
-  convergenceStatus?: 'Converged' | 'Diverged';
+  convergenceStatus?: 'Converged' | 'Diverged' | 'Converged (Relaxed)';
   simulationTime?: number; // seconds
+  meshCellCount?: number;
+  solverSettings?: SolverSettings;
+  finalResiduals?: {
+    continuity: number;
+    xVelocity: number;
+    yVelocity: number;
+    zVelocity: number;
+    k?: number; // for k-omega
+    omega?: number; // for k-omega
+  };
+  aiFlowFeatures?: string[];
+  autoSelectedSettings?: {
+      flowRegime: string;
+      turbulenceModel: string;
+  };
+  validationLog?: string[];
+  verificationChecks?: VerificationCheck[];
+  aiCorrectionModel?: {
+    version: string;
+    confidence: number;
+    correctionApplied: boolean;
+    originalCd?: number;
+    reason?: string;
+  };
+  auditLog?: string;
+  
+  // 3D Visualization Data
+  flowFieldData?: FlowFieldPoint[];
 }
 
 
@@ -228,6 +275,7 @@ export interface PublicPortalContent {
   aerotest: {
     title: string;
     subtitle: string;
+    description: string;
   };
 }
 

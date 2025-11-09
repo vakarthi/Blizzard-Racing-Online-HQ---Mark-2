@@ -1,4 +1,5 @@
 
+
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
   DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask
@@ -27,6 +28,7 @@ export interface AppStore {
   announcement: string | null;
   competitionDate: string | null;
   teamLogoUrl: string;
+  simulationRunCount: number;
 }
 
 const STORAGE_KEY = 'brh-synced-store';
@@ -57,6 +59,7 @@ const getInitialState = (): AppStore => {
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
         competitionDate: '2024-12-01T09:00:00',
         teamLogoUrl: DEFAULT_LOGO,
+        simulationRunCount: 0,
     };
 
     try {

@@ -11,11 +11,14 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  // Initialize state as a class property for modern syntax.
-  state: State = {
-    hasError: false,
-    error: null,
-  };
+  // FIX: Initialize state in the constructor. This is a robust pattern that ensures `this.props` is correctly set up via `super(props)` before `this.state` is assigned, resolving errors where component properties were not found.
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -25,12 +28,12 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // Use an arrow function for the method to automatically bind `this`.
   handleRetry = () => {
+    // FIX: Calling `this.setState` is valid because `handleRetry` is an arrow function, correctly binding `this` to the component instance. The constructor change ensures the instance is set up correctly.
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
-  };
+  }
 
   render() {
     if (this.state.hasError) {

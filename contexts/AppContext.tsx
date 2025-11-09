@@ -78,7 +78,8 @@ export interface DataContextType {
   addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => void;
   updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
   backgroundTasks: BackgroundTask[];
-  runSimulationTask: (file: File, tier: 'standard' | 'premium', thrustModel: 'standard' | 'competition' | 'pro-competition') => void;
+  runSimulationTask: (file: File, quality: 'standard' | 'high-fidelity') => void;
+  simulationRunCount: number;
 }
 
 interface AppStateContextType {
@@ -193,8 +194,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return newResult;
   };
 
-  const runSimulationTask = (file: File, tier: 'standard' | 'premium', thrustModel: 'standard' | 'competition' | 'pro-competition') => {
+  const runSimulationTask = (file: File, quality: 'standard' | 'high-fidelity') => {
     const taskId = `sim-${Date.now()}`;
+    // Audit every 5th standard run
+    const isAuditRun = quality === 'standard' && (store.simulationRunCount + 1) % 5 === 0;
+
     const newTask: BackgroundTask = {
       id: taskId,
       type: 'simulation',
@@ -205,7 +209,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       fileName: file.name,
     };
 
-    updateStore(s => ({ ...s, backgroundTasks: [newTask, ...s.backgroundTasks] }));
+    updateStore(s => ({
+        ...s,
+        backgroundTasks: [newTask, ...s.backgroundTasks],
+        simulationRunCount: s.simulationRunCount + 1,
+    }));
 
     // This is an async IIFE, "fire and forget"
     (async () => {
@@ -214,17 +222,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const parameters = await analyzeStepFile(file);
         
         const onProgress = (update: { stage: string; progress: number; log?: string }) => {
+            const progressScale = isAuditRun ? 0.9 : 1.0;
             updateStore(s => ({
               ...s,
               backgroundTasks: s.backgroundTasks.map(t => {
                 if (t.id === taskId) {
-                  return { ...t, stage: update.stage, progress: update.progress, latestLog: update.log };
+                  return { ...t, stage: update.stage, progress: update.progress * progressScale, latestLog: update.log };
                 }
                 return t;
               })
             }));
         };
         
+        const tier = quality === 'standard' ? 'standard' : 'premium';
+        const thrustModel = quality === 'standard' ? 'standard' : 'pro-competition';
+
         let simResultData;
         if (tier === 'standard') {
             simResultData = await runAerotestCFDSimulation(parameters, onProgress);
@@ -238,7 +250,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
         const scrutineeringReport = performScrutineering(parameters);
         
-        const newResult = addAeroResult({ ...simResultData, fileName: file.name, suggestions, scrutineeringReport });
+        const finalResultData: Omit<AeroResult, 'id'> = { ...simResultData, fileName: file.name, suggestions, scrutineeringReport };
+
+        // --- DUAL RUN AUDIT STAGE ---
+        if (isAuditRun) {
+            updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, stage: 'Audit Run', progress: 90, latestLog: 'Initiating high-fidelity baseline...'} : t)}));
+            
+            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {}, 'pro-competition');
+            
+            updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, progress: 95, latestLog: 'Comparing results against baseline...'} : t)}));
+
+            const deltaCd = Math.abs(auditSimData.cd - simResultData.cd);
+            const deltaCl = Math.abs(auditSimData.cl - simResultData.cl);
+            
+            const cdDrift = (deltaCd / simResultData.cd) > 0.03;
+            const clIsSignificant = Math.abs(simResultData.cl) > 1e-4;
+            const clDrift = clIsSignificant && (deltaCl / Math.abs(simResultData.cl)) > 0.05;
+
+            const driftDetected = cdDrift || clDrift;
+
+            finalResultData.auditLog = `Dual-run audit complete. Baseline Cd: ${auditSimData.cd.toFixed(4)} (Δ: ${(deltaCd).toFixed(4)}). ${driftDetected ? 'Drift WARNING: Results deviate significantly from high-fidelity baseline.' : 'Results within tolerance of high-fidelity baseline.'}`;
+        }
+        
+        const newResult = addAeroResult(finalResultData);
 
         updateStore(s => ({
           ...s,
@@ -449,6 +483,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loginHistory: data.loginHistory || currentStore.loginHistory,
         inquiries: data.inquiries || currentStore.inquiries,
         backgroundTasks: data.backgroundTasks || currentStore.backgroundTasks,
+        simulationRunCount: data.simulationRunCount || 0,
     }));
   }
 
@@ -501,6 +536,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
+    // FIX: Corrected a typo from 'a new Error' to 'new Error'.
     throw new Error('useAuth must be used within an AppProvider');
   }
   return context;

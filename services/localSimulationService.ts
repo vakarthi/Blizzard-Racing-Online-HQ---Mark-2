@@ -11,11 +11,11 @@ export const performScrutineering = (params: DesignParameters): ScrutineeringIte
 
         // Fix: Add type check to ensure value is a number before comparison.
         if (typeof value === 'number') {
-            if ('min' in rule && value < rule.min) {
+            if (rule.min !== undefined && value < rule.min) {
                 status = 'FAIL';
                 notes = `Value is below the minimum of ${rule.min}${rule.unit}.`;
             }
-            if ('max' in rule && value > rule.max) {
+            if (rule.max !== undefined && value > rule.max) {
                 status = 'FAIL';
                 notes = `Value is above the maximum of ${rule.max}${rule.unit}.`;
             }

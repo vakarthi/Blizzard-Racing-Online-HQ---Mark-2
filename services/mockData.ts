@@ -1,4 +1,3 @@
-
 import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
@@ -176,7 +175,12 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   },
   aerotest: {
       title: "Aerotest: Simulation Engine",
-      subtitle: "This is not a commercial CFD package. It is a research-grade physics simulation engine thousands of times more powerful than the current industry standard."
+      subtitle: "A next-generation Computational Fluid Dynamics (CFD) solver, architected for superior accuracy and data intelligence.",
+      description: `Aerotest is a first-principles physics solver built on a foundation of numerical excellence. It implements a full, double-precision Reynolds-Averaged Navier-Stokes (RANS) solver with optional Detached Eddy Simulation (DES) modes for unparalleled turbulence-resolving capability.
+- **Meshing:** Automated hybrid mesher with polyhedral-hexcore cells and boundary layer inflation ensures optimal mesh quality and accuracy.
+- **Solver:** A GPU-accelerated, coupled implicit solver provides robust convergence, utilizing Algebraic Multigrid (AMG) methods to accelerate solutions.
+- **Physics:** Supports a modular framework for turbulence models (k-ω SST, Spalart-Allmaras), compressible and incompressible flows, and conjugate heat transfer.
+- **AI-Powered Insights:** Features an integrated AI for automated flow feature detection and a Design Performance Analyzer to directly link aerodynamic results to on-track performance.`
   }
 };
 
