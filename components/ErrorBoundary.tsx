@@ -11,13 +11,14 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  // FIX: Initialize state in the constructor. This is a robust pattern that ensures `this.props` is correctly set up via `super(props)` before `this.state` is assigned, resolving errors where component properties were not found.
+  // FIX: Converted from class properties to a constructor to explicitly initialize state and bind event handlers. This standard approach resolves issues where TypeScript couldn't find 'setState' or 'props' on the component instance.
   constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
     };
+    this.handleRetry = this.handleRetry.bind(this);
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -28,8 +29,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  handleRetry = () => {
-    // FIX: Calling `this.setState` is valid because `handleRetry` is an arrow function, correctly binding `this` to the component instance. The constructor change ensures the instance is set up correctly.
+  handleRetry() {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();

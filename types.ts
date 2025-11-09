@@ -72,7 +72,7 @@ export interface SolverSettings {
     precision: 'Double';
     spatialDiscretization: {
         gradient: 'Least Squares Cell-Based';
-        momentum: 'Second Order Upwind';
+        momentum: 'Second Order Upwind' | 'Third Order MUSCL';
         turbulence: 'Second Order Upwind';
     };
     turbulenceModel: 'k-ω SST' | 'Spalart-Allmaras' | 'Detached Eddy Simulation (DES)';

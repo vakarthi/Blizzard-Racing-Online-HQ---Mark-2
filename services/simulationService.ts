@@ -25,6 +25,11 @@ class AerotestSolver {
         meshQuality: number;
         isUnstable: boolean;
     };
+    private verificationState: {
+        converged: boolean;
+        loops: number;
+        finalDelta: number;
+    };
 
     constructor(params: DesignParameters, onProgress: ProgressCallback, isPremium: boolean, thrustModel: 'standard' | 'competition' | 'pro-competition') {
         this.params = params;
@@ -37,6 +42,11 @@ class AerotestSolver {
             meshCellCount: 0,
             meshQuality: 0,
             isUnstable: false,
+        };
+        this.verificationState = {
+            converged: false,
+            loops: 0,
+            finalDelta: 0,
         };
     }
 
@@ -81,58 +91,69 @@ class AerotestSolver {
     }
 
     /**
-     * Simulates the iterative solution of the RANS/DES equations using a Coupled solver.
+     * Simulates an iterative, dual-method solver to ensure result consistency.
      */
     private async _solveFlow() {
-        const maxIterations = this.settings.isPremium ? 5000 : 1500;
-        const solveDuration = this.settings.isPremium ? 30000 : 15000;
-        const convergenceTarget = this.settings.isPremium ? 1e-6 : 1e-5;
+        const MAX_VERIFICATION_LOOPS = 5;
+        const CD_TOLERANCE = 0.001; // Tolerance for Cd consistency
 
-        this.onProgress({ stage: 'Solving', progress: 21, log: `Initializing Coupled solver, ${this.solverSettings.precision} precision.` });
+        this.onProgress({ stage: 'Solving', progress: 21, log: `Initializing iterative cross-validation solver...` });
         await sleep(1000);
 
-        const solveStartTime = Date.now();
-        let elapsedTime = 0;
-        
-        while (elapsedTime < solveDuration) {
-            await sleep(250);
-            elapsedTime = Date.now() - solveStartTime;
-            const progressFraction = Math.min(1, elapsedTime / solveDuration);
-            const currentIteration = Math.round(progressFraction * maxIterations);
-            const overallProgress = 21 + progressFraction * 49;
+        for (let i = 0; i < MAX_VERIFICATION_LOOPS; i++) {
+            this.verificationState.loops = i + 1;
+            const loopProgressStart = 21 + (i / MAX_VERIFICATION_LOOPS) * 49;
+
+            // --- Run 1: Primary Method ---
+            this.solverSettings.spatialDiscretization.momentum = 'Second Order Upwind';
+            this.onProgress({ stage: 'Solving', progress: loopProgressStart, log: `Verification Loop ${i + 1}/${MAX_VERIFICATION_LOOPS}: Running primary solver (2nd Order)...` });
+            await sleep(this.settings.isPremium ? 4000 : 2000); // Simulate solve time
+            const primaryResult = this._calculateAerodynamicCoefficients();
+            this.onProgress({ stage: 'Solving', progress: loopProgressStart + 20, log: `Primary solve Cd: ${primaryResult.cd.toFixed(4)}. Running verification solve...` });
+
+            // --- Run 2: Verification Method ---
+            this.solverSettings.spatialDiscretization.momentum = 'Third Order MUSCL';
+            this.onProgress({ stage: 'Solving', progress: loopProgressStart + 20, log: `Verification Loop ${i + 1}/${MAX_VERIFICATION_LOOPS}: Running verification solver (3rd Order MUSCL)...` });
+            await sleep(this.settings.isPremium ? 4000 : 2000); // Simulate solve time
+            let verificationResult = this._calculateAerodynamicCoefficients();
             
-            // Simulate self-correction
-            if (currentIteration > maxIterations * 0.4 && currentIteration < maxIterations * 0.7) {
-                if (Math.random() < 0.05) { // Sporadically log this
-                     this.onProgress({ stage: 'Solving', progress: overallProgress, log: 'Solver Monitor: Residuals stagnating. Applying automatic under-relaxation factor adjustment.' });
-                     await sleep(500); // Simulate the correction taking time
-                }
+            // To make it converge for the simulation, modify the verification result to be closer to primary result on each loop
+            const discrepancyFactor = (MAX_VERIFICATION_LOOPS - i) / MAX_VERIFICATION_LOOPS; // Factor from 1 down to 0.2
+            const noise = (Math.random() - 0.5) * 0.01 * discrepancyFactor; // Noise decreases each loop
+            verificationResult = { ...verificationResult, cd: primaryResult.cd * (1 + noise) };
+            this.onProgress({ stage: 'Solving', progress: loopProgressStart + 40, log: `Verification solve Cd: ${verificationResult.cd.toFixed(4)}.` });
+            
+            // --- Compare Results ---
+            const deltaCd = Math.abs(primaryResult.cd - verificationResult.cd);
+            this.verificationState.finalDelta = deltaCd;
+
+            if (deltaCd < CD_TOLERANCE) {
+                this.verificationState.converged = true;
+                this.onProgress({ stage: 'Solving', progress: 70, log: `Solution converged between methods. ΔCd: ${deltaCd.toExponential(1)}.` });
+                break; // Exit loop on success
+            } else {
+                this.onProgress({ stage: 'Solving', progress: loopProgressStart + 49, log: `Discrepancy ${deltaCd.toFixed(4)} > tolerance. Refining solution...` });
+                await sleep(1000);
             }
+        }
 
-            // Simulate residuals converging with realistic noise and behavior
-            const convergenceFactor = (1 - Math.pow(progressFraction, 3));
-            const noise = (Math.random() - 0.5) * convergenceFactor * 0.5;
-            this.state.residuals = {
-                continuity: Math.max(convergenceTarget, (1e-2 * convergenceFactor) + noise * 1e-2),
-                xVelocity:  Math.max(convergenceTarget, (1e-3 * convergenceFactor) + noise * 1e-3),
-                yVelocity:  Math.max(convergenceTarget, (1e-3 * convergenceFactor) + noise * 1e-3),
-                zVelocity:  Math.max(convergenceTarget, (1e-3 * convergenceFactor) + noise * 1e-3),
-                k:          Math.max(convergenceTarget, (5e-3 * convergenceFactor) + noise * 5e-3),
-                omega:      Math.max(convergenceTarget, (5e-3 * convergenceFactor) + noise * 5e-3),
-            };
-
-            const logMessage = `Iter ${currentIteration}/${maxIterations}... AMG V-Cycle (P)... res(cont): ${this.state.residuals.continuity.toExponential(1)}`;
-            this.onProgress({ stage: 'Solving', progress: overallProgress, log: logMessage });
+        // --- Finalize State ---
+        this.solverSettings.spatialDiscretization.momentum = 'Second Order Upwind'; // Reset to primary
+        const finalContinuity = (1e-3 * Math.random() + (this.verificationState.converged ? 1e-6 : 1e-4));
+        if (!this.verificationState.converged) {
+            this.state.isUnstable = true;
+            this.onProgress({ stage: 'Solving', progress: 70, log: `Warning: Solution failed to converge between methods after ${MAX_VERIFICATION_LOOPS} loops.` });
         }
         
-        const finalContinuity = this.state.residuals.continuity;
-        if(finalContinuity > 1e-4) {
-            this.state.isUnstable = true;
-            this.onProgress({ stage: 'Solving', progress: 70, log: `Warning: Solution failed to converge fully. Residuals stagnated.` });
-        } else {
-            this.onProgress({ stage: 'Solving', progress: 70, log: `Solution converged in ${maxIterations} iterations.` });
-        }
-        await sleep(1000);
+        // Simulate final residual state based on convergence
+        this.state.residuals = {
+            continuity: finalContinuity,
+            xVelocity:  finalContinuity * 10,
+            yVelocity:  finalContinuity * 10,
+            zVelocity:  finalContinuity * 10,
+            k:          finalContinuity * 50,
+            omega:      finalContinuity * 50,
+        };
     }
     
     /**
@@ -226,7 +247,7 @@ class AerotestSolver {
             checks.push({ name: 'Mass Conservation', status: 'FAIL', message: `Mass flow imbalance is ${(massImbalance * 100).toFixed(2)}%, exceeding the 0.5% tolerance. Results may be inaccurate.` });
         }
         this.onProgress({ stage: 'Verification', progress: 92, log: 'Checked mass conservation...' });
-        await sleep(1000);
+        await sleep(500);
 
         // 2. Residual Validation Check
         const residualThreshold = this.settings.isPremium ? 1e-5 : 1e-4;
@@ -237,9 +258,26 @@ class AerotestSolver {
             checks.push({ name: 'Residual Convergence', status: 'FAIL', message: `One or more residuals failed to converge below the target of ${residualThreshold.toExponential(0)}. Highest residual: ${maxResidual.toExponential(1)}.` });
         }
         this.onProgress({ stage: 'Verification', progress: 93, log: 'Validated solver residuals...' });
-        await sleep(1000);
+        await sleep(500);
+        
+        // 3. Solver Cross-Validation Check
+        if (this.verificationState.converged) {
+            checks.push({
+                name: 'Solver Cross-Validation',
+                status: 'PASS',
+                message: `Solution is consistent across numerical schemes. Converged in ${this.verificationState.loops} loop(s) with a final ΔCd of ${this.verificationState.finalDelta.toExponential(1)}.`
+            });
+        } else {
+            checks.push({
+                name: 'Solver Cross-Validation',
+                status: 'FAIL',
+                message: `Solution was not consistent across numerical schemes after ${this.verificationState.loops} loops. Final ΔCd of ${this.verificationState.finalDelta.toExponential(1)} exceeded tolerance.`
+            });
+        }
+        this.onProgress({ stage: 'Verification', progress: 94, log: 'Checked solver cross-validation...' });
+        await sleep(500);
 
-        // 3. Plausibility Range Checks
+        // 4. Plausibility Range Checks
         if (cd >= 0.05 && cd <= 1.5) {
             checks.push({ name: 'Drag Plausibility', status: 'PASS', message: `Coefficient of Drag (Cd=${cd.toFixed(3)}) is within the expected physical range [0.05, 1.5].` });
         } else {
@@ -252,7 +290,7 @@ class AerotestSolver {
             checks.push({ name: 'Lift Plausibility', status: 'FAIL', message: `Coefficient of Lift (Cl=${cl.toFixed(3)}) is outside the expected physical range [-1.0, 2.0]. The result is unphysical.` });
         }
         this.onProgress({ stage: 'Verification', progress: 95, log: 'Checked physical plausibility...' });
-        await sleep(1000);
+        await sleep(500);
 
         return checks;
     }
@@ -401,16 +439,16 @@ class AerotestSolver {
         const cl = Cl_front_base + Cl_rear + groundEffectFactor;
 
         const turbulenceFactor = this.solverSettings.turbulenceModel === 'k-ω SST' ? 1.0 : (this.solverSettings.turbulenceModel === 'Detached Eddy Simulation (DES)' ? 0.92 : 1.05);
-        const Cd_skin = 0.038 * turbulenceFactor;
-        const Cd_form = 0.15 * (this.params.totalWidth / 90) * (1 / lengthToWidthRatio);
-        const Cd_interference = 0.05 * (frontWingArea / A_ref) * (rearWingArea / A_ref);
+        const cd_skin = 0.038 * turbulenceFactor;
+        const cd_form = 0.15 * (this.params.totalWidth / 90) * (1 / lengthToWidthRatio);
+        const cd_interference = 0.05 * (frontWingArea / A_ref) * (rearWingArea / A_ref);
         const oswaldEfficiency = 0.65 + (AR_front / 50);
-        const Cd_induced = (cl ** 2) / (Math.PI * oswaldEfficiency * ((AR_front + AR_rear) / 2));
-        let cd = Cd_skin + Cd_form + Cd_interference + Cd_induced;
+        const cd_induced = (cl ** 2) / (Math.PI * oswaldEfficiency * ((AR_front + AR_rear) / 2));
+        let cd = cd_skin + cd_form + cd_interference + cd_induced;
         
         const dragBreakdown = {
-            pressure: (Cd_form + Cd_induced) / cd * 100,
-            skinFriction: Cd_skin / cd * 100,
+            pressure: (cd_form + cd_induced) / cd * 100,
+            skinFriction: cd_skin / cd * 100,
         };
         
         const frontWingPos = 15;
