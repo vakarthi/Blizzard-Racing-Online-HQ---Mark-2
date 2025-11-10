@@ -1,8 +1,8 @@
-
 import { DataContextType } from '../contexts/AppContext';
 import { TaskStatus, SponsorTier } from '../types';
 
 // --- Helper Functions ---
+// A utility to format a number as a USD currency string.
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 };
