@@ -11,15 +11,13 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  // FIX: Converted from class-field syntax to a constructor-based approach. This ensures compatibility and correct 'this' binding for state and event handlers, resolving compile-time errors where 'setState' and 'props' were not found on the class instance.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-    this.handleRetry = this.handleRetry.bind(this);
-  }
+  // FIX: Switched to class property syntax for state and an arrow function for handleRetry.
+  // This is a more modern and robust way to define state and methods in React class components,
+  // which resolves the compilation errors related to 'this' context and incorrect type inference.
+  state: State = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -29,7 +27,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  handleRetry() {
+  handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
