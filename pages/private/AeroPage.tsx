@@ -2,14 +2,14 @@
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, ProbabilisticRaceTimePrediction, BackgroundTask } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, VideoIcon, FileCheckIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, VideoIcon, FileCheckIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon, InfoIcon, ScaleIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
 
 
-const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void }> = ({ result, onClose }) => {
+const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResult | null; onClose: () => void }> = ({ result, bestResult, onClose }) => {
     const [activeTab, setActiveTab] = useState('prediction');
 
     const renderScrutineering = () => {
@@ -40,6 +40,101 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
         return <div className="prose prose-sm max-w-none prose-invert" dangerouslySetInnerHTML={{__html: result.suggestions.replace(/\n/g, '<br />')}} />;
     };
     
+    const renderBenchmarking = () => {
+        if (!bestResult || !result.raceTimePrediction || !bestResult.raceTimePrediction) return null;
+        
+        const isBest = result.id === bestResult.id;
+        const currentAvgTime = result.raceTimePrediction.averageRaceTime;
+        const bestAvgTime = bestResult.raceTimePrediction.averageRaceTime;
+        const timeDiff = currentAvgTime - bestAvgTime;
+        
+        // Physics Comparisons
+        const dragDiffPct = ((result.cd - bestResult.cd) / bestResult.cd) * 100;
+        const weightDiff = result.parameters.totalWeight - bestResult.parameters.totalWeight;
+        const liftDiff = result.cl - bestResult.cl;
+
+        return (
+            <div className="mt-6 border-t border-brand-border pt-6 animate-fade-in">
+                <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center">
+                    <BarChartIcon className="w-5 h-5 mr-2 text-brand-accent"/> 
+                    Competitive Benchmarking & Physics Insight
+                </h3>
+                
+                <div className={`p-4 rounded-lg mb-4 border ${isBest ? 'bg-brand-accent/10 border-brand-accent/50' : 'bg-brand-dark border-brand-border'}`}>
+                    <div className="flex items-start gap-3">
+                        {isBest ? <TrophyIcon className="w-8 h-8 text-yellow-400 flex-shrink-0"/> : <InfoIcon className="w-8 h-8 text-blue-400 flex-shrink-0"/>}
+                        <div>
+                            <p className="font-bold text-brand-text text-lg">
+                                {isBest ? "Class Leader: The Benchmark Design" : `Gap to Leader: +${timeDiff.toFixed(3)}s`}
+                            </p>
+                            <p className="text-sm text-brand-text-secondary mt-1">
+                                {isBest 
+                                    ? "This car currently holds the fastest average race time in your database. It represents the optimal balance of variables found so far."
+                                    : `Compared to "${bestResult.fileName}", the current class leader (${bestAvgTime.toFixed(3)}s).`
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {!isBest && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Drag Analysis */}
+                        <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold text-brand-text flex items-center"><WindIcon className="w-4 h-4 mr-2"/> Aerodynamic Drag</h4>
+                                <span className={`text-xs font-bold px-2 py-1 rounded ${dragDiffPct > 0 ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}`}>
+                                    {dragDiffPct > 0 ? `+${dragDiffPct.toFixed(1)}% Higher` : `${dragDiffPct.toFixed(1)}% Lower`}
+                                </span>
+                            </div>
+                            <p className="text-xs text-brand-text-secondary leading-relaxed">
+                                {dragDiffPct > 0 
+                                    ? "This car has higher air resistance than the leader. Drag forces increase with the square of velocity. This means as the car accelerates, this extra drag acts like a progressively stronger brake, punishing top speed and killing momentum during the coasting phase."
+                                    : "Surprisingly, this car has lower drag than the leader! This implies the time loss is coming from elsewhere—likely mass or friction."
+                                }
+                            </p>
+                        </div>
+
+                        {/* Mass Analysis */}
+                        <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold text-brand-text flex items-center"><ScaleIcon className="w-4 h-4 mr-2"/> Mass (Weight)</h4>
+                                <span className={`text-xs font-bold px-2 py-1 rounded ${weightDiff > 0.5 ? 'bg-red-500/20 text-red-300' : (weightDiff < -0.5 ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300')}`}>
+                                    {weightDiff > 0 ? `+${weightDiff.toFixed(1)}g Heavier` : (weightDiff < 0 ? `${weightDiff.toFixed(1)}g Lighter` : 'Equal Weight')}
+                                </span>
+                            </div>
+                            <p className="text-xs text-brand-text-secondary leading-relaxed">
+                                {weightDiff > 1 
+                                    ? "According to Newton's Second Law (F=ma), more mass requires more force to accelerate. Since the CO2 cartridge force is fixed, a heavier car accelerates slower off the line."
+                                    : "The weight is competitive. The performance difference is primarily aerodynamic."
+                                }
+                            </p>
+                        </div>
+
+                        {/* Lift/Stability Analysis */}
+                        <div className="bg-brand-dark p-4 rounded-lg border border-brand-border md:col-span-2">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-semibold text-brand-text flex items-center"><WindIcon className="w-4 h-4 mr-2 rotate-90"/> Stability (Lift)</h4>
+                                <span className="text-xs font-mono text-brand-text-secondary">
+                                    Current Cl: {result.cl} vs Best Cl: {bestResult.cl}
+                                </span>
+                            </div>
+                            <p className="text-xs text-brand-text-secondary leading-relaxed">
+                                {result.cl > 0.1 && result.cl > bestResult.cl
+                                    ? "This car generates significantly more lift (upward force) or less downforce than the leader. While F1 in Schools cars don't need massive downforce, positive lift reduces tire contact patch pressure, potentially causing instability or 'skating' which wastes energy."
+                                    : (result.cl < bestResult.cl && result.cl < -0.5
+                                        ? "This car generates a lot of downforce. While good for stability, excessive downforce often comes with an 'induced drag' penalty. If the car is stable but slow, try reducing wing angles to trade unnecessary grip for speed."
+                                        : "The lift characteristics are comparable. The focus should remain on reducing form drag (frontal area) and interference drag."
+                                    )
+                                }
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderRaceAnalysis = () => {
         if (!result.raceTimePrediction) return <div className="text-center p-8 text-brand-text-secondary">Race time prediction not available for this run.</div>;
         const pred = result.raceTimePrediction;
@@ -80,12 +175,14 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
                 <div className="text-center bg-brand-dark p-4 rounded-lg mt-4">
                     <p className="text-sm text-brand-text-secondary">Average Drag Coefficient (Cd)</p>
                     <p className="text-3xl font-bold text-brand-accent font-mono tracking-tighter">{toFixedSafe(pred.averageDrag, 4)}</p>
-                    {result.thrustModel && result.tier === 'premium' && (
-                      <p className="text-xs text-brand-text-secondary mt-2">
-                        Thrust Model: <span className="font-semibold capitalize">{result.thrustModel.replace('-', ' ')} (v{thrustVersion})</span>
-                      </p>
-                    )}
+                    <p className="text-xs text-brand-text-secondary mt-2">
+                        Simulation Mode: <span className={`font-semibold ${result.tier === 'premium' ? 'text-purple-400' : 'text-blue-400'}`}>
+                            {result.tier === 'premium' ? 'Accuracy' : 'Speed'}
+                        </span>
+                    </p>
                 </div>
+                
+                {renderBenchmarking()}
             </div>
         );
     };
@@ -358,14 +455,16 @@ const AeroPage: React.FC = () => {
     }
   };
 
-  const bestResultId = useMemo(() => {
+  const bestResult = useMemo(() => {
     if (aeroResults.length === 0) return null;
     return aeroResults.reduce((best, current) => {
         const bestTime = best.raceTimePrediction?.averageRaceTime ?? Infinity;
         const currentTime = current.raceTimePrediction?.averageRaceTime ?? Infinity;
         return currentTime < bestTime ? current : best;
-    }).id;
+    });
   }, [aeroResults]);
+
+  const bestResultId = bestResult?.id || null;
 
   const comparisonResults = useMemo(() => {
     return aeroResults.filter(r => comparisonIds.has(r.id));
@@ -489,7 +588,11 @@ const AeroPage: React.FC = () => {
                                   <p className="font-bold text-brand-text flex items-center">
                                       {isBest && <TrophyIcon className="w-4 h-4 text-yellow-400 mr-2" />}
                                       {result.fileName}
-                                      {result.tier === 'premium' && <span className="ml-2 text-xs font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1"><SparklesIcon className="w-3 h-3" /> High-Fidelity</span>}
+                                      {result.tier === 'premium' ? (
+                                          <span className="ml-2 text-xs font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1"><SparklesIcon className="w-3 h-3" /> Accuracy</span>
+                                      ) : (
+                                          <span className="ml-2 text-xs font-bold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full flex items-center gap-1"><WindIcon className="w-3 h-3" /> Speed</span>
+                                      )}
                                   </p>
                                   <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
                                 </div>
@@ -520,7 +623,7 @@ const AeroPage: React.FC = () => {
             </ErrorBoundary>
         </div>
       </div>
-      {selectedResult && <DetailedAnalysisModal result={selectedResult} onClose={() => setSelectedResult(null)} />}
+      {selectedResult && <DetailedAnalysisModal result={selectedResult} bestResult={bestResult} onClose={() => setSelectedResult(null)} />}
     </div>
   );
 };
