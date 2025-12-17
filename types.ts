@@ -49,6 +49,13 @@ export interface ScrutineeringItem {
   value: string;
 }
 
+export interface PerformancePoint {
+  speed: number; // m/s
+  ldRatio: number;
+  dragForce: number; // Newtons
+  liftForce: number; // Newtons
+}
+
 export interface ProbabilisticRaceTimePrediction {
     bestRaceTime: number; // seconds
     worstRaceTime: number; // seconds
@@ -148,6 +155,9 @@ export interface AeroResult {
   
   // 3D Visualization Data
   flowFieldData?: FlowFieldPoint[];
+  
+  // Curve Data
+  performanceCurve?: PerformancePoint[];
 }
 
 

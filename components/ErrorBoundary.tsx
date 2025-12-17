@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -10,7 +10,8 @@ interface State {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<Props, State> {
+// Fix: Use Component explicitly from the react named import to ensure base class properties like setState and props are correctly resolved by TypeScript
+class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -25,6 +26,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   handleRetry = () => {
+    // Fix: Accessing setState from the Component base class to reset error state
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -55,6 +57,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
+    // Fix: Accessing props from the Component base class to render children
     return this.props.children;
   }
 }

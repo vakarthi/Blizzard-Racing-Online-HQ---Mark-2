@@ -7,6 +7,7 @@ import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
+import PerformanceGraph from '../../components/hq/PerformanceGraph';
 
 
 const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResult | null; onClose: () => void }> = ({ result, bestResult, onClose }) => {
@@ -235,6 +236,7 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResu
         <Modal isOpen={true} onClose={onClose} title={`Analysis: ${result.fileName}`}>
             <div className="flex border-b border-brand-border mb-4 overflow-x-auto">
                 <button onClick={() => setActiveTab('prediction')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'prediction' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><StopwatchIcon className="w-4 h-4" /> Race Analysis</button>
+                <button onClick={() => setActiveTab('curves')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'curves' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BarChartIcon className="w-4 h-4" /> Curves</button>
                 <button onClick={() => setActiveTab('analysis')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'analysis' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><BeakerIcon className="w-4 h-4" /> Aerodynamics</button>
                 <button onClick={() => setActiveTab('suggestions')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'suggestions' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><LightbulbIcon className="w-4 h-4" /> Suggestions</button>
                 <button onClick={() => setActiveTab('scrutineering')} className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'scrutineering' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-brand-text-secondary'}`}><FileTextIcon className="w-4 h-4" /> Scrutineering</button>
@@ -244,6 +246,12 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResu
             </div>
             <div className="relative">
                 {activeTab === 'prediction' && renderRaceAnalysis()}
+                {activeTab === 'curves' && (
+                    <div className="space-y-4">
+                        <p className="text-sm text-brand-text-secondary">Lift-to-Drag efficiency across simulated velocity range (5 - 25 m/s).</p>
+                        <PerformanceGraph results={[result]} />
+                    </div>
+                )}
                 {activeTab === 'analysis' && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -344,11 +352,19 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
     ];
 
     return (
-        <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in">
+        <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in space-y-6">
             <div className="flex justify-between items-center mb-4">
                  <h2 className="text-xl font-bold text-brand-text flex items-center gap-3"><BarChartIcon className="w-6 h-6 text-brand-accent"/> Comparison Analysis</h2>
                  <button onClick={onClear} className="text-sm font-semibold text-brand-accent hover:underline">Clear Selection</button>
             </div>
+
+            <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
+                <h3 className="text-sm font-bold text-brand-text-secondary mb-4 flex items-center gap-2">
+                    <WindIcon className="w-4 h-4"/> Efficiency Curve Comparison (L/D vs Velocity)
+                </h3>
+                <PerformanceGraph results={results} height={240} />
+            </div>
+
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px] text-sm">
                     <thead>
