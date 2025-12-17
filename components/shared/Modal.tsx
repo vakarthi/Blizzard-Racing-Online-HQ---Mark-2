@@ -18,10 +18,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       onClick={onClose}
     >
       <div
-        className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl transform transition-all animate-slide-in-up border border-brand-border"
+        className="bg-brand-dark-secondary rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all animate-slide-in-up border border-brand-border"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-4 border-b border-brand-border">
+        <div className="flex justify-between items-center p-4 border-b border-brand-border flex-shrink-0">
           <h2 className="text-xl font-bold text-brand-accent">{title}</h2>
           <button
             onClick={onClose}
@@ -30,7 +30,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
             <XIcon className="w-6 h-6" />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto">
           {children}
         </div>
       </div>
