@@ -32,10 +32,11 @@ class AerotestSolver {
         finalDelta: number;
     };
 
-    constructor(params: DesignParameters, onProgress: ProgressCallback, isPremium: boolean, thrustModel: 'standard' | 'competition' | 'pro-competition') {
+    constructor(params: DesignParameters, onProgress: ProgressCallback, isPremium: boolean) {
         this.params = params;
         this.onProgress = onProgress;
-        this.settings = { isPremium, thrustModel };
+        // Default to pro-competition for premium, standard for otherwise
+        this.settings = { isPremium, thrustModel: isPremium ? 'pro-competition' : 'standard' };
         this.solverSettings = this._initializeSolverSettings();
         this.autoSettings = { flowRegime: 'Turbulent' };
         this.state = {
@@ -369,7 +370,7 @@ class AerotestSolver {
 
         const aiFlowFeatures = await this._aiFlowFeatureDetection(finalAero.cl);
 
-        const raceTimePrediction = await _runMonteCarloPerformanceSim(this.params, finalAero.cd, this.onProgress, this.settings.isPremium, this.settings.thrustModel);
+        const raceTimePrediction = await _runMonteCarloPerformanceSim(this.params, finalAero.cd, this.onProgress, this.settings.isPremium);
         
         const verificationChecks = await this._runVerificationChecks(finalAero.cd, finalAero.cl);
         const validationLog = await this._runAutomatedValidation(finalAero.cd);
@@ -485,8 +486,7 @@ const _runMonteCarloPerformanceSim = async (
     params: DesignParameters,
     cd: number,
     onProgress: ProgressCallback,
-    isPremium: boolean,
-    thrustModel: string
+    isPremium: boolean
 ) => {
     const airDensity = 1.225;
     const frontalArea = (params.totalWidth / 1000) * (45 / 1000);
@@ -501,32 +501,16 @@ const _runMonteCarloPerformanceSim = async (
     // Previously resulted in ~1.326s. Slightly increased thrust to reduce time by ~26ms.
     
     if (isPremium) {
-        if (thrustModel === 'pro-competition') {
-            PEAK_THRUST = 9.9; // Increased from 9.8
-            PEAK_DURATION = 0.04; 
-            SUSTAINED_THRUST = 3.3; // Increased from 3.2
-            CO2_THRUST_DURATION = 0.37;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.010; 
-            TETHER_FRICTION_FORCE = 0.045; 
-            VARIATION_FACTOR = 0.019; // Tuned for ~0.05s range
-        } else if (thrustModel === 'competition') {
-            PEAK_THRUST = 9.6; // Increased from 9.5
-            PEAK_DURATION = 0.045; 
-            SUSTAINED_THRUST = 3.1; // Increased from 3.0
-            CO2_THRUST_DURATION = 0.38;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.012; 
-            TETHER_FRICTION_FORCE = 0.050; 
-            VARIATION_FACTOR = 0.022; // Slightly wider range
-        } else {
-            PEAK_THRUST = 7.1; // Increased from 7.0
-            PEAK_DURATION = 0.05; 
-            SUSTAINED_THRUST = 2.5; // Increased from 2.4
-            CO2_THRUST_DURATION = 0.4;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.015; 
-            TETHER_FRICTION_FORCE = 0.060; 
-            VARIATION_FACTOR = 0.025;
-        }
+        // ALWAYS use Pro-Competition (v5.3) values for premium runs
+        PEAK_THRUST = 9.9;
+        PEAK_DURATION = 0.04; 
+        SUSTAINED_THRUST = 3.3;
+        CO2_THRUST_DURATION = 0.37;
+        ROLLING_RESISTANCE_COEFFICIENT = 0.010; 
+        TETHER_FRICTION_FORCE = 0.045; 
+        VARIATION_FACTOR = 0.019; // Tuned for ~0.05s range
     } else {
+        // Standard (Speed mode) values
         PEAK_THRUST = 7.1; // Increased from 7.0
         PEAK_DURATION = 0.05; 
         SUSTAINED_THRUST = 2.5; // Increased from 2.4
@@ -683,7 +667,7 @@ export const runAerotestCFDSimulation = async (
   onProgress: ProgressCallback
 ): Promise<Omit<AeroResult, 'id' | 'suggestions' | 'scrutineeringReport' | 'fileName'>> => {
     try {
-        const solver = new AerotestSolver(params, onProgress, false, 'standard');
+        const solver = new AerotestSolver(params, onProgress, false);
         return await solver.run();
     } catch (e) {
         onProgress({ stage: 'Error', progress: 100, log: `Simulation failed: ${e instanceof Error ? e.message : String(e)}` });
@@ -693,11 +677,10 @@ export const runAerotestCFDSimulation = async (
 
 export const runAerotestPremiumCFDSimulation = async (
   params: DesignParameters,
-  onProgress: ProgressCallback,
-  thrustModel: 'standard' | 'competition' | 'pro-competition'
+  onProgress: ProgressCallback
 ): Promise<Omit<AeroResult, 'id' | 'suggestions' | 'scrutineeringReport' | 'fileName'>> => {
     try {
-        const solver = new AerotestSolver(params, onProgress, true, thrustModel);
+        const solver = new AerotestSolver(params, onProgress, true);
         return await solver.run();
     } catch (e) {
         onProgress({ stage: 'Error', progress: 100, log: `Simulation failed: ${e instanceof Error ? e.message : String(e)}` });

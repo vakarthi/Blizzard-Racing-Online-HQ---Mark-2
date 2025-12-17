@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -78,7 +77,7 @@ export interface DataContextType {
   addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => void;
   updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
   backgroundTasks: BackgroundTask[];
-  runSimulationTask: (file: File, quality: 'standard' | 'high-fidelity') => void;
+  runSimulationTask: (file: File, mode: 'speed' | 'accuracy') => void;
   simulationRunCount: number;
 }
 
@@ -194,10 +193,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return newResult;
   };
 
-  const runSimulationTask = (file: File, quality: 'standard' | 'high-fidelity') => {
+  const runSimulationTask = (file: File, mode: 'speed' | 'accuracy') => {
     const taskId = `sim-${Date.now()}`;
-    // Audit every 5th standard run
-    const isAuditRun = quality === 'standard' && (store.simulationRunCount + 1) % 5 === 0;
+    // Audit every 5th speed run
+    const isAuditRun = mode === 'speed' && (store.simulationRunCount + 1) % 5 === 0;
 
     const newTask: BackgroundTask = {
       id: taskId,
@@ -234,14 +233,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             }));
         };
         
-        const tier = quality === 'standard' ? 'standard' : 'premium';
-        const thrustModel = quality === 'standard' ? 'standard' : 'pro-competition';
+        const tier = mode === 'speed' ? 'standard' : 'premium';
 
         let simResultData;
         if (tier === 'standard') {
             simResultData = await runAerotestCFDSimulation(parameters, onProgress);
         } else {
-            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, thrustModel);
+            // For accuracy mode (premium), we always use the pro-competition thrust model implicitly
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress);
         }
         
         const tempResultForAnalysis: AeroResult = {
@@ -256,7 +255,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (isAuditRun) {
             updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, stage: 'Audit Run', progress: 90, latestLog: 'Initiating high-fidelity baseline...'} : t)}));
             
-            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {}, 'pro-competition');
+            // Run a premium sim for audit baseline
+            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {});
             
             updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, progress: 95, latestLog: 'Comparing results against baseline...'} : t)}));
 
@@ -536,7 +536,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    // FIX: Corrected a typo from 'a new Error' to 'new Error'.
     throw new Error('useAuth must be used within an AppProvider');
   }
   return context;

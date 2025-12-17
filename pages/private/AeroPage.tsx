@@ -328,7 +328,7 @@ const AeroPage: React.FC = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
-  const [quality, setQuality] = useState<'standard' | 'high-fidelity'>('standard');
+  const [mode, setMode] = useState<'speed' | 'accuracy'>('speed');
   
   const runningSimulations = backgroundTasks.filter(t => t.type === 'simulation' && t.status === 'running');
   
@@ -392,7 +392,7 @@ const AeroPage: React.FC = () => {
         alert("Please upload a STEP file to simulate.");
         return;
     }
-    runSimulationTask(stepFile, quality);
+    runSimulationTask(stepFile, mode);
     setStepFile(null);
   };
 
@@ -420,10 +420,10 @@ const AeroPage: React.FC = () => {
                     <h2 className="text-xl font-bold text-brand-text mb-4">New Simulation</h2>
                     
                     <div className="mb-4">
-                        <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Quality</label>
+                        <label className="text-sm font-semibold text-brand-text-secondary block mb-2">Simulation Mode</label>
                         <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-border">
-                             <button onClick={() => setQuality('standard')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${quality === 'standard' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Standard</button>
-                             <button onClick={() => setQuality('high-fidelity')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${quality === 'high-fidelity' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>High-Fidelity</button>
+                             <button onClick={() => setMode('speed')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Speed</button>
+                             <button onClick={() => setMode('accuracy')} className={`flex-1 p-2 rounded-md text-sm font-bold transition-colors ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-surface'}`}>Accuracy</button>
                         </div>
                     </div>
                     
