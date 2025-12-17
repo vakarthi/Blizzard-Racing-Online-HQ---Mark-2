@@ -228,27 +228,33 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         },
         turbulenceModel: 'Detached Eddy Simulation (DES)'
     },
-    cd: 0.1020, // Perfected isentropic teardrop limit
-    cl: 0.0120, // Neutral stability limit
-    liftToDragRatio: 0.1176,
+    cd: 0.1020, // 1. Drag Coefficient (Lower better)
+    cl: 0.0120, // 2. Lift Coefficient (Near zero better)
+    liftToDragRatio: 0.118, // 3. L/D Efficiency (Higher better)
     dragBreakdown: { pressure: 40, skinFriction: 60 },
-    aeroBalance: 50.0,
-    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit). Zero-slip boundary conditions and perfectly smooth surface assumption applied. This represents the absolute mathematical boundary of the Professional Class regulations.",
-    meshQuality: 100,
+    aeroBalance: 50.0, // 4. Aero Balance (Near 50% better)
+    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit). Zero-slip boundary conditions and perfectly smooth surface assumption applied.",
+    meshQuality: 100, // 5. Mesh Quality (Higher better)
+    finalResiduals: {
+        continuity: 1.0e-7, // 6. Convergence stability (Lower better)
+        xVelocity: 1.0e-7,
+        yVelocity: 1.0e-7,
+        zVelocity: 1.0e-7
+    },
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
         bestRaceTime: 1.155,
-        worstRaceTime: 1.156,
-        averageRaceTime: 1.155,
+        worstRaceTime: 1.155,
+        averageRaceTime: 1.155, // 7. Avg Race Time (Lower better)
         averageDrag: 0.1020,
-        bestFinishLineSpeed: 21.2,
-        worstFinishLineSpeed: 21.1,
-        averageFinishLineSpeed: 21.15,
-        bestAverageSpeed: 17.32,
-        worstAverageSpeed: 17.30,
-        averageSpeed: 17.31,
-        launchVariance: 0.1,
+        bestFinishLineSpeed: 21.15,
+        worstFinishLineSpeed: 21.15,
+        averageFinishLineSpeed: 21.15, // 8. Exit Speed (Higher better)
+        bestAverageSpeed: 17.31,
+        worstAverageSpeed: 17.31,
+        averageSpeed: 17.31, // 9. Avg Track Speed (Higher better)
+        launchVariance: 0.0, // 10. Launch Variance (Lower better)
         trackConditionSensitivity: 0.1,
         canisterPerformanceDelta: 0.1
     }

@@ -142,62 +142,108 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResu
     );
 };
 
-const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> = ({ results, onClear }) => {
-    const bestValues = useMemo(() => ({
-        liftToDragRatio: Math.max(...results.map(r => r.liftToDragRatio)),
-        cd: Math.min(...results.map(r => r.cd)),
-    }), [results]);
+interface MetricDef {
+  key: string;
+  label: string;
+  higherIsBetter?: boolean;
+  format?: (v: any) => string;
+}
 
-    const metrics: { key: string; label: string; higherIsBetter?: boolean }[] = [
-        { key: 'model', label: 'Simulation Model' },
-        { key: 'liftToDragRatio', label: 'L/D Ratio', higherIsBetter: true },
-        { key: 'cd', label: 'Drag (Cd)', higherIsBetter: false },
-        { key: 'cl', label: 'Lift (Cl)', higherIsBetter: true },
-        { key: 'aeroBalance', label: 'Aero Balance (% F)' },
+const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> = ({ results, onClear }) => {
+    const metrics: MetricDef[] = [
+        { key: 'cd', label: 'Drag (Cd)', higherIsBetter: false, format: (v) => v.toFixed(4) },
+        { key: 'cl', label: 'Lift (Cl)', higherIsBetter: false, format: (v) => v.toFixed(4) },
+        { key: 'liftToDragRatio', label: 'Efficiency (L/D)', higherIsBetter: true, format: (v) => v.toFixed(3) },
+        { key: 'aeroBalance', label: 'Balance (%F)', format: (v) => `${v.toFixed(1)}%` },
+        { key: 'avgRaceTime', label: 'Race Time (Avg)', higherIsBetter: false, format: (v) => `${v.toFixed(3)}s` },
+        { key: 'exitSpeed', label: 'Exit Speed', higherIsBetter: true, format: (v) => `${v.toFixed(2)}m/s` },
+        { key: 'avgSpeed', label: 'Track Speed', higherIsBetter: true, format: (v) => `${v.toFixed(2)}m/s` },
+        { key: 'meshQuality', label: 'Mesh Reliability', higherIsBetter: true, format: (v) => `${v}%` },
+        { key: 'launchVariance', label: 'Launch Stability', higherIsBetter: false, format: (v) => `${v.toFixed(1)}ms` },
+        { key: 'residuals', label: 'Solver Precision', higherIsBetter: false, format: (v) => v.toExponential(1) },
     ];
 
-    const getMetricValue = (result: AeroResult, key: string) => {
-        if (key === 'model') {
-            if (result.id === 'benchmark-optimum') return 'Reg-Max V2.5';
-            return result.tier === 'premium' ? 'Aerotest Pro 2.1' : 'Aerotest Std 2.1';
+    const getRawValue = (result: AeroResult, key: string) => {
+        const pred = result.raceTimePrediction;
+        switch (key) {
+            case 'avgRaceTime': return pred?.averageRaceTime ?? Infinity;
+            case 'exitSpeed': return pred?.averageFinishLineSpeed ?? 0;
+            case 'avgSpeed': return pred?.averageSpeed ?? 0;
+            case 'launchVariance': return pred?.launchVariance ?? Infinity;
+            case 'residuals': return result.finalResiduals?.continuity ?? Infinity;
+            case 'aeroBalance': return Math.abs(50 - (result.aeroBalance || 50)); // Lower diff is better
+            default: return (result as any)[key] ?? 0;
         }
-        return result[key as keyof AeroResult];
     };
+
+    const winningMap = useMemo(() => {
+        const winners: Record<string, string> = {};
+        metrics.forEach(m => {
+            const vals = results.map(r => ({ id: r.id, val: getRawValue(r, m.key) }));
+            if (m.key === 'aeroBalance') {
+                // Special case: lower difference from 50 is better
+                const best = vals.reduce((prev, curr) => prev.val < curr.val ? prev : curr);
+                winners[m.key] = best.id;
+            } else if (m.higherIsBetter) {
+                const best = vals.reduce((prev, curr) => prev.val > curr.val ? prev : curr);
+                winners[m.key] = best.id;
+            } else {
+                const best = vals.reduce((prev, curr) => prev.val < curr.val ? prev : curr);
+                winners[m.key] = best.id;
+            }
+        });
+        return winners;
+    }, [results]);
 
     return (
         <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in space-y-6">
             <div className="flex justify-between items-center mb-4">
-                 <h2 className="text-xl font-bold text-brand-text flex items-center gap-3"><BarChartIcon className="w-6 h-6 text-brand-accent"/> Comparison Analysis</h2>
+                 <h2 className="text-xl font-bold text-brand-text flex items-center gap-3"><BarChartIcon className="w-6 h-6 text-brand-accent"/> High-Fidelity Comparison</h2>
                  <button onClick={onClear} className="text-sm font-semibold text-brand-accent hover:underline">Clear Selection</button>
             </div>
 
             <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
                 <h3 className="text-sm font-bold text-brand-text-secondary mb-4 flex items-center gap-2">
-                    <WindIcon className="w-4 h-4"/> Efficiency Curve Comparison
+                    <WindIcon className="w-4 h-4"/> Multi-Car Efficiency Mapping
                 </h3>
                 <PerformanceGraph results={results} height={240} />
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-sm">
+                <table className="w-full min-w-[700px] text-sm">
                     <thead>
                         <tr className="border-b-2 border-brand-border">
-                            <th className="text-left p-2 font-semibold text-brand-text-secondary">Metric</th>
+                            <th className="text-left p-2 font-semibold text-brand-text-secondary">Ω-Metric</th>
                             {results.map(r => (
-                                <th key={r.id} className={`text-center p-2 font-semibold truncate ${r.id === 'benchmark-optimum' ? 'text-yellow-400' : ''}`} title={r.fileName}>{r.fileName}</th>
+                                <th key={r.id} className={`text-center p-2 font-semibold truncate ${r.id === 'benchmark-optimum' ? 'text-yellow-400' : ''}`} title={r.fileName}>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-xs uppercase opacity-60 tracking-widest">{r.tier || 'Car'}</span>
+                                        <span>{r.fileName}</span>
+                                    </div>
+                                </th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {metrics.map(metric => (
-                            <tr key={metric.key} className="border-b border-brand-border/50">
-                                <td className="p-2 font-semibold text-brand-text-secondary">{metric.label}</td>
+                            <tr key={metric.key} className="border-b border-brand-border/50 group">
+                                <td className="p-2 font-semibold text-brand-text-secondary group-hover:text-brand-accent transition-colors">{metric.label}</td>
                                 {results.map(r => {
-                                    const value = getMetricValue(r, metric.key);
-                                    const isOptimum = r.id === 'benchmark-optimum';
+                                    const isWinner = winningMap[metric.key] === r.id;
+                                    const raw = getRawValue(r, metric.key);
+                                    // Format correctly for display (undo balance diff if needed)
+                                    const displayVal = metric.key === 'aeroBalance' ? r.aeroBalance : raw;
+                                    
                                     return (
-                                        <td key={`${r.id}-${metric.key}`} className={`text-center p-2 font-mono ${isOptimum ? 'text-yellow-400/80 bg-yellow-500/5' : 'text-brand-text'}`}>
-                                            {typeof value === 'number' ? value.toFixed(3) : String(value)}
+                                        <td key={`${r.id}-${metric.key}`} className={`text-center p-2 font-mono transition-all duration-300 ${
+                                            isWinner 
+                                            ? 'text-green-400 bg-green-500/10 shadow-[inset_0_0_10px_rgba(34,197,94,0.1)]' 
+                                            : 'text-brand-text'
+                                        }`}>
+                                            <div className="flex items-center justify-center gap-1">
+                                                {isWinner && <CheckCircleIcon className="w-3 h-3 text-green-500" />}
+                                                {metric.format ? metric.format(displayVal) : displayVal}
+                                            </div>
                                         </td>
                                     )
                                 })}
@@ -205,6 +251,10 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
                         ))}
                     </tbody>
                 </table>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-brand-text-secondary uppercase tracking-widest bg-brand-dark/50 p-2 rounded border border-brand-border/50">
+                <InfoIcon className="w-3 h-3 text-brand-accent" />
+                Emerald highlights indicate superior performance in that specific metric across compared vehicles.
             </div>
         </div>
     );
@@ -252,7 +302,7 @@ const AeroPage: React.FC = () => {
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all border ${showBenchmark ? 'bg-yellow-500 text-brand-dark border-yellow-400 shadow-glow-accent' : 'bg-brand-dark border-brand-border text-brand-text-secondary'}`}
         >
             <CommandIcon className="w-4 h-4" />
-            {showBenchmark ? 'Ω-OPTIMUM Enabled' : 'View Theoretical limit'}
+            {showBenchmark ? 'Ω-OPTIMUM Active' : 'View Theoretical limit'}
         </button>
       </div>
       

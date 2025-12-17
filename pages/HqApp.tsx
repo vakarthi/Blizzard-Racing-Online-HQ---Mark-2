@@ -1,14 +1,14 @@
 
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from '../contexts/AppContext';
 import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon } from '../components/icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
 import useInactivityTimeout from '../hooks/useInactivityTimeout';
 import DashboardPage from './private/DashboardPage';
 import AeroPage from './private/AeroPage';
+import AeroEducationPage from './private/AeroEducationPage';
 import ProjectsPage from './private/ProjectsPage';
 import ManagerPanelGate from './private/ManagerPanelGate';
 import SocialsPage from './private/SocialsPage';
@@ -31,6 +31,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
   { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
+  { path: 'aero-academy', name: 'Aerotest Academy', icon: <GraduationCapIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
   { path: 'leads', name: 'Leads', icon: <BriefcaseIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
@@ -182,6 +183,7 @@ const HqApp: React.FC = () => {
             <Routes>
                 <Route index element={<DashboardPage />} />
                 <Route path="aero" element={<AeroPage />} />
+                <Route path="aero-academy" element={<AeroEducationPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="comms" element={<CommunicationsPage />} />
                 <Route path="socials" element={<SocialsPage />} />
