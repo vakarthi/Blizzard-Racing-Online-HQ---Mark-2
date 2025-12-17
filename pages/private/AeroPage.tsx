@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, ProbabilisticRaceTimePrediction, BackgroundTask } from '../../types';
-import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, VideoIcon, FileCheckIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon, InfoIcon, ScaleIcon, CommandIcon } from '../../components/icons';
+import { WindIcon, TrophyIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, VideoIcon, FileCheckIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon, InfoIcon, ScaleIcon, CommandIcon, SettingsIcon } from '../../components/icons';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
@@ -87,6 +87,12 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; bestResult: AeroResu
                     <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Time</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageRaceTime, 3)}s</p></div>
                     <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstRaceTime, 3)}s</p></div>
                 </div>
+                {isBenchmark && (
+                    <div className="text-center p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                        <p className="text-xs font-bold text-yellow-400 uppercase tracking-widest mb-1">Theoretical Solver Model</p>
+                        <p className="text-brand-text font-mono">Regulation-Max V2.5 (Isentropic Limit)</p>
+                    </div>
+                )}
                 <div className="text-center bg-brand-dark p-4 rounded-lg mt-4">
                     <p className="text-sm text-brand-text-secondary">Average Drag Coefficient (Cd)</p>
                     <p className="text-3xl font-bold text-brand-accent font-mono tracking-tighter">{toFixedSafe(pred.averageDrag, 4)}</p>
@@ -142,12 +148,21 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
         cd: Math.min(...results.map(r => r.cd)),
     }), [results]);
 
-    const metrics: { key: keyof AeroResult; label: string; higherIsBetter?: boolean }[] = [
+    const metrics: { key: string; label: string; higherIsBetter?: boolean }[] = [
+        { key: 'model', label: 'Simulation Model' },
         { key: 'liftToDragRatio', label: 'L/D Ratio', higherIsBetter: true },
         { key: 'cd', label: 'Drag (Cd)', higherIsBetter: false },
         { key: 'cl', label: 'Lift (Cl)', higherIsBetter: true },
         { key: 'aeroBalance', label: 'Aero Balance (% F)' },
     ];
+
+    const getMetricValue = (result: AeroResult, key: string) => {
+        if (key === 'model') {
+            if (result.id === 'benchmark-optimum') return 'Reg-Max V2.5';
+            return result.tier === 'premium' ? 'Aerotest Pro 2.1' : 'Aerotest Std 2.1';
+        }
+        return result[key as keyof AeroResult];
+    };
 
     return (
         <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border animate-fade-in space-y-6">
@@ -178,9 +193,10 @@ const AeroComparison: React.FC<{ results: AeroResult[]; onClear: () => void; }> 
                             <tr key={metric.key} className="border-b border-brand-border/50">
                                 <td className="p-2 font-semibold text-brand-text-secondary">{metric.label}</td>
                                 {results.map(r => {
-                                    const value = r[metric.key as keyof AeroResult];
+                                    const value = getMetricValue(r, metric.key);
+                                    const isOptimum = r.id === 'benchmark-optimum';
                                     return (
-                                        <td key={`${r.id}-${metric.key}`} className={`text-center p-2 font-mono ${r.id === 'benchmark-optimum' ? 'text-yellow-400/80 bg-yellow-500/5' : 'text-brand-text'}`}>
+                                        <td key={`${r.id}-${metric.key}`} className={`text-center p-2 font-mono ${isOptimum ? 'text-yellow-400/80 bg-yellow-500/5' : 'text-brand-text'}`}>
                                             {typeof value === 'number' ? value.toFixed(3) : String(value)}
                                         </td>
                                     )

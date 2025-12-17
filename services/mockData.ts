@@ -210,7 +210,7 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     tier: 'premium',
     parameters: {
         carName: 'The Perfect Challenger',
-        totalLength: 185,
+        totalLength: 210,
         totalWidth: 65,
         totalWeight: 50.0,
         frontWingSpan: 75,
@@ -218,28 +218,38 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         rearWingSpan: 65,
         rearWingHeight: 35
     },
-    cd: 0.1150,
-    cl: 0.0250,
-    liftToDragRatio: 0.217,
-    dragBreakdown: { pressure: 65, skinFriction: 35 },
+    solverSettings: {
+        solver: 'Coupled Implicit',
+        precision: 'Double',
+        spatialDiscretization: {
+            gradient: 'Least Squares Cell-Based',
+            momentum: 'Third Order MUSCL',
+            turbulence: 'Second Order Upwind'
+        },
+        turbulenceModel: 'Detached Eddy Simulation (DES)'
+    },
+    cd: 0.1020, // Perfected isentropic teardrop limit
+    cl: 0.0120, // Neutral stability limit
+    liftToDragRatio: 0.1176,
+    dragBreakdown: { pressure: 40, skinFriction: 60 },
     aeroBalance: 50.0,
-    flowAnalysis: "Theoretical laminar-to-turbulent transition optimized for Reynolds Number ~240k. Minimal pressure drag via aggressive boattailing.",
+    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit). Zero-slip boundary conditions and perfectly smooth surface assumption applied. This represents the absolute mathematical boundary of the Professional Class regulations.",
     meshQuality: 100,
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
-        bestRaceTime: 1.175,
-        worstRaceTime: 1.185,
-        averageRaceTime: 1.180,
-        averageDrag: 0.1150,
-        bestFinishLineSpeed: 19.8,
-        worstFinishLineSpeed: 19.2,
-        averageFinishLineSpeed: 19.5,
-        bestAverageSpeed: 17.02,
-        worstAverageSpeed: 16.88,
-        averageSpeed: 16.95,
-        launchVariance: 0.5,
-        trackConditionSensitivity: 2,
-        canisterPerformanceDelta: 5
+        bestRaceTime: 1.155,
+        worstRaceTime: 1.156,
+        averageRaceTime: 1.155,
+        averageDrag: 0.1020,
+        bestFinishLineSpeed: 21.2,
+        worstFinishLineSpeed: 21.1,
+        averageFinishLineSpeed: 21.15,
+        bestAverageSpeed: 17.32,
+        worstAverageSpeed: 17.30,
+        averageSpeed: 17.31,
+        launchVariance: 0.1,
+        trackConditionSensitivity: 0.1,
+        canisterPerformanceDelta: 0.1
     }
 };
