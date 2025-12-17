@@ -1,5 +1,5 @@
 
-import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent } from '../types';
+import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent, AeroResult } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
 export const MOCK_USERS_DATA = [
@@ -202,3 +202,44 @@ export const F1_IN_SCHOOLS_RULES: readonly {
     { id: 'T8.5', description: 'Rear Wing Height (Max)', max: 65, unit: 'mm', key: 'rearWingHeight' },
     { id: 'T8.6.1', description: 'Rear Wing Span', min: 65, unit: 'mm', key: 'rearWingSpan' },
 ];
+
+export const THEORETICAL_OPTIMUM: AeroResult = {
+    id: 'benchmark-optimum',
+    timestamp: new Date().toISOString(),
+    fileName: 'Ω-OPTIMUM (Limit)',
+    tier: 'premium',
+    parameters: {
+        carName: 'The Perfect Challenger',
+        totalLength: 185,
+        totalWidth: 65,
+        totalWeight: 50.0,
+        frontWingSpan: 75,
+        frontWingChord: 15,
+        rearWingSpan: 65,
+        rearWingHeight: 35
+    },
+    cd: 0.1150,
+    cl: 0.0250,
+    liftToDragRatio: 0.217,
+    dragBreakdown: { pressure: 65, skinFriction: 35 },
+    aeroBalance: 50.0,
+    flowAnalysis: "Theoretical laminar-to-turbulent transition optimized for Reynolds Number ~240k. Minimal pressure drag via aggressive boattailing.",
+    meshQuality: 100,
+    convergenceStatus: 'Converged',
+    simulationTime: 0,
+    raceTimePrediction: {
+        bestRaceTime: 1.175,
+        worstRaceTime: 1.185,
+        averageRaceTime: 1.180,
+        averageDrag: 0.1150,
+        bestFinishLineSpeed: 19.8,
+        worstFinishLineSpeed: 19.2,
+        averageFinishLineSpeed: 19.5,
+        bestAverageSpeed: 17.02,
+        worstAverageSpeed: 16.88,
+        averageSpeed: 16.95,
+        launchVariance: 0.5,
+        trackConditionSensitivity: 2,
+        canisterPerformanceDelta: 5
+    }
+};

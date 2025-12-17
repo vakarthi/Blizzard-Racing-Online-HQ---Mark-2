@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -10,8 +10,8 @@ interface State {
   error: Error | null;
 }
 
-// Fix: Use Component explicitly from the react named import to ensure base class properties like setState and props are correctly resolved by TypeScript
-class ErrorBoundary extends Component<Props, State> {
+// Fixed: Explicitly extending React.Component ensures that base class members like setState and props are correctly inherited and visible to the TypeScript compiler.
+class ErrorBoundary extends React.Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -26,7 +26,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    // Fix: Accessing setState from the Component base class to reset error state
+    // Fixed: Accessing setState through the properly resolved base class member.
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
@@ -57,7 +57,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing props from the Component base class to render children
+    // Fixed: Accessing props through the properly resolved base class member to render children components.
     return this.props.children;
   }
 }
