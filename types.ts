@@ -1,5 +1,4 @@
 
-
 export enum UserRole {
   Manager = 'Manager',
   Engineer = 'Engineer',
@@ -55,9 +54,16 @@ export interface ProbabilisticRaceTimePrediction {
     worstRaceTime: number; // seconds
     averageRaceTime: number; // seconds
     averageDrag: number; // Cd
+    
+    // Finish Line Speeds (Instantaneous at 20m)
     bestFinishLineSpeed: number; // m/s
     worstFinishLineSpeed: number; // m/s
     averageFinishLineSpeed: number; // m/s
+
+    // Average Track Speeds (Distance / Time)
+    bestAverageSpeed: number; // m/s
+    worstAverageSpeed: number; // m/s
+    averageSpeed: number; // m/s
     
     // NEW for Premium simulation
     launchVariance?: number; // ms, standard deviation of launch reaction time

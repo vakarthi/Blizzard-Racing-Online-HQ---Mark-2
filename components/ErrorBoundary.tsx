@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -11,10 +11,7 @@ interface State {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  // FIX: Switched to class property syntax for state and an arrow function for handleRetry.
-  // This is a more modern and robust way to define state and methods in React class components,
-  // which resolves the compilation errors related to 'this' context and incorrect type inference.
-  state: State = {
+  public state: State = {
     hasError: false,
     error: null,
   };
@@ -23,7 +20,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
 
@@ -31,7 +28,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
     window.location.reload();
-  }
+  };
 
   render() {
     if (this.state.hasError) {

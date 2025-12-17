@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, ProbabilisticRaceTimePrediction, BackgroundTask } from '../../types';
@@ -47,15 +46,29 @@ const DetailedAnalysisModal: React.FC<{ result: AeroResult; onClose: () => void 
         const toFixedSafe = (val: number | undefined, digits: number) => (val != null ? val.toFixed(digits) : 'N/A');
         const thrustVersion = result.thrustModel === 'pro-competition' ? '5.3' : result.thrustModel === 'competition' ? '5.2' : '5.1';
 
+        // Check if the new average speed metrics are available (for backward compatibility with old results)
+        const hasTrackSpeed = pred.averageSpeed !== undefined;
+
         return (
             <div className="space-y-4">
                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
                     <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Time</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestRaceTime, 3)}s</p></div>
                     <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Time</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageRaceTime, 3)}s</p></div>
                     <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Time</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstRaceTime, 3)}s</p></div>
-                    <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Finish Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestFinishLineSpeed, 2)} m/s</p></div>
-                    <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Finish Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageFinishLineSpeed, 2)} m/s</p></div>
-                    <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Finish Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstFinishLineSpeed, 2)} m/s</p></div>
+                    
+                    {hasTrackSpeed ? (
+                        <>
+                            <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Track Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestAverageSpeed, 2)} m/s</p></div>
+                            <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Speed (Track)</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageSpeed, 2)} m/s</p></div>
+                            <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Track Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstAverageSpeed, 2)} m/s</p></div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="p-4 bg-green-500/10 rounded-lg"><p className="text-sm text-green-300">Best Finish Speed</p><p className="text-2xl font-bold text-green-400 font-mono">{toFixedSafe(pred.bestFinishLineSpeed, 2)} m/s</p></div>
+                            <div className="p-4 bg-brand-dark rounded-lg"><p className="text-sm text-brand-text-secondary">Avg Finish Speed</p><p className="text-2xl font-bold text-brand-text font-mono">{toFixedSafe(pred.averageFinishLineSpeed, 2)} m/s</p></div>
+                            <div className="p-4 bg-red-500/10 rounded-lg"><p className="text-sm text-red-300">Worst Finish Speed</p><p className="text-2xl font-bold text-red-400 font-mono">{toFixedSafe(pred.worstFinishLineSpeed, 2)} m/s</p></div>
+                        </>
+                    )}
                 </div>
                 {result.tier === 'premium' && pred.launchVariance != null && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">

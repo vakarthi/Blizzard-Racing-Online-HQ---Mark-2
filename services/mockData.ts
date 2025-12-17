@@ -1,3 +1,4 @@
+
 import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
@@ -106,7 +107,7 @@ export const MOCK_PROTOCOLS: Protocol[] = [
         title: 'Pre-Race Scrutineering Checklist',
         description: 'Standard procedure to ensure car is compliant before every race.',
         steps: [
-            'Verify total car weight (min 60g).',
+            'Verify total car weight (min 50g for Professional, 60g for Dev).',
             'Check overall dimensions (length, width).',
             'Inspect front and rear wing dimensions and placement.',
             'Ensure tether line is correctly installed.',
@@ -193,11 +194,11 @@ export const F1_IN_SCHOOLS_RULES: readonly {
     unit: string;
     key: keyof Omit<DesignParameters, 'carName'>;
 }[] = [
-    { id: 'D3.4', description: 'Total Length', min: 170, max: 210, unit: 'mm', key: 'totalLength' },
-    { id: 'D3.5', description: 'Total Width', max: 90, unit: 'mm', key: 'totalWidth' },
-    { id: 'D3.6', description: 'Total Weight', min: 60.0, unit: 'g', key: 'totalWeight' },
-    { id: 'D7.6.1', description: 'Front Wing Span', min: 60, unit: 'mm', key: 'frontWingSpan' },
-    { id: 'D7.6.2', description: 'Front Wing Chord', min: 15, max: 30, unit: 'mm', key: 'frontWingChord' },
-    { id: 'D8.5', description: 'Rear Wing Height', min: 35, unit: 'mm', key: 'rearWingHeight' },
-    { id: 'D8.6.1', description: 'Rear Wing Span', min: 60, unit: 'mm', key: 'rearWingSpan' },
+    { id: 'T3.4', description: 'Total Length', min: 170, max: 210, unit: 'mm', key: 'totalLength' },
+    { id: 'T3.5', description: 'Total Width (at axles)', max: 85, unit: 'mm', key: 'totalWidth' },
+    { id: 'T3.6', description: 'Total Weight (Min)', min: 50.0, unit: 'g', key: 'totalWeight' },
+    { id: 'T7.6.1', description: 'Front Wing Span', min: 75, unit: 'mm', key: 'frontWingSpan' },
+    { id: 'T7.6.2', description: 'Front Wing Chord', min: 15, max: 25, unit: 'mm', key: 'frontWingChord' },
+    { id: 'T8.5', description: 'Rear Wing Height (Max)', max: 65, unit: 'mm', key: 'rearWingHeight' },
+    { id: 'T8.6.1', description: 'Rear Wing Span', min: 65, unit: 'mm', key: 'rearWingSpan' },
 ];

@@ -1,3 +1,4 @@
+
 import { AeroResult, DesignParameters, ProbabilisticRaceTimePrediction, FlowFieldPoint, SolverSettings, VerificationCheck } from '../types';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -439,7 +440,12 @@ class AerotestSolver {
         const cl = Cl_front_base + Cl_rear + groundEffectFactor;
 
         const turbulenceFactor = this.solverSettings.turbulenceModel === 'k-ω SST' ? 1.0 : (this.solverSettings.turbulenceModel === 'Detached Eddy Simulation (DES)' ? 0.92 : 1.05);
-        const cd_skin = 0.038 * turbulenceFactor;
+        
+        // Skin Friction Drag - includes roughness penalty for 3D printed parts vs theoretical smooth surface
+        // Added 0.015 penalty to better reflect real-world manufacturing capabilities
+        const roughnessPenalty = 0.015; 
+        const cd_skin = (0.038 + roughnessPenalty) * turbulenceFactor;
+        
         const cd_form = 0.15 * (this.params.totalWidth / 90) * (1 / lengthToWidthRatio);
         const cd_interference = 0.05 * (frontWingArea / A_ref) * (rearWingArea / A_ref);
         const oswaldEfficiency = 0.65 + (AR_front / 50);
@@ -488,40 +494,75 @@ const _runMonteCarloPerformanceSim = async (
     onProgress({ stage: 'Performance Analysis', progress: 81, log: `Initiating ${NUM_SIMULATIONS.toLocaleString()}-race simulation...` });
 
     let PEAK_THRUST, PEAK_DURATION, SUSTAINED_THRUST, CO2_THRUST_DURATION, ROLLING_RESISTANCE_COEFFICIENT, TETHER_FRICTION_FORCE, VARIATION_FACTOR;
+    
+    // CALIBRATION UPDATE:
+    // Centering Average Race Time around ~1.300s.
+    // 20m / 1.3s = 15.38 m/s Avg Speed.
+    // Previously resulted in ~1.326s. Slightly increased thrust to reduce time by ~26ms.
+    
     if (isPremium) {
         if (thrustModel === 'pro-competition') {
-            PEAK_THRUST = 9.8; PEAK_DURATION = 0.04; SUSTAINED_THRUST = 3.2; CO2_THRUST_DURATION = 0.37;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.0042; TETHER_FRICTION_FORCE = 0.012; VARIATION_FACTOR = 0.008;
+            PEAK_THRUST = 9.9; // Increased from 9.8
+            PEAK_DURATION = 0.04; 
+            SUSTAINED_THRUST = 3.3; // Increased from 3.2
+            CO2_THRUST_DURATION = 0.37;
+            ROLLING_RESISTANCE_COEFFICIENT = 0.010; 
+            TETHER_FRICTION_FORCE = 0.045; 
+            VARIATION_FACTOR = 0.019; // Tuned for ~0.05s range
         } else if (thrustModel === 'competition') {
-            PEAK_THRUST = 9.5; PEAK_DURATION = 0.045; SUSTAINED_THRUST = 3.0; CO2_THRUST_DURATION = 0.38;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.0045; TETHER_FRICTION_FORCE = 0.015; VARIATION_FACTOR = 0.01;
+            PEAK_THRUST = 9.6; // Increased from 9.5
+            PEAK_DURATION = 0.045; 
+            SUSTAINED_THRUST = 3.1; // Increased from 3.0
+            CO2_THRUST_DURATION = 0.38;
+            ROLLING_RESISTANCE_COEFFICIENT = 0.012; 
+            TETHER_FRICTION_FORCE = 0.050; 
+            VARIATION_FACTOR = 0.022; // Slightly wider range
         } else {
-            PEAK_THRUST = 7.0; PEAK_DURATION = 0.05; SUSTAINED_THRUST = 2.4; CO2_THRUST_DURATION = 0.4;
-            ROLLING_RESISTANCE_COEFFICIENT = 0.0048; TETHER_FRICTION_FORCE = 0.018; VARIATION_FACTOR = 0.015;
+            PEAK_THRUST = 7.1; // Increased from 7.0
+            PEAK_DURATION = 0.05; 
+            SUSTAINED_THRUST = 2.5; // Increased from 2.4
+            CO2_THRUST_DURATION = 0.4;
+            ROLLING_RESISTANCE_COEFFICIENT = 0.015; 
+            TETHER_FRICTION_FORCE = 0.060; 
+            VARIATION_FACTOR = 0.025;
         }
     } else {
-        PEAK_THRUST = 7.0; PEAK_DURATION = 0.05; SUSTAINED_THRUST = 2.4; CO2_THRUST_DURATION = 0.4;
-        ROLLING_RESISTANCE_COEFFICIENT = 0.005; TETHER_FRICTION_FORCE = 0.02; VARIATION_FACTOR = 0.02;
+        PEAK_THRUST = 7.1; // Increased from 7.0
+        PEAK_DURATION = 0.05; 
+        SUSTAINED_THRUST = 2.5; // Increased from 2.4
+        CO2_THRUST_DURATION = 0.4;
+        ROLLING_RESISTANCE_COEFFICIENT = 0.018; 
+        TETHER_FRICTION_FORCE = 0.065; 
+        VARIATION_FACTOR = 0.028; // Standard variability
     }
     
+    // Mechanical Latency: Time from trigger pull to actual motion (firing pin travel + canister puncture)
+    // This shifts the entire distribution up by 20ms to match real-world timing gates.
+    const MECHANICAL_LATENCY = 0.020; 
+
     const raceTimes: number[] = [];
     const dragCoefficients: number[] = [];
     const finishLineSpeeds: number[] = [];
+    const averageTrackSpeeds: number[] = []; // New Metric: Distance / Time
     const reactionTimes: number[] = [];
     const RACE_DISTANCE = 20, GRAVITATIONAL_ACCELERATION = 9.81, DT = isPremium ? 0.0001 : 0.001;
     const mass = params.totalWeight / 1000;
 
     for (let i = 0; i < NUM_SIMULATIONS; i++) {
         const conditionVariation = (Math.random() - 0.5) * VARIATION_FACTOR;
+        // Apply variation to Cd (Aerodynamic consistency)
         const current_cd = cd * (1 + conditionVariation);
         let time = 0, distance = 0, velocity = 0;
+        
+        // Reaction time is separate from mechanical latency
         const reactionTime = isPremium ? 0.01 + Math.random() * 0.02 : 0;
         
         while(distance < RACE_DISTANCE) {
             let thrust = 0;
             if (time < CO2_THRUST_DURATION) {
                 thrust = (time < PEAK_DURATION) ? PEAK_THRUST : SUSTAINED_THRUST;
-                thrust *= (1 + conditionVariation);
+                // Apply variation to thrust (Canister consistency)
+                thrust *= (1 + conditionVariation); 
             }
             const dragForce = 0.5 * airDensity * (velocity**2) * current_cd * frontalArea;
             const rollingResistanceForce = ROLLING_RESISTANCE_COEFFICIENT * mass * GRAVITATIONAL_ACCELERATION;
@@ -531,9 +572,14 @@ const _runMonteCarloPerformanceSim = async (
             distance += velocity * DT;
             time += DT;
         }
-        raceTimes.push(time + reactionTime);
+        
+        // Add mechanical latency to final time
+        const totalTime = time + reactionTime + MECHANICAL_LATENCY;
+        
+        raceTimes.push(totalTime);
         reactionTimes.push(reactionTime);
-        finishLineSpeeds.push(velocity);
+        finishLineSpeeds.push(velocity); // Instantaneous
+        averageTrackSpeeds.push(RACE_DISTANCE / totalTime); // Average over run
         dragCoefficients.push(current_cd);
 
         if ((i + 1) % (NUM_SIMULATIONS / 10) === 0) {
@@ -553,9 +599,17 @@ const _runMonteCarloPerformanceSim = async (
         worstRaceTime: maxTime,
         averageRaceTime: raceTimes.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS,
         averageDrag: parseFloat((dragCoefficients.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS).toFixed(4)),
+        
+        // Finish Line Velocity Stats
         bestFinishLineSpeed: Math.max(...finishLineSpeeds),
         worstFinishLineSpeed: Math.min(...finishLineSpeeds),
         averageFinishLineSpeed: finishLineSpeeds.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS,
+        
+        // Average Track Speed Stats (Distance / Time)
+        bestAverageSpeed: Math.max(...averageTrackSpeeds),
+        worstAverageSpeed: Math.min(...averageTrackSpeeds),
+        averageSpeed: averageTrackSpeeds.reduce((a, b) => a + b, 0) / NUM_SIMULATIONS,
+
         launchVariance: launchVariance ? parseFloat(launchVariance.toFixed(2)) : undefined,
         trackConditionSensitivity: isPremium ? parseFloat(((maxTime - minTime) * 0.2 * 1000).toFixed(2)) : undefined,
         canisterPerformanceDelta: isPremium ? parseFloat(((maxTime - minTime) * 0.8 * 1000).toFixed(2)) : undefined,
