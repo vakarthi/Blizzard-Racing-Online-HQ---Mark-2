@@ -8,42 +8,42 @@ export const MOCK_USERS_DATA = [
     name: 'Shrivatsa', 
     email: 'shrivatsakarth.kart@saintolaves.net', 
     role: UserRole.ProjectManager,
-    description: 'Directs the Blizzard Racing project lifecycle using Agile methodologies. Shrivatsa manages the critical path, Gantt visualizations, and cross-departmental synchronization to ensure we meet every engineering milestone for the National Finals.'
-  },
-  { 
-    id: 'user-6', 
-    name: 'Pranav', 
-    email: 'PranavRam.Alluri@saintolaves.net', 
-    role: UserRole.ResourcesManager,
-    description: 'Architect of team sustainability and logistics. Pranav controls our partnership ecosystem, financial tracking, and asset procurement. He ensures the team remains high-resource and operationally efficient through strategic budget management.'
-  },
-  { 
-    id: 'user-2', 
-    name: 'Anish', 
-    email: 'anish.ghosh@saintolaves.net', 
-    role: UserRole.DesignEngineer,
-    description: 'Lead architect of the Blizzard Challenger CAD assembly. Anish specializes in advanced surfacing and aerodynamic optimization. He leverages iterative design cycles and virtual wind tunnel testing to extract maximum performance from every geometric curve.'
-  },
-  { 
-    id: 'user-4', 
-    name: 'Raiyan', 
-    email: 'Raiyan.Haider@saintolaves.net', 
-    role: UserRole.ManufacturingEngineer,
-    description: 'Expert in subtractive and additive manufacturing pipelines. Raiyan translates complex CAD data into physical components, optimizing CNC toolpaths and 3D printing parameters to achieve the optimal strength-to-weight ratio required for 20g launches.'
-  },
-  { 
-    id: 'user-3', 
-    name: 'Hadi', 
-    email: 'hadinabeel.siddiqui@saintolaves.net', 
-    role: UserRole.GraphicDesigner,
-    description: 'Visual identity and branding director. Hadi defines the Blizzard aesthetic, from high-impact car liveries to digital UI/UX. He ensures our technical innovations are presented with world-class professional design across all portfolio submissions.'
+    description: 'Executive Director of Blizzard Racing operations. Shrivatsa manages the team critical path, Gantt visualizations, and cross-departmental synchronization. He ensures that all technical and enterprise milestones are met with 100% compliance for the National Finals.'
   },
   { 
     id: 'user-5', 
     name: 'Aarav', 
     email: 'Aarav.Gupta-Cure@saintolaves.net', 
+    role: UserRole.ResourcesManager,
+    description: 'Strategic lead for team assets and logistics. Aarav manages the Blizzard budget, resource acquisition, and partner coordination, ensuring the team has the high-spec materials required for elite car performance while maintaining financial sustainability.'
+  },
+  { 
+    id: 'user-3', 
+    name: 'Hadi', 
+    email: 'hadinabeel.siddiqui@saintolaves.net', 
     role: UserRole.MarketingManager,
-    description: 'Strategist for outreach and public engagement. Aarav manages sponsor acquisition and team communications. He crafts the narrative of our engineering journey, maximizing team impact through social media campaigns and professional networking.'
+    description: 'Lead for Blizzard Racing brand identity and public relations. Hadi crafts the team narrative, managing our digital presence and outreach campaigns to maximize social impact and sponsor value-add through targeted engagement strategies.'
+  },
+  { 
+    id: 'user-2', 
+    name: 'Anish', 
+    email: 'anish.ghosh@saintolaves.net', 
+    role: UserRole.ManufacturingEngineer,
+    description: 'Expert in subtractive and additive manufacturing workflows. Anish oversees the physical realization of the car chassis, optimizing CNC toolpaths and 3D printing density to achieve the perfect balance of mass and structural integrity.'
+  },
+  { 
+    id: 'user-4', 
+    name: 'Raiyan', 
+    email: 'Raiyan.Haider@saintolaves.net', 
+    role: UserRole.DesignEngineer,
+    description: 'Lead architect for the Challenger BR-03 aerodynamic geometry. Raiyan specializes in iterative CAD development and CFD testing, using RANS solvers to refine car surfaces and optimize the Lift-to-Drag ratio for peak track speed.'
+  },
+  { 
+    id: 'user-6', 
+    name: 'Pranav', 
+    email: 'PranavRam.Alluri@saintolaves.net', 
+    role: UserRole.GraphicDesigner,
+    description: 'Creative Director for Blizzard Racing visual communication. Pranav manages the aesthetics of the car livery, pit display, and portfolio submissions, ensuring professional design consistency across all competition touchpoints.'
   },
 ];
 
@@ -53,9 +53,9 @@ export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
 }));
 
 export const MOCK_TASKS: Task[] = [
-  { id: 'task-1', title: 'Validate v3.2 Front Wing', description: 'Run secondary check on the new GNN-calibrated front wing assembly.', status: TaskStatus.Done, assigneeId: 'user-2', dueDate: '2024-08-10' },
-  { id: 'task-2', title: 'Sponsor Deck Polish', description: 'Update the platinum tier proposal with the latest race simulation data.', status: TaskStatus.InProgress, assigneeId: 'user-5', dueDate: '2024-08-15' },
-  { id: 'task-3', title: 'CNC Main Chassis Run', description: 'Execute the optimized toolpath for the SLS nylon core.', status: TaskStatus.InReview, assigneeId: 'user-4', dueDate: '2024-08-20' },
+  { id: 'task-1', title: 'Validate v3.2 Front Wing', description: 'Run secondary check on the new GNN-calibrated front wing assembly.', status: TaskStatus.Done, assigneeId: 'user-4', dueDate: '2024-08-10' },
+  { id: 'task-2', title: 'Sponsor Deck Polish', description: 'Update the platinum tier proposal with the latest race simulation data.', status: TaskStatus.InProgress, assigneeId: 'user-3', dueDate: '2024-08-15' },
+  { id: 'task-3', title: 'CNC Main Chassis Run', description: 'Execute the optimized toolpath for the SLS nylon core.', status: TaskStatus.InReview, assigneeId: 'user-2', dueDate: '2024-08-20' },
 ];
 
 export const MOCK_FINANCES: FinancialRecord[] = [
@@ -82,10 +82,10 @@ export const MOCK_THREADS: DiscussionThread[] = [
      {
         id: 'thread-4',
         title: 'Manufacturing Tolerances for Axles',
-        createdBy: 'user-4',
+        createdBy: 'user-2',
         createdAt: '2024-08-03T11:00:00Z',
         posts: [
-            { id: 'post-4-1', authorId: 'user-4', content: 'Testing a +0.05mm fit for the ceramic bearings. Feedback?', createdAt: '2024-08-03T11:00:00Z' },
+            { id: 'post-4-1', authorId: 'user-2', content: 'Testing a +0.05mm fit for the ceramic bearings. Feedback?', createdAt: '2024-08-03T11:00:00Z' },
         ]
     }
 ];
@@ -116,14 +116,14 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   home: {
     heroTitle: "BLIZZARD RACING",
     heroSubtitle: "Engineering the Future of High-Speed STEM",
-    heroCtaText: "Join Our Journey",
+    heroCtaText: "Explore Our Innovation",
     heroBackgroundImage: "https://picsum.photos/seed/racecar/1600/900",
   },
   about: {
     title: "About Blizzard Racing",
     subtitle: "A multi-disciplinary engineering project based at St. Olave's Grammar School.",
-    mission: "To define the new standard in F1 in Schools performance through data-driven design and elite manufacturing synchronization.",
-    history: "Founded in 2022, Blizzard Racing has evolved from a grassroots design team into a data-centric engineering operation. With our BR-02 and current BR-03 challengers, we are pushing the mathematical limits of the competition.",
+    mission: "To set the new benchmark in F1 in Schools performance through data-centric design and precision manufacturing synchronization.",
+    history: "Formed in 2022, Blizzard Racing has evolved from a student design team into a data-driven engineering operation. We push the mathematical limits of the Development Class.",
     stats: [
         { id: 1, label: "Years Active", value: "3" },
         { id: 2, label: "Team Members", value: "6" },
@@ -132,30 +132,30 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
     ]
   },
   team: {
-      title: "Team Structure",
-      subtitle: "The 6 pillars of Blizzard Racing. Specialized expertise driving collective excellence."
+      title: "The Core Six",
+      subtitle: "The 6 specialized pillars of Blizzard Racing. Diverse expertise driving collective excellence."
   },
   car: {
-      title: "The BR-03 Challenger",
-      subtitle: "Iterative design meets physical reality. Explore our latest aerodynamic evolution.",
+      title: "BR-03 Challenger",
+      subtitle: "The evolution of speed. Explore the aerodynamics that define our 2024 season.",
       carModelFbx: null,
       isCarModelBlurred: true,
   },
   competition: {
       title: "National Finals Roadmap",
-      subtitle: "Our journey toward STEM excellence. Tracking our performance against elite standards."
+      subtitle: "Charting our progress against the most rigorous STEM standards in the world."
   },
   sponsors: {
       title: "Strategic Partners",
       subtitle: "Supported by industry leaders who share our passion for technical innovation."
   },
   news: {
-      title: "Operations Feed",
-      subtitle: "Internal and public updates from the Blizzard factory floor."
+      title: "Engineering Feed",
+      subtitle: "Live updates from the Blizzard factory floor and testing lab."
   },
   contact: {
-      title: "Contact Operations",
-      subtitle: "For technical inquiries or partnership opportunities, contact our Resources team."
+      title: "Connect with Us",
+      subtitle: "For partnership opportunities or technical inquiries, contact our Resources team."
   },
   aerotest: {
       title: "Aerotest: CFD Engine",

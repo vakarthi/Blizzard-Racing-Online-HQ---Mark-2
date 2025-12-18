@@ -17,7 +17,7 @@ const PortfolioAuditor: React.FC = () => {
     const runAudit = async () => {
         setIsAuditing(true);
         try {
-            // Fix: Combine DataContext with AppState to satisfy the AppStore type requirement by including missing fields.
+            // Combine DataContext with AppState to satisfy the AppStore type requirement
             const storeForAudit = {
                 ...data,
                 announcement,
@@ -249,7 +249,8 @@ const CloudSyncSettings: React.FC = () => {
 
 const UserManagement: React.FC = () => {
     const { users, setUsers, addUser } = useData();
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: UserRole.Engineer });
+    // Corrected UserRole.Engineer to UserRole.DesignEngineer
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: UserRole.DesignEngineer });
 
     const handleRoleChange = (userId: string, newRole: UserRole) => {
         setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, role: newRole } : u));
@@ -266,7 +267,8 @@ const UserManagement: React.FC = () => {
         if(!newUser.name || !newUser.email) return;
         const success = addUser(newUser);
         if (success) {
-            setNewUser({ name: '', email: '', role: UserRole.Engineer });
+            // Corrected UserRole.Engineer to UserRole.DesignEngineer
+            setNewUser({ name: '', email: '', role: UserRole.DesignEngineer });
         }
     }
 

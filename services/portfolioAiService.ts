@@ -6,34 +6,33 @@ import { PortfolioAuditReport } from "../types";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 /**
- * PortfolioAiService: Uses Gemini 3 Pro to analyze team data against 
- * official F1 in Schools marking rubrics.
+ * PortfolioAiService: Acts as a Lead F1 in Schools Judge.
+ * Analyzes team state for 'Marking Points' specific to the Development Class.
  */
 export const portfolioAiService = {
   analyzeTeamReadiness: async (store: AppStore): Promise<PortfolioAuditReport> => {
-    // Sanitize data for the prompt (remove large blobs/FBX data)
     const sanitizedStore = {
       ...store,
       publicPortalContentHistory: store.publicPortalContentHistory.map(v => ({
           ...v,
           content: { ...v.content, car: { ...v.content.car, carModelFbx: null } }
       })),
-      aeroResults: store.aeroResults.slice(0, 5), // Only check recent simulations
+      aeroResults: store.aeroResults.slice(0, 3),
     };
 
     const prompt = `
-      You are an expert official judge for the F1 in Schools Development Class STEM competition.
-      Analyze the provided team data from the "Blizzard Racing HQ" management platform.
-      
-      Evaluate the following pillars based on the current data:
-      1. Project Management (Task completion, roles, synchronization).
-      2. Design & Engineering (CFD data, iteration, technical depth in academy documentation).
-      3. Enterprise (Sponsorship status, news consistency, public outreach).
-      4. Team Identity (Bio professionalism, brand consistency).
-      
-      Data to analyze: ${JSON.stringify(sanitizedStore)}
-      
-      Return a critical, professional audit report that identifies exactly where marks might be lost and where the team is currently excelling.
+      As a Senior Judge for the F1 in Schools Development Class, audit this team's data. 
+      The rubric values: Iterative Design (showing failed tests), Project Lifecycle (Scrum/Agile), and Enterprise ROI.
+
+      Search for these specific mark-winning indicators:
+      1. Design Engineering: Are they comparing results? Do they mention 'Stability' or 'Center of Pressure'?
+      2. Project Management: Are tasks assigned to roles like 'Manufacturing Engineer' or 'Resources Manager' appropriately?
+      3. Enterprise: Is there evidence of sponsorship tiers and public engagement?
+      4. Manufacturing: Is there evidence of physical testing or CNC/3D print optimization?
+
+      Store Data: ${JSON.stringify(sanitizedStore)}
+
+      Provide a critical, technical analysis. Be harsh but constructive to help them win Nationals.
     `;
 
     try {
@@ -69,11 +68,10 @@ export const portfolioAiService = {
         }
       });
 
-      const report = JSON.parse(response.text || "{}") as PortfolioAuditReport;
-      return report;
+      return JSON.parse(response.text || "{}") as PortfolioAuditReport;
     } catch (error) {
       console.error("Gemini Audit Failed:", error);
-      throw new Error("Failed to generate portfolio audit. Check API connection.");
+      throw new Error("Audit service unreachable.");
     }
   }
 };

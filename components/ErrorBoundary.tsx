@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -15,8 +15,8 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-// Fix: Using React.Component explicitly to ensure TypeScript correctly identifies setState and props inherited from the base class.
-class ErrorBoundary extends React.Component<Props, State> {
+// Fix: Use Component from the react import directly to ensure setState and props are recognized by the TypeScript compiler
+class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
@@ -27,20 +27,20 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
   public handleRetry = () => {
-    // Fix: Accessing setState inherited from React.Component.
+    // Fix: Accessing setState from base class correctly when using Component from react
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load due to network issues
     window.location.reload();
   };
 
   public render() {
-    // Fix: Accessing the state property inherited from the React.Component base class.
+    // Fix: Accessing the state property from base class correctly when using Component from react
     if (this.state.hasError) {
       // Fallback UI
       return (
@@ -66,7 +66,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Accessing the props property inherited from the React.Component base class.
+    // Fix: Accessing children from props in base class correctly when using Component from react
     return this.props.children;
   }
 }

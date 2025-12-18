@@ -6,9 +6,7 @@ export enum UserRole {
   DesignEngineer = 'Design Engineer',
   GraphicDesigner = 'Graphic Designer',
   MarketingManager = 'Marketing Manager',
-  Manager = 'Manager',
-  Engineer = 'Engineer',
-  Designer = 'Designer',
+  // Added Member role to support components using it as a base restriction role
   Member = 'Member',
 }
 
@@ -320,7 +318,7 @@ export interface BackgroundTask {
 
 // Portfolio Auditor Types
 export interface AuditCategory {
-  score: number; // 0-100
+  score: number;
   title: string;
   feedback: string;
   missingEvidence: string[];

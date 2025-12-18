@@ -208,9 +208,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!normalizedEmail.endsWith('@saintolaves.net')) return null;
     const foundUser = store.users.find(u => u.email.toLowerCase() === normalizedEmail);
     if (!foundUser) return null;
+    // Updated UserRole.Manager to UserRole.ProjectManager
     const isValidPassword = (pass === '__BIOMETRIC_SUCCESS__') ||
-        (foundUser.role === UserRole.Manager && pass === '__FROSTNOVA__') ||
-        (foundUser.role !== UserRole.Manager && pass === 'password123');
+        (foundUser.role === UserRole.ProjectManager && pass === '__FROSTNOVA__') ||
+        (foundUser.role !== UserRole.ProjectManager && pass === 'password123');
     if (isValidPassword) {
         setUser(foundUser);
         updateAndBroadcast(s => ({ ...s, loginHistory: [{ userId: foundUser.id, timestamp: new Date().toISOString() }, ...s.loginHistory]}));
@@ -220,7 +221,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
-    if (!user || user.role !== UserRole.Manager) return false;
+    // Updated UserRole.Manager to UserRole.ProjectManager
+    if (!user || user.role !== UserRole.ProjectManager) return false;
     return password === '__FROSTNOVA__';
   };
   
