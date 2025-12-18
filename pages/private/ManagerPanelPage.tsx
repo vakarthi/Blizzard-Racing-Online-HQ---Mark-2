@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon } from '../../components/icons';
+// Fixed: Added InfoIcon to the imports list from icons.tsx
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, UploadCloudIcon, KeyIcon, InfoIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 
 // --- EDIT TASK MODAL ---
@@ -68,6 +70,70 @@ const EditTaskModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task
 
 
 // --- SUB-COMPONENTS FOR TABS ---
+
+const CloudSyncSettings: React.FC = () => {
+    const { syncId, setSyncId, pushToCloud, pullFromCloud, isSyncing } = useData();
+    const [idInput, setIdInput] = useState(syncId || '');
+
+    const handleConnect = () => {
+        if (!idInput.trim()) return;
+        setSyncId(idInput.trim());
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h3 className="text-xl font-bold text-brand-text mb-2">Global Team Sync</h3>
+                <p className="text-brand-text-secondary text-sm mb-4">
+                    Blizzard HQ uses a shared cloud channel to synchronize news, tasks, and aero results across all team devices.
+                </p>
+                
+                <div className="bg-brand-dark p-4 rounded-lg border border-brand-border space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-brand-text-secondary uppercase mb-1">Team Channel ID</label>
+                        <div className="flex gap-2">
+                             <input 
+                                type="text" 
+                                value={idInput} 
+                                onChange={e => setIdInput(e.target.value)} 
+                                placeholder="Enter Channel ID..."
+                                className="flex-grow p-2 bg-brand-dark-secondary border border-brand-border rounded-lg font-mono text-sm"
+                            />
+                            <button onClick={handleConnect} className="bg-brand-surface border border-brand-border px-4 py-2 rounded-lg text-sm font-bold hover:bg-brand-border transition-colors">Connect</button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <button 
+                            onClick={() => pushToCloud()}
+                            disabled={isSyncing || !syncId}
+                            className="flex items-center justify-center gap-2 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:opacity-50"
+                        >
+                            <UploadCloudIcon className={`w-5 h-5 ${isSyncing ? 'animate-bounce' : ''}`} />
+                            Broadcast Changes Globally
+                        </button>
+                        <button 
+                            onClick={() => pullFromCloud()}
+                            disabled={isSyncing || !syncId}
+                            className="flex items-center justify-center gap-2 bg-brand-surface border border-brand-border text-brand-text font-bold py-3 px-4 rounded-lg hover:bg-brand-border transition-colors disabled:opacity-50"
+                        >
+                            <DownloadIcon className="w-5 h-5" />
+                            Force Pull Team Data
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-6 bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg flex items-start gap-3">
+                    <InfoIcon className="w-5 h-5 text-blue-400 mt-1 flex-shrink-0" />
+                    <div className="text-sm text-blue-300">
+                        <p className="font-bold">How Syncing Works</p>
+                        <p className="mt-1 opacity-80">When you "Broadcast," your local changes are saved to the master cloud channel. All other team members will automatically receive these updates the next time they refresh or log in.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const UserManagement: React.FC = () => {
     const { users, setUsers, addUser } = useData();
@@ -787,9 +853,7 @@ const AppSettings: React.FC = () => {
     };
 
     const handleExport = () => {
-        // Collect all relevant data from context
         const dataToExport = {
-          ...useData(), // This grabs the whole data context state
           announcement,
           competitionDate,
           teamLogoUrl,
@@ -875,7 +939,7 @@ const AppSettings: React.FC = () => {
 
 // --- MAIN COMPONENT ---
 
-type Tab = 'users' | 'activity' | 'finances' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
+type Tab = 'users' | 'activity' | 'cloud' | 'finances' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
 
 const ManagerPanelPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('users');
@@ -883,6 +947,7 @@ const ManagerPanelPage: React.FC = () => {
     const tabs = [
         { id: 'users', name: 'User Management', icon: <UsersIcon className="w-5 h-5"/>, component: <UserManagement /> },
         { id: 'activity', name: 'User Activity', icon: <BarChartIcon className="w-5 h-5"/>, component: <UserActivity /> },
+        { id: 'cloud', name: 'Cloud Persistence', icon: <UploadCloudIcon className="w-5 h-5"/>, component: <CloudSyncSettings /> },
         { id: 'finances', name: 'Financial Command', icon: <DollarSignIcon className="w-5 h-5"/>, component: <FinancialCommand /> },
         { id: 'projects', name: 'Project Analytics', icon: <PieChartIcon className="w-5 h-5"/>, component: <ProjectAnalytics /> },
         { id: 'tasks', name: 'Task Control', icon: <ClipboardListIcon className="w-5 h-5"/>, component: <TaskControl /> },
@@ -925,5 +990,4 @@ const ManagerPanelPage: React.FC = () => {
     );
 };
 
-// FIX: Added a default export for the ManagerPanelPage component to resolve the import error in ManagerPanelGate.
 export default ManagerPanelPage;

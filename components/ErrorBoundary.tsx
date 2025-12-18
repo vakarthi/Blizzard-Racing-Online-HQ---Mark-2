@@ -11,32 +11,40 @@ interface State {
   error: Error | null;
 }
 
-// Fix for Error in file components/ErrorBoundary.tsx on line 31 and 62:
-// Explicitly extending Component with Props and State generics to ensure that 'setState', 'props', and 'state' are correctly recognized and typed by TypeScript.
+/**
+ * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
+ * log those errors, and display a fallback UI instead of the component tree that crashed.
+ */
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+  // Use constructor to initialize state for better compatibility with type inference
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
   handleRetry = () => {
-    // Fix: Correctly accessing setState from the base Component class.
-    // Line 31: Property 'setState' does not exist on type 'ErrorBoundary'.
+    // Fix: Accessing setState from the base Component class.
     this.setState({ hasError: false, error: null });
-    // A full reload might be necessary if assets failed to load
+    // A full reload might be necessary if assets failed to load due to network issues
     window.location.reload();
   };
 
   render() {
     if (this.state.hasError) {
+      // Fallback UI
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">
           <AlertTriangleIcon className="w-16 h-16 text-yellow-400 mb-4" />
@@ -60,8 +68,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Correctly accessing children from the props object inherited from Component.
-    // Line 62: Property 'props' does not exist on type 'ErrorBoundary'.
+    // Fix: Accessing children from the props object inherited from Component.
     return this.props.children;
   }
 }

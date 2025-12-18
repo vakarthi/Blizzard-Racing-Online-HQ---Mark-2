@@ -1,9 +1,9 @@
 
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
-import { useAuth, useAppState } from '../contexts/AppContext';
+import { useAuth, useAppState, useData } from '../contexts/AppContext';
 import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon } from '../components/icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon, UploadCloudIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
 import useInactivityTimeout from '../hooks/useInactivityTimeout';
 import DashboardPage from './private/DashboardPage';
@@ -42,6 +42,7 @@ const navItems: NavItem[] = [
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { syncId, isSyncing, pullFromCloud } = useData();
   const { announcement, teamLogoUrl } = useAppState();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
@@ -146,12 +147,22 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-brand-dark-secondary/80 backdrop-blur-sm shadow-sm p-4 flex items-center justify-between z-10 md:justify-end border-b border-brand-border">
+        <header className="bg-brand-dark-secondary/80 backdrop-blur-sm shadow-sm p-4 flex items-center justify-between z-10 border-b border-brand-border">
              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-brand-text">
                 {sidebarOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
             </button>
             <h2 className="text-xl font-bold text-brand-text md:hidden">Blizzard HQ</h2>
-            <div className="flex items-center gap-4">
+            
+            <div className="flex items-center gap-4 ml-auto">
+              {/* Sync Status Indicator */}
+              <div className="flex items-center gap-2 px-3 py-1 bg-brand-dark rounded-full border border-brand-border text-xs">
+                  <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-400 animate-pulse' : syncId ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                  <span className="text-brand-text-secondary font-mono hidden sm:inline">{isSyncing ? 'Syncing...' : syncId ? 'Cloud Active' : 'Offline'}</span>
+                  <button onClick={() => pullFromCloud()} className="ml-1 hover:text-brand-accent transition-colors" title="Sync with Team Cloud">
+                      <UploadCloudIcon className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+                  </button>
+              </div>
+
               <button onClick={() => setPaletteOpen(true)} className="flex items-center gap-2 text-sm p-2 rounded-md border border-brand-border bg-brand-dark hover:bg-brand-border transition-colors text-brand-text-secondary">
                 <CommandIcon className="w-5 h-5"/>
                 <span className="hidden lg:inline">{isMac ? 'Cmd' : 'Ctrl'} + K</span>
