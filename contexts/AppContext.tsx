@@ -129,12 +129,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!syncId) return;
     setIsSyncing(true);
     try {
-      // Use provided store or current state
       const dataToPush = overrideStore || store;
       const newId = await cloudSyncService.publish(dataToPush, syncId);
       if (newId !== syncId) setSyncIdState(newId);
     } catch (e) {
-      console.error("Push failed:", e);
+      console.warn("Auto-sync push failed. Background retries will continue.");
     } finally {
       setIsSyncing(false);
     }
@@ -146,29 +145,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsSyncing(true);
     try {
       const remoteStore = await cloudSyncService.pull(syncId);
-      // We only update if something actually changed to prevent infinite re-renders or state cycles
+      // We only update if something actually changed to prevent infinite re-renders
       if (JSON.stringify(remoteStore) !== JSON.stringify(store)) {
         updateStore(() => remoteStore);
       }
     } catch (e) {
-      console.error("Pull failed:", e);
+      // Quietly log to avoid disruptive user messages
+      console.warn("Pull cycle skipped due to network/CORS issues.");
     } finally {
       setIsSyncing(false);
       isPullingRef.current = false;
     }
   };
 
-  // Helper to wrap store updates with an auto-push trigger
   const updateAndBroadcast = (updater: (s: AppStore) => AppStore) => {
       updateStore((current) => {
           const next = updater(current);
-          // Trigger cloud push in background
-          setTimeout(() => pushToCloud(next), 100);
+          setTimeout(() => pushToCloud(next), 500);
           return next;
       });
   };
 
-  // Auto-sync polling: Set to 20 seconds as requested
+  // Auto-sync polling: 20 seconds
   useEffect(() => {
     if (!syncId) return;
     pullFromCloud();

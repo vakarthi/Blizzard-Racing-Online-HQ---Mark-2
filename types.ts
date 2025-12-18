@@ -1,5 +1,11 @@
 
 export enum UserRole {
+  ProjectManager = 'Project Manager',
+  ResourcesManager = 'Resources Manager',
+  ManufacturingEngineer = 'Manufacturing Engineer',
+  DesignEngineer = 'Design Engineer',
+  GraphicDesigner = 'Graphic Designer',
+  MarketingManager = 'Marketing Manager',
   Manager = 'Manager',
   Engineer = 'Engineer',
   Designer = 'Designer',
@@ -12,6 +18,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  description?: string;
 }
 
 export enum TaskStatus {
@@ -50,35 +57,29 @@ export interface ScrutineeringItem {
 }
 
 export interface PerformancePoint {
-  speed: number; // m/s
+  speed: number;
   ldRatio: number;
-  dragForce: number; // Newtons
-  liftForce: number; // Newtons
+  dragForce: number;
+  liftForce: number;
 }
 
 export interface ProbabilisticRaceTimePrediction {
-    bestRaceTime: number; // seconds
-    worstRaceTime: number; // seconds
-    averageRaceTime: number; // seconds
-    averageDrag: number; // Cd
-    
-    // Finish Line Speeds (Instantaneous at 20m)
-    bestFinishLineSpeed: number; // m/s
-    worstFinishLineSpeed: number; // m/s
-    averageFinishLineSpeed: number; // m/s
-
-    // Average Track Speeds (Distance / Time)
-    bestAverageSpeed: number; // m/s
-    worstAverageSpeed: number; // m/s
-    averageSpeed: number; // m/s
-    
-    // NEW for Premium simulation
-    launchVariance?: number; // ms, standard deviation of launch reaction time
-    trackConditionSensitivity?: number; // ms, time difference between optimal and suboptimal track
-    canisterPerformanceDelta?: number; // ms, time difference between best and worst canister performance
+    bestRaceTime: number;
+    worstRaceTime: number;
+    averageRaceTime: number;
+    averageDrag: number;
+    bestFinishLineSpeed: number;
+    worstFinishLineSpeed: number;
+    averageFinishLineSpeed: number;
+    bestAverageSpeed: number;
+    worstAverageSpeed: number;
+    averageSpeed: number;
+    launchVariance?: number;
+    trackConditionSensitivity?: number;
+    canisterPerformanceDelta?: number;
 }
 
-export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
+export type FlowFieldPoint = [number, number, number, number, number];
 
 export interface SolverSettings {
     solver: 'Coupled Implicit';
@@ -103,30 +104,22 @@ export interface AeroResult {
   fileName: string;
   tier?: 'standard' | 'premium';
   thrustModel?: 'standard' | 'competition' | 'pro-competition';
-  
-  // Input parameters
   parameters: DesignParameters;
-
-  // Simulation Outputs
-  cd: number; // Coefficient of Drag
-  cl: number; // Coefficient of Lift
+  cd: number;
+  cl: number;
   liftToDragRatio: number;
   dragBreakdown: {
     pressure: number;
     skinFriction: number;
   };
-  aeroBalance: number; // % front
+  aeroBalance: number;
   flowAnalysis: string;
-  
-  // AI Generated Content
   suggestions?: string;
   scrutineeringReport?: ScrutineeringItem[];
   raceTimePrediction?: ProbabilisticRaceTimePrediction;
-  
-  // Professional Simulation Data
-  meshQuality?: number; // %
+  meshQuality?: number;
   convergenceStatus?: 'Converged' | 'Diverged' | 'Converged (Relaxed)';
-  simulationTime?: number; // seconds
+  simulationTime?: number;
   meshCellCount?: number;
   solverSettings?: SolverSettings;
   finalResiduals?: {
@@ -134,8 +127,8 @@ export interface AeroResult {
     xVelocity: number;
     yVelocity: number;
     zVelocity: number;
-    k?: number; // for k-omega
-    omega?: number; // for k-omega
+    k?: number; 
+    omega?: number; 
   };
   aiFlowFeatures?: string[];
   autoSelectedSettings?: {
@@ -152,14 +145,9 @@ export interface AeroResult {
     reason?: string;
   };
   auditLog?: string;
-  
-  // 3D Visualization Data
   flowFieldData?: FlowFieldPoint[];
-  
-  // Curve Data
   performanceCurve?: PerformancePoint[];
 }
-
 
 export interface FinancialRecord {
   id: string;
@@ -328,4 +316,21 @@ export interface BackgroundTask {
   resultId?: string;
   fileName: string;
   error?: string;
+}
+
+// Portfolio Auditor Types
+export interface AuditCategory {
+  score: number; // 0-100
+  title: string;
+  feedback: string;
+  missingEvidence: string[];
+  strengths: string[];
+}
+
+export interface PortfolioAuditReport {
+  timestamp: string;
+  overallReadiness: number;
+  categories: AuditCategory[];
+  criticalRisks: string[];
+  suggestedActions: string[];
 }

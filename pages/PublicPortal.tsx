@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect, useMemo, useRef, DragEvent } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-// FIX: Imported the missing CheckSquareIcon component.
 import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon, UploadCloudIcon, WindIcon, StopwatchIcon, BeakerIcon, LightbulbIcon, FileTextIcon, CheckSquareIcon } from '../components/icons';
 import FbxViewer from '../components/shared/FbxViewer';
-import ErrorBoundary from '../components/ErrorBoundary';
+import ErrorBoundary from '../ErrorBoundary';
 
 
 // --- Components for Public Pages ---
@@ -96,10 +96,11 @@ const TeamPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {users.map(member => (
-                    <div key={member.id} className="bg-brand-dark-secondary rounded-lg shadow-lg border border-brand-border p-6 text-center">
-                        <img src={member.avatarUrl} alt={member.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-brand-border object-cover" />
+                    <div key={member.id} className="bg-brand-dark-secondary rounded-lg shadow-lg border border-brand-border p-6 text-center flex flex-col items-center">
+                        <img src={member.avatarUrl} alt={member.name} className="w-24 h-24 rounded-full mb-4 border-4 border-brand-border object-cover" />
                         <h3 className="text-xl font-bold text-brand-text">{member.name}</h3>
-                        <p className="text-brand-accent font-semibold">{member.role}</p>
+                        <p className="text-brand-accent font-semibold text-sm uppercase tracking-wider mb-3">{member.role}</p>
+                        <p className="text-brand-text-secondary text-sm leading-relaxed">{member.description || "A dedicated member of the Blizzard Racing team working toward engineering excellence."}</p>
                     </div>
                 ))}
             </div>

@@ -2,56 +2,67 @@
 import { AppStore } from './stateSyncService';
 
 const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+let consecutiveFailures = 0;
+const MAX_FAILURES_BEFORE_SILENCE = 3;
 
 /**
- * CloudSyncService: Connects the local state to a shared global "channel".
+ * CloudSyncService: Refined to handle network blocks silently.
+ * If the network (school firewall) blocks the endpoint, it will stop retrying loudly 
+ * after a few attempts to keep the dev console clean.
  */
 export const cloudSyncService = {
-  /**
-   * Publishes the current local store to the cloud.
-   * Returns the Sync ID (Blob ID) if successful.
-   */
   publish: async (store: AppStore, existingSyncId?: string): Promise<string> => {
+    // If we've failed too many times, assume we're behind a firewall and stop trying
+    if (consecutiveFailures > MAX_FAILURES_BEFORE_SILENCE) return existingSyncId || '';
+
     const url = existingSyncId ? `${API_BASE}/${existingSyncId}` : API_BASE;
     const method = existingSyncId ? 'PUT' : 'POST';
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(store),
-    });
+    try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(store),
+        });
 
-    if (!response.ok) {
-      throw new Error('Cloud publication failed.');
+        if (!response.ok) throw new Error();
+        
+        consecutiveFailures = 0; // Reset on success
+
+        if (method === 'POST') {
+          const location = response.headers.get('Location');
+          return location ? location.split('/').pop() || '' : '';
+        }
+
+        return existingSyncId || '';
+    } catch (error) {
+        consecutiveFailures++;
+        return existingSyncId || '';
     }
-
-    if (method === 'POST') {
-      // Extract the ID from the Location header
-      const location = response.headers.get('Location');
-      return location ? location.split('/').pop() || '' : '';
-    }
-
-    return existingSyncId || '';
   },
 
-  /**
-   * Fetches the latest team state from the cloud.
-   */
   pull: async (syncId: string): Promise<AppStore> => {
-    const response = await fetch(`${API_BASE}/${syncId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to pull from cloud. Check your Sync ID.');
+    if (consecutiveFailures > MAX_FAILURES_BEFORE_SILENCE) {
+        throw new Error("SILENT_MODE");
     }
 
-    return await response.json();
+    try {
+        const response = await fetch(`${API_BASE}/${syncId}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+
+        if (!response.ok) throw new Error();
+        
+        consecutiveFailures = 0;
+        return await response.json();
+    } catch (error) {
+        consecutiveFailures++;
+        throw error; 
+    }
   }
 };

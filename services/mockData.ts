@@ -3,12 +3,48 @@ import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier
 import { generateAvatar } from '../utils/avatar';
 
 export const MOCK_USERS_DATA = [
-  { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager },
-  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.Engineer },
-  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Designer },
-  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.Member },
-  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Member },
-  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.Engineer },
+  { 
+    id: 'user-1', 
+    name: 'Shrivatsa', 
+    email: 'shrivatsakarth.kart@saintolaves.net', 
+    role: UserRole.ProjectManager,
+    description: 'Directs the Blizzard Racing project lifecycle using Agile methodologies. Shrivatsa manages the critical path, Gantt visualizations, and cross-departmental synchronization to ensure we meet every engineering milestone for the National Finals.'
+  },
+  { 
+    id: 'user-6', 
+    name: 'Pranav', 
+    email: 'PranavRam.Alluri@saintolaves.net', 
+    role: UserRole.ResourcesManager,
+    description: 'Architect of team sustainability and logistics. Pranav controls our partnership ecosystem, financial tracking, and asset procurement. He ensures the team remains high-resource and operationally efficient through strategic budget management.'
+  },
+  { 
+    id: 'user-2', 
+    name: 'Anish', 
+    email: 'anish.ghosh@saintolaves.net', 
+    role: UserRole.DesignEngineer,
+    description: 'Lead architect of the Blizzard Challenger CAD assembly. Anish specializes in advanced surfacing and aerodynamic optimization. He leverages iterative design cycles and virtual wind tunnel testing to extract maximum performance from every geometric curve.'
+  },
+  { 
+    id: 'user-4', 
+    name: 'Raiyan', 
+    email: 'Raiyan.Haider@saintolaves.net', 
+    role: UserRole.ManufacturingEngineer,
+    description: 'Expert in subtractive and additive manufacturing pipelines. Raiyan translates complex CAD data into physical components, optimizing CNC toolpaths and 3D printing parameters to achieve the optimal strength-to-weight ratio required for 20g launches.'
+  },
+  { 
+    id: 'user-3', 
+    name: 'Hadi', 
+    email: 'hadinabeel.siddiqui@saintolaves.net', 
+    role: UserRole.GraphicDesigner,
+    description: 'Visual identity and branding director. Hadi defines the Blizzard aesthetic, from high-impact car liveries to digital UI/UX. He ensures our technical innovations are presented with world-class professional design across all portfolio submissions.'
+  },
+  { 
+    id: 'user-5', 
+    name: 'Aarav', 
+    email: 'Aarav.Gupta-Cure@saintolaves.net', 
+    role: UserRole.MarketingManager,
+    description: 'Strategist for outreach and public engagement. Aarav manages sponsor acquisition and team communications. He crafts the narrative of our engineering journey, maximizing team impact through social media campaigns and professional networking.'
+  },
 ];
 
 export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
@@ -17,78 +53,39 @@ export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
 }));
 
 export const MOCK_TASKS: Task[] = [
-  { id: 'task-1', title: 'Finalize chassis design', description: 'Incorporate feedback from aero team and complete CAD models.', status: TaskStatus.Done, assigneeId: 'user-3', dueDate: '2024-08-10' },
-  { id: 'task-2', title: 'Run new front wing simulation', description: 'Test v3.2 of the front wing with "high_downforce" configuration.', status: TaskStatus.InProgress, assigneeId: 'user-2', dueDate: '2024-08-15' },
-  { id: 'task-3', title: 'Prepare sponsorship pitch deck', description: 'Create a new deck for potential platinum sponsors.', status: TaskStatus.InReview, assigneeId: 'user-5', dueDate: '2024-08-20' },
-  { id: 'task-4', title: 'Machine new suspension uprights', description: 'CNC machine the latest uprights from the design team.', status: TaskStatus.ToDo, assigneeId: 'user-4', dueDate: '2024-08-25' },
+  { id: 'task-1', title: 'Validate v3.2 Front Wing', description: 'Run secondary check on the new GNN-calibrated front wing assembly.', status: TaskStatus.Done, assigneeId: 'user-2', dueDate: '2024-08-10' },
+  { id: 'task-2', title: 'Sponsor Deck Polish', description: 'Update the platinum tier proposal with the latest race simulation data.', status: TaskStatus.InProgress, assigneeId: 'user-5', dueDate: '2024-08-15' },
+  { id: 'task-3', title: 'CNC Main Chassis Run', description: 'Execute the optimized toolpath for the SLS nylon core.', status: TaskStatus.InReview, assigneeId: 'user-4', dueDate: '2024-08-20' },
 ];
 
 export const MOCK_FINANCES: FinancialRecord[] = [
-    {id: 'fin-1', type: 'income', description: 'Sponsor: Apex Industries', amount: 50000, date: '2024-07-01'},
-    {id: 'fin-2', type: 'expense', description: 'Carbon Fiber Raw Materials', amount: 15000, date: '2024-07-05'},
-    {id: 'fin-3', type: 'expense', description: 'Wind Tunnel Rental (4 hours)', amount: 8000, date: '2024-07-12'},
-    {id: 'fin-4', type: 'income', description: 'Sponsor: Quantum Dynamics', amount: 75000, date: '2024-07-20'},
+    {id: 'fin-1', type: 'income', description: 'Sponsor Installment: Apex', amount: 50000, date: '2024-07-01'},
+    {id: 'fin-2', type: 'expense', description: 'Sintered Nylon (SLS) Stock', amount: 15000, date: '2024-07-05'},
 ];
 
 export const MOCK_SPONSORS: Sponsor[] = [
     {id: 'spon-1', name: 'Apex Industries', logoUrl: 'https://picsum.photos/seed/apex/200/100', tier: SponsorTier.Gold, status: 'secured'},
     {id: 'spon-2', name: 'Quantum Dynamics', logoUrl: 'https://picsum.photos/seed/quantum/200/100', tier: SponsorTier.Platinum, status: 'secured'},
-    {id: 'spon-3', name: 'Momentum Lubricants', logoUrl: 'https://picsum.photos/seed/momentum/200/100', tier: SponsorTier.Silver, status: 'secured'},
-    {id: 'spon-4', name: 'Velocity Parts', logoUrl: 'https://picsum.photos/seed/velocity/200/100', tier: SponsorTier.Gold, status: 'pending'},
 ];
 
 export const MOCK_NEWS: NewsPost[] = [
-    {id: 'news-1', title: 'Unveiling the BR-02: A New Era of Speed', content: 'We are thrilled to pull the covers off our latest challenger, the Blizzard Racing BR-02. This car represents thousands of hours of design, simulation, and manufacturing...', authorId: 'user-1', createdAt: '2024-07-15T10:00:00Z', isPublic: true},
-    {id: 'news-2', title: 'Breakthrough in Aero Dynamics Achieved', content: 'Our engineering team has made a significant leap forward in aerodynamic efficiency with the new "Vortex" sidepod design. Internal tests show a 5% reduction in drag while maintaining downforce...', authorId: 'user-2', createdAt: '2024-07-20T14:30:00Z', isPublic: false},
-    {id: 'news-3', title: 'Quantum Dynamics Joins as Platinum Partner', content: 'A huge welcome to Quantum Dynamics, who join us as a platinum partner for the upcoming season. Their expertise in materials science will be invaluable.', authorId: 'user-1', createdAt: '2024-07-22T09:00:00Z', isPublic: true},
+    {id: 'news-1', title: 'The Blizzard Engineering Shift', content: 'We have officially realigned our internal structure to maximize output for the upcoming National Finals...', authorId: 'user-1', createdAt: '2024-07-15T10:00:00Z', isPublic: true},
 ];
 
 export const MOCK_TEAM_MEMBERS: TeamMember[] = MOCK_USERS.map(({ id, name, role, avatarUrl }) => ({ id, name, role, avatarUrl }));
 
 export const MOCK_CAR_HIGHLIGHTS: CarHighlight[] = [
-  {id: 'car-1', title: 'Vortex Sidepods', description: 'A revolutionary sidepod design that significantly reduces drag by managing airflow along the car\'s body.', imageUrl: 'https://picsum.photos/seed/car1/800/600', isPublic: true},
-  {id: 'car-2', title: 'Flex-Wing Assembly', description: 'The rear wing features a state-of-the-art flexible mainplane, optimizing downforce in corners and reducing drag on straights.', imageUrl: 'https://picsum.photos/seed/car2/800/600', isPublic: true},
-  {id: 'car-3', title: 'Hybrid Power Unit', description: 'Our custom-built HPU combines a lightweight internal combustion engine with a powerful electric motor for instant torque and incredible efficiency.', imageUrl: 'https://picsum.photos/seed/car3/800/600', isPublic: false},
+  {id: 'car-1', title: 'High-Alpha Wings', description: 'Optimized using k-ω SST turbulence modeling for maximum stability.', imageUrl: 'https://picsum.photos/seed/car1/800/600', isPublic: true},
 ];
 
 export const MOCK_THREADS: DiscussionThread[] = [
      {
         id: 'thread-4',
-        title: 'CFD Analysis of BR-03 Sidepods',
-        createdBy: 'user-2',
+        title: 'Manufacturing Tolerances for Axles',
+        createdBy: 'user-4',
         createdAt: '2024-08-03T11:00:00Z',
         posts: [
-            { id: 'post-4-1', authorId: 'user-2', content: 'Initial results from the new sidepod simulation are looking very promising. Drag is down 3% with a slight increase in downforce. I\'ve attached the report.', createdAt: '2024-08-03T11:00:00Z' },
-            { id: 'post-4-2', authorId: 'user-1', content: 'Great work Anish, this is a fantastic result. Let\'s get this fast-tracked for manufacturing.', createdAt: '2024-08-03T12:30:00Z' },
-        ]
-    },
-    {
-        id: 'thread-3',
-        title: 'where',
-        createdBy: 'user-1',
-        createdAt: '2024-08-02T12:00:00Z',
-        posts: [
-            { id: 'post-3-1', authorId: 'user-1', content: 'is the meeting spot for tomorrow?', createdAt: '2024-08-02T12:00:00Z' },
-        ]
-    },
-    {
-        id: 'thread-1',
-        title: 'Rear Wing Strategy for Nationals',
-        createdBy: 'user-2',
-        createdAt: '2024-08-01T10:00:00Z',
-        posts: [
-            { id: 'post-1-1', authorId: 'user-2', content: 'We need to decide on our primary rear wing configuration. Should we prioritize low drag for the straights or max downforce for the corners?', createdAt: '2024-08-01T10:00:00Z' },
-            { id: 'post-1-2', authorId: 'user-3', content: 'I think a balanced approach is best. The latest simulation (BR-03-Gamma) shows a good compromise. We can have a higher downforce setup in reserve.', createdAt: '2024-08-01T11:30:00Z' },
-            { id: 'post-1-3', authorId: 'user-1', content: 'Agreed. Let\'s go with the balanced setup as our primary. Anish, can you get the performance data for both options ready for the strategy meeting?', createdAt: '2024-08-02T09:00:00Z' },
-        ]
-    },
-    {
-        id: 'thread-2',
-        title: 'Sponsorship Outreach - Q4 Targets',
-        createdBy: 'user-5',
-        createdAt: '2024-07-28T14:00:00Z',
-        posts: [
-            { id: 'post-2-1', authorId: 'user-5', content: 'Here is the list of potential local businesses to approach for Bronze/Silver tier sponsorships. Please add any contacts you have.', createdAt: '2024-07-28T14:00:00Z' },
+            { id: 'post-4-1', authorId: 'user-4', content: 'Testing a +0.05mm fit for the ceramic bearings. Feedback?', createdAt: '2024-08-03T11:00:00Z' },
         ]
     }
 ];
@@ -104,27 +101,13 @@ export const MOCK_COMPETITION_PROGRESS: CompetitionProgressItem[] = [
 export const MOCK_PROTOCOLS: Protocol[] = [
     {
         id: 'proto-1',
-        title: 'Pre-Race Scrutineering Checklist',
-        description: 'Standard procedure to ensure car is compliant before every race.',
+        title: 'High-Fidelity Aero Audit',
+        description: 'Verification steps before a final design freeze.',
         steps: [
-            'Verify total car weight (min 50g for Professional, 60g for Dev).',
-            'Check overall dimensions (length, width).',
-            'Inspect front and rear wing dimensions and placement.',
-            'Ensure tether line is correctly installed.',
-            'Confirm wheel and axle assembly is secure.',
-            'Perform tether line pull test.',
-        ]
-    },
-    {
-        id: 'proto-2',
-        title: 'New Member Onboarding',
-        description: 'Steps to integrate a new member into the Blizzard Racing team.',
-        steps: [
-            'Introduce new member to all team leads.',
-            'Provide access to HQ portal and communication channels.',
-            'Assign a mentor from their sub-team.',
-            'Review team handbook and code of conduct.',
-            'Assign an initial starter task.',
+            'Load CAD into Aerotest Premium.',
+            'Verify Y+ boundary layer targets are < 1.5.',
+            'Check residuals convergence below 1e-5.',
+            'Execute 100k Monte Carlo race simulation.',
         ]
     }
 ];
@@ -132,56 +115,55 @@ export const MOCK_PROTOCOLS: Protocol[] = [
 export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   home: {
     heroTitle: "BLIZZARD RACING",
-    heroSubtitle: "Welcome to the Official Hub of Blizzard Racing",
-    heroCtaText: "Become a Partner",
+    heroSubtitle: "Engineering the Future of High-Speed STEM",
+    heroCtaText: "Join Our Journey",
     heroBackgroundImage: "https://picsum.photos/seed/racecar/1600/900",
   },
   about: {
     title: "About Blizzard Racing",
-    subtitle: "Learn about our mission, our history, and the competition that drives us to be the best.",
-    mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork. We are committed to innovation, sportsmanship, and inspiring the next generation of STEM leaders.",
-    history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School. In our first year, we achieved regional success, which fueled our ambition. Now in our third season, with the BR-02 and now the BR-03 challenger, we're leveraging advanced manufacturing techniques and data-driven design to compete at the national level.",
+    subtitle: "A multi-disciplinary engineering project based at St. Olave's Grammar School.",
+    mission: "To define the new standard in F1 in Schools performance through data-driven design and elite manufacturing synchronization.",
+    history: "Founded in 2022, Blizzard Racing has evolved from a grassroots design team into a data-centric engineering operation. With our BR-02 and current BR-03 challengers, we are pushing the mathematical limits of the competition.",
     stats: [
-        { id: 1, label: "Years Competing", value: "3" },
+        { id: 1, label: "Years Active", value: "3" },
         { id: 2, label: "Team Members", value: "6" },
-        { id: 3, label: "Regional Podiums", value: "2" },
-        { id: 4, label: "Innovations Developed", value: "5+" },
+        { id: 3, label: "Innovations", value: "8+" },
+        { id: 4, label: "Podiums", value: "2" },
     ]
   },
   team: {
-      title: "Meet The Team",
-      subtitle: "The dedicated individuals driving Blizzard Racing forward. A blend of experience, innovation, and passion for motorsport."
+      title: "Team Structure",
+      subtitle: "The 6 pillars of Blizzard Racing. Specialized expertise driving collective excellence."
   },
   car: {
-      title: "The BR-02 Challenger",
-      subtitle: "A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car.",
+      title: "The BR-03 Challenger",
+      subtitle: "Iterative design meets physical reality. Explore our latest aerodynamic evolution.",
       carModelFbx: null,
       isCarModelBlurred: true,
   },
   competition: {
-      title: "Competition Readiness",
-      subtitle: "Follow our progress as we prepare for the next big event. Each category represents a core part of the F1 in Schools challenge."
+      title: "National Finals Roadmap",
+      subtitle: "Our journey toward STEM excellence. Tracking our performance against elite standards."
   },
   sponsors: {
-      title: "Our Partners",
-      subtitle: "We are proud to be supported by industry leaders who share our vision for excellence and innovation. Their partnership is crucial to our success."
+      title: "Strategic Partners",
+      subtitle: "Supported by industry leaders who share our passion for technical innovation."
   },
   news: {
-      title: "News Feed",
-      subtitle: "The latest updates, announcements, and stories from inside Blizzard Racing."
+      title: "Operations Feed",
+      subtitle: "Internal and public updates from the Blizzard factory floor."
   },
   contact: {
-      title: "Contact Us",
-      subtitle: "Have a question or a partnership inquiry? We'd love to hear from you."
+      title: "Contact Operations",
+      subtitle: "For technical inquiries or partnership opportunities, contact our Resources team."
   },
   aerotest: {
-      title: "Aerotest: Simulation Engine",
-      subtitle: "A next-generation Computational Fluid Dynamics (CFD) solver, architected for superior accuracy and data intelligence.",
-      description: `Aerotest is a first-principles physics solver built on a foundation of numerical excellence. It implements a full, double-precision Reynolds-Averaged Navier-Stokes (RANS) solver with optional Detached Eddy Simulation (DES) modes for unparalleled turbulence-resolving capability.
-- **Meshing:** Automated hybrid mesher with polyhedral-hexcore cells and boundary layer inflation ensures optimal mesh quality and accuracy.
-- **Solver:** A GPU-accelerated, coupled implicit solver provides robust convergence, utilizing Algebraic Multigrid (AMG) methods to accelerate solutions.
-- **Physics:** Supports a modular framework for turbulence models (k-ω SST, Spalart-Allmaras), compressible and incompressible flows, and conjugate heat transfer.
-- **AI-Powered Insights:** Features an integrated AI for automated flow feature detection and a Design Performance Analyzer to directly link aerodynamic results to on-track performance.`
+      title: "Aerotest: CFD Engine",
+      subtitle: "Professional-grade simulation suite for high-alpha racing analysis.",
+      description: `Aerotest implements a first-principles physics solver using the Finite Volume Method (FVM).
+- **Solver Accuracy:** 2nd-order spatial discretization with double-precision RANS resolution.
+- **Turbulence:** Integrated k-ω SST (Shear Stress Transport) model for superior boundary layer precision.
+- **AI-Validation:** Graph Neural Network calibration layer for real-world track correlation.`
   }
 };
 
@@ -206,10 +188,10 @@ export const F1_IN_SCHOOLS_RULES: readonly {
 export const THEORETICAL_OPTIMUM: AeroResult = {
     id: 'benchmark-optimum',
     timestamp: new Date().toISOString(),
-    fileName: 'Ω-OPTIMUM (Limit)',
+    fileName: 'Ω-OPTIMUM (Physical Limit)',
     tier: 'premium',
     parameters: {
-        carName: 'The Perfect Challenger',
+        carName: 'The Isentropic Limit',
         totalLength: 210,
         totalWidth: 65,
         totalWeight: 50.0,
@@ -228,15 +210,15 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         },
         turbulenceModel: 'Detached Eddy Simulation (DES)'
     },
-    cd: 0.1020, // 1. Drag Coefficient (Lower better)
-    cl: 0.0120, // 2. Lift Coefficient (Near zero better)
-    liftToDragRatio: 0.118, // 3. L/D Efficiency (Higher better)
+    cd: 0.1020, 
+    cl: 0.0120, 
+    liftToDragRatio: 0.118, 
     dragBreakdown: { pressure: 40, skinFriction: 60 },
-    aeroBalance: 50.0, // 4. Aero Balance (Near 50% better)
-    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit). Zero-slip boundary conditions and perfectly smooth surface assumption applied.",
-    meshQuality: 100, // 5. Mesh Quality (Higher better)
+    aeroBalance: 50.0, 
+    flowAnalysis: "Validated against Regulation-Max V2.5. Zero-slip boundaries and perfectly smooth surface profile assumed.",
+    meshQuality: 100, 
     finalResiduals: {
-        continuity: 1.0e-7, // 6. Convergence stability (Lower better)
+        continuity: 1.0e-7, 
         xVelocity: 1.0e-7,
         yVelocity: 1.0e-7,
         zVelocity: 1.0e-7
@@ -246,15 +228,15 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     raceTimePrediction: {
         bestRaceTime: 1.155,
         worstRaceTime: 1.155,
-        averageRaceTime: 1.155, // 7. Avg Race Time (Lower better)
+        averageRaceTime: 1.155,
         averageDrag: 0.1020,
         bestFinishLineSpeed: 21.15,
         worstFinishLineSpeed: 21.15,
-        averageFinishLineSpeed: 21.15, // 8. Exit Speed (Higher better)
+        averageFinishLineSpeed: 21.15,
         bestAverageSpeed: 17.31,
         worstAverageSpeed: 17.31,
-        averageSpeed: 17.31, // 9. Avg Track Speed (Higher better)
-        launchVariance: 0.0, // 10. Launch Variance (Lower better)
+        averageSpeed: 17.31,
+        launchVariance: 0.0,
         trackConditionSensitivity: 0.1,
         canisterPerformanceDelta: 0.1
     }

@@ -1,9 +1,9 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 interface State {
@@ -15,34 +15,32 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-class ErrorBoundary extends Component<Props, State> {
-  // Use constructor to initialize state for better compatibility with type inference
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-  }
+// Fix: Using React.Component explicitly to ensure TypeScript correctly identifies setState and props inherited from the base class.
+class ErrorBoundary extends React.Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  handleRetry = () => {
-    // Fix: Accessing setState from the base Component class.
+  public handleRetry = () => {
+    // Fix: Accessing setState inherited from React.Component.
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load due to network issues
     window.location.reload();
   };
 
-  render() {
+  public render() {
+    // Fix: Accessing the state property inherited from the React.Component base class.
     if (this.state.hasError) {
       // Fallback UI
       return (
@@ -68,7 +66,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing children from the props object inherited from Component.
+    // Fix: Accessing the props property inherited from the React.Component base class.
     return this.props.children;
   }
 }

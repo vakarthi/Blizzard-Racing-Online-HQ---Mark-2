@@ -1,10 +1,130 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
-import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-// Fixed: Added InfoIcon to the imports list from icons.tsx
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, UploadCloudIcon, KeyIcon, InfoIcon } from '../../components/icons';
+import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task, PortfolioAuditReport } from '../../types';
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, UploadCloudIcon, KeyIcon, InfoIcon, ShieldCheckIcon, SparklesIcon, CheckCircleIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
+import { portfolioAiService } from '../../services/portfolioAiService';
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
+
+// --- AUDIT COMPONENT ---
+const PortfolioAuditor: React.FC = () => {
+    const data = useData();
+    const { announcement, competitionDate, teamLogoUrl } = useAppState();
+    const [report, setReport] = useState<PortfolioAuditReport | null>(null);
+    const [isAuditing, setIsAuditing] = useState(false);
+
+    const runAudit = async () => {
+        setIsAuditing(true);
+        try {
+            // Fix: Combine DataContext with AppState to satisfy the AppStore type requirement by including missing fields.
+            const storeForAudit = {
+                ...data,
+                announcement,
+                competitionDate,
+                teamLogoUrl
+            };
+            const result = await portfolioAiService.analyzeTeamReadiness(storeForAudit as any);
+            setReport(result);
+        } catch (e) {
+            alert("Audit failed. Ensure you have a working internet connection.");
+        } finally {
+            setIsAuditing(false);
+        }
+    };
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 className="text-2xl font-bold text-brand-text flex items-center gap-3">
+                        <ShieldCheckIcon className="w-8 h-8 text-brand-accent" />
+                        Official Mark Auditor
+                    </h3>
+                    <p className="text-brand-text-secondary text-sm">AI-driven analysis using official Development Class marking rubrics.</p>
+                </div>
+                <button 
+                    onClick={runAudit}
+                    disabled={isAuditing}
+                    className="bg-brand-accent text-brand-dark font-bold px-6 py-3 rounded-xl hover:bg-brand-accent-hover transition-all flex items-center gap-2 shadow-glow-accent disabled:opacity-50"
+                >
+                    {isAuditing ? <LoadingSpinner /> : <SparklesIcon className="w-5 h-5" />}
+                    {isAuditing ? 'Analyzing Evidence...' : 'Run Official Audit'}
+                </button>
+            </div>
+
+            {report ? (
+                <div className="space-y-6">
+                    {/* Overall Score */}
+                    <div className="bg-brand-dark p-8 rounded-2xl border border-brand-border text-center">
+                        <p className="text-sm font-bold text-brand-text-secondary uppercase tracking-widest mb-2">Estimated Competition Readiness</p>
+                        <div className="text-6xl font-black text-brand-accent mb-4">{report.overallReadiness}%</div>
+                        <div className="w-full max-w-md mx-auto bg-brand-dark-secondary h-3 rounded-full overflow-hidden">
+                            <div className="h-full bg-brand-accent" style={{ width: `${report.overallReadiness}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {report.categories.map((cat, i) => (
+                            <div key={i} className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-bold text-brand-text text-lg">{cat.title}</h4>
+                                    <span className={`font-mono font-bold ${cat.score > 75 ? 'text-green-400' : cat.score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>{cat.score}/100</span>
+                                </div>
+                                <p className="text-sm text-brand-text-secondary mb-4 leading-relaxed">{cat.feedback}</p>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-green-400 uppercase mb-2">Strengths (Evidence Found)</p>
+                                        <ul className="space-y-1">
+                                            {cat.strengths.map((s, idx) => (
+                                                <li key={idx} className="text-xs text-brand-text-secondary flex items-start gap-2">
+                                                    <div className="w-1 h-1 bg-green-400 rounded-full mt-1.5 flex-shrink-0" />
+                                                    {s}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-yellow-400 uppercase mb-2">Critical Marks Missing</p>
+                                        <ul className="space-y-1">
+                                            {cat.missingEvidence.map((m, idx) => (
+                                                <li key={idx} className="text-xs text-brand-text-secondary flex items-start gap-2">
+                                                    <div className="w-1 h-1 bg-yellow-400 rounded-full mt-1.5 flex-shrink-0" />
+                                                    {m}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Critical Risks */}
+                    {report.criticalRisks.length > 0 && (
+                        <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
+                            <h4 className="text-red-400 font-bold flex items-center gap-2 mb-3">
+                                <AlertTriangleIcon className="w-5 h-5" />
+                                REGULATION COMPLIANCE RISKS
+                            </h4>
+                            <ul className="list-disc list-inside space-y-1">
+                                {report.criticalRisks.map((r, i) => (
+                                    <li key={i} className="text-sm text-red-300">{r}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center p-20 bg-brand-dark rounded-2xl border border-brand-border border-dashed">
+                    <TrophyIcon className="w-16 h-16 text-brand-border mb-4" />
+                    <p className="text-brand-text-secondary font-medium">No audit data available. Run your first mark analysis above.</p>
+                </div>
+            )}
+        </div>
+    );
+};
 
 // --- EDIT TASK MODAL ---
 const EditTaskModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task; }> = ({ isOpen, onClose, task }) => {
@@ -85,7 +205,7 @@ const CloudSyncSettings: React.FC = () => {
             <div>
                 <h3 className="text-xl font-bold text-brand-text mb-2">Global Team Sync</h3>
                 <p className="text-brand-text-secondary text-sm mb-4">
-                    Blizzard HQ uses a shared cloud channel to synchronize news, tasks, and aero results across all team devices.
+                    Synchronize news, tasks, and aero results across all team devices.
                 </p>
                 
                 <div className="bg-brand-dark p-4 rounded-lg border border-brand-border space-y-4">
@@ -110,7 +230,7 @@ const CloudSyncSettings: React.FC = () => {
                             className="flex items-center justify-center gap-2 bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:opacity-50"
                         >
                             <UploadCloudIcon className={`w-5 h-5 ${isSyncing ? 'animate-bounce' : ''}`} />
-                            Broadcast Changes Globally
+                            Broadcast Changes
                         </button>
                         <button 
                             onClick={() => pullFromCloud()}
@@ -118,16 +238,8 @@ const CloudSyncSettings: React.FC = () => {
                             className="flex items-center justify-center gap-2 bg-brand-surface border border-brand-border text-brand-text font-bold py-3 px-4 rounded-lg hover:bg-brand-border transition-colors disabled:opacity-50"
                         >
                             <DownloadIcon className="w-5 h-5" />
-                            Force Pull Team Data
+                            Force Pull Data
                         </button>
-                    </div>
-                </div>
-
-                <div className="mt-6 bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg flex items-start gap-3">
-                    <InfoIcon className="w-5 h-5 text-blue-400 mt-1 flex-shrink-0" />
-                    <div className="text-sm text-blue-300">
-                        <p className="font-bold">How Syncing Works</p>
-                        <p className="mt-1 opacity-80">When you "Broadcast," your local changes are saved to the master cloud channel. All other team members will automatically receive these updates the next time they refresh or log in.</p>
                     </div>
                 </div>
             </div>
@@ -144,7 +256,7 @@ const UserManagement: React.FC = () => {
     };
 
     const handleRemoveUser = (userId: string) => {
-        if (window.confirm("Are you sure you want to remove this user? This action cannot be undone.")) {
+        if (window.confirm("Are you sure you want to remove this user?")) {
             setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
         }
     };
@@ -177,14 +289,14 @@ const UserManagement: React.FC = () => {
                                     value={user.role}
                                     onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
                                     className="p-2 border border-brand-border bg-brand-dark rounded-lg text-sm"
-                                    disabled={user.role === UserRole.Manager}
+                                    disabled={user.role === UserRole.ProjectManager}
                                 >
                                     {Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}
                                 </select>
                                 <button
                                     onClick={() => handleRemoveUser(user.id)}
                                     className="text-sm text-red-400 hover:underline p-2 disabled:text-gray-600"
-                                    disabled={user.role === UserRole.Manager}
+                                    disabled={user.role === UserRole.ProjectManager}
                                 >
                                     Remove
                                 </button>
@@ -204,83 +316,12 @@ const UserManagement: React.FC = () => {
                         <label className="text-sm font-semibold text-brand-text-secondary">Email</label>
                         <input type="email" value={newUser.email} onChange={e => setNewUser(p => ({...p, email: e.target.value}))} placeholder="user@saintolaves.net" required className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
                     </div>
-                    <div className="flex-1">
-                        <label className="text-sm font-semibold text-brand-text-secondary">Role</label>
-                        <select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value as UserRole}))} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg">
-                             {Object.values(UserRole).filter(r => r !== UserRole.Manager).map(role => <option key={role} value={role}>{role}</option>)}
-                        </select>
-                    </div>
                     <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> Add Member</button>
                  </form>
             </div>
         </div>
     )
 }
-
-const UserActivity: React.FC = () => {
-    const { users, loginHistory } = useData();
-
-    const activityData = useMemo(() => {
-        const now = new Date();
-        const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        return users.map(user => {
-            const userLogins = loginHistory.filter(log => log.userId === user.id);
-            const lastDay = userLogins.filter(log => new Date(log.timestamp) > dayAgo).length;
-            const lastWeek = userLogins.filter(log => new Date(log.timestamp) > weekAgo).length;
-            const lastMonth = userLogins.filter(log => new Date(log.timestamp) > monthAgo).length;
-            const lastSeen = userLogins.length > 0 ? new Date(userLogins[0].timestamp) : null;
-            
-            return {
-                ...user,
-                lastDay,
-                lastWeek,
-                lastMonth,
-                lastSeen
-            };
-        });
-
-    }, [users, loginHistory]);
-
-    return (
-        <div>
-            <h3 className="text-xl font-bold text-brand-text mb-4">User Login Activity</h3>
-            <p className="text-sm text-brand-text-secondary mb-4">Tracks the number of login sessions for each user over various periods. The "Last Seen" timestamp is from their most recent login.</p>
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-brand-text-secondary uppercase bg-brand-dark">
-                        <tr>
-                            <th scope="col" className="px-4 py-3">User</th>
-                            <th scope="col" className="px-4 py-3 text-center">Last 24 Hours</th>
-                            <th scope="col" className="px-4 py-3 text-center">Last 7 Days</th>
-                            <th scope="col" className="px-4 py-3 text-center">Last 30 Days</th>
-                            <th scope="col" className="px-4 py-3">Last Seen</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {activityData.map(user => (
-                            <tr key={user.id} className="border-b border-brand-border hover:bg-brand-surface">
-                                <td className="px-4 py-3 font-medium text-brand-text flex items-center gap-3">
-                                    <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-                                    {user.name}
-                                </td>
-                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastDay}</td>
-                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastWeek}</td>
-                                <td className="px-4 py-3 text-center text-lg font-semibold">{user.lastMonth}</td>
-                                <td className="px-4 py-3 text-brand-text-secondary">
-                                    {user.lastSeen ? user.lastSeen.toLocaleString() : 'Never'}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
 
 const FinancialCommand: React.FC = () => {
     const { finances, addFinancialRecord, deleteFinancialRecord } = useData();
@@ -303,12 +344,8 @@ const FinancialCommand: React.FC = () => {
     };
 
     const handleDelete = (recordId: string) => {
-        if (window.confirm("Are you sure you want to delete this financial record?")) {
-            deleteFinancialRecord(recordId);
-        }
+        if (window.confirm("Delete record?")) deleteFinancialRecord(recordId);
     };
-
-    const maxVal = Math.max(income, expenses, 1);
 
     return (
         <div className="space-y-6">
@@ -319,375 +356,21 @@ const FinancialCommand: React.FC = () => {
                     <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20"><p className="text-sm text-red-300">Total Expenses</p><p className="text-2xl font-bold text-red-400">${expenses.toLocaleString()}</p></div>
                     <div className={`p-4 rounded-lg border ${net >= 0 ? 'bg-blue-500/10 border-blue-500/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}><p className={`text-sm ${net >= 0 ? 'text-blue-300' : 'text-yellow-300'}`}>Net Profit</p><p className={`text-2xl font-bold ${net >= 0 ? 'text-blue-400' : 'text-yellow-400'}`}>${net.toLocaleString()}</p></div>
                 </div>
-                 <div className="relative h-40 bg-brand-dark rounded-lg flex items-end gap-4 p-4 border border-brand-border">
-                    <div className="flex-1 flex flex-col items-center h-full justify-end">
-                        <div className="w-1/2 bg-green-500 rounded-t transition-all duration-500" style={{ height: `${(income / maxVal) * 100}%` }}></div>
-                        <p className="text-xs font-semibold text-green-400 mt-1">Income</p>
-                    </div>
-                    <div className="flex-1 flex flex-col items-center h-full justify-end">
-                        <div className="w-1/2 bg-red-500 rounded-t transition-all duration-500" style={{ height: `${(expenses / maxVal) * 100}%` }}></div>
-                        <p className="text-xs font-semibold text-red-400 mt-1">Expense</p>
-                    </div>
-                </div>
             </div>
              <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Add Financial Record</h3>
+                 <h3 className="text-xl font-bold text-brand-text mb-4">Add Transaction</h3>
                  <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-grow">
-                        <label className="text-sm font-semibold text-brand-text-secondary">Description</label>
-                        <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g., Carbon Fiber Order" required className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
-                    </div>
-                    <div>
-                         <label className="text-sm font-semibold text-brand-text-secondary">Amount ($)</label>
-                        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="15000" required className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
-                    </div>
-                     <div>
-                         <label className="text-sm font-semibold text-brand-text-secondary">Type</label>
-                        <select value={type} onChange={e => setType(e.target.value as any)} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg">
-                            <option value="expense">Expense</option>
-                            <option value="income">Income</option>
-                        </select>
-                    </div>
-                    <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> Add Record</button>
-                 </form>
-            </div>
-             <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Transaction History</h3>
-                 <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                     {finances.map(record => (
-                         <div key={record.id} className="p-3 bg-brand-dark rounded-lg flex justify-between items-center border border-brand-border">
-                            <div>
-                                <p className="font-semibold">{record.description}</p>
-                                <p className="text-sm text-brand-text-secondary">{new Date(record.date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className={`font-bold ${record.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>
-                                    {record.type === 'income' ? '+' : '-'}${record.amount.toLocaleString()}
-                                </span>
-                                <button onClick={() => handleDelete(record.id)} className="text-red-400 p-1 rounded-full hover:bg-red-500/20"><TrashIcon className="w-4 h-4"/></button>
-                            </div>
-                         </div>
-                     ))}
-                 </div>
-            </div>
-        </div>
-    )
-}
-
-const PieChart: React.FC<{data: {label: string, value: number, color: string}[]}> = ({ data }) => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-    if (total === 0) return <div className="text-center text-brand-text-secondary p-4">No data to display.</div>;
-    
-    let cumulativePercent = 0;
-    const gradients = data.map(item => {
-        const percent = (item.value / total) * 100;
-        const start = cumulativePercent;
-        cumulativePercent += percent;
-        return `${item.color} ${start}% ${cumulativePercent}%`;
-    });
-
-    return (
-        <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-32 h-32 rounded-full" style={{background: `conic-gradient(${gradients.join(', ')})`}}></div>
-            <div className="space-y-2">
-                {data.map(item => (
-                    <div key={item.label} className="flex items-center text-sm">
-                        <span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: item.color}}></span>
-                        <span className="font-semibold text-brand-text">{item.label}:</span>
-                        <span className="ml-2 text-brand-text-secondary">{item.value} tasks ({((item.value/total)*100).toFixed(0)}%)</span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const ProjectAnalytics: React.FC = () => {
-    const { tasks, users } = useData();
-
-    const taskStatusCounts = useMemo(() => {
-        return tasks.reduce((acc, task) => {
-            acc[task.status] = (acc[task.status] || 0) + 1;
-            return acc;
-        }, {} as Record<TaskStatus, number>);
-    }, [tasks]);
-
-    const chartData = [
-        { label: TaskStatus.ToDo, value: taskStatusCounts[TaskStatus.ToDo] || 0, color: '#FBBF24' },
-        { label: TaskStatus.InProgress, value: taskStatusCounts[TaskStatus.InProgress] || 0, color: '#60A5FA' },
-        { label: TaskStatus.InReview, value: taskStatusCounts[TaskStatus.InReview] || 0, color: '#A78BFA' },
-        { label: TaskStatus.Done, value: taskStatusCounts[TaskStatus.Done] || 0, color: '#4ADE80' },
-    ];
-    
-    const contributionData = useMemo(() => {
-        const counts: Record<string, number> = {};
-        tasks.forEach(task => {
-            if (task.status === TaskStatus.Done && task.assigneeId) {
-                counts[task.assigneeId] = (counts[task.assigneeId] || 0) + 1;
-            }
-        });
-        
-        return Object.entries(counts)
-            .map(([userId, count]) => {
-                const user = users.find(u => u.id === userId);
-                return {
-                    user,
-                    count
-                };
-            })
-            .filter(item => !!item.user)
-            .sort((a, b) => b.count - a.count);
-
-    }, [tasks, users]);
-
-    return (
-         <div className="space-y-6">
-            <div>
-                <h3 className="text-xl font-bold text-brand-text mb-4">Task Status Distribution</h3>
-                <PieChart data={chartData} />
-            </div>
-             <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Contribution Leaderboard</h3>
-                 <p className="text-sm text-brand-text-secondary mb-3">Ranking based on completed tasks.</p>
-                 <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                     {contributionData.map((item, index) => (
-                        <div key={item.user!.id} className="p-3 bg-brand-dark rounded-lg border border-brand-border flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <span className="font-bold text-lg w-6 text-center">{index + 1}</span>
-                                <img src={item.user!.avatarUrl} alt={item.user!.name} className="w-10 h-10 rounded-full object-cover"/>
-                                <div>
-                                    <p className="font-semibold text-brand-text">{item.user!.name}</p>
-                                    <p className="text-sm text-brand-text-secondary">{item.user!.role}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                               {index === 0 && <TrophyIcon className="w-5 h-5 text-yellow-400" />}
-                               <span className="font-bold text-xl text-brand-text">{item.count}</span>
-                               <span className="text-sm text-brand-text-secondary">tasks</span>
-                            </div>
-                        </div>
-                     ))}
-                     {contributionData.length === 0 && <p className="text-brand-text-secondary text-center p-4">No tasks have been completed yet.</p>}
-                 </div>
-            </div>
-        </div>
-    )
-};
-
-const TaskControl: React.FC = () => {
-    const { tasks, getTeamMember, deleteTask } = useData();
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-
-    const handleDelete = (taskId: string) => {
-        if (window.confirm("Are you sure you want to delete this task?")) {
-            deleteTask(taskId);
-        }
-    };
-
-    const statusColors: { [key in TaskStatus]: string } = {
-        [TaskStatus.ToDo]: 'border-yellow-400/50',
-        [TaskStatus.InProgress]: 'border-blue-400/50',
-        [TaskStatus.InReview]: 'border-purple-400/50',
-        [TaskStatus.Done]: 'border-green-400/50',
-    };
-
-    return (
-        <div className="space-y-4">
-            {editingTask && <EditTaskModal isOpen={!!editingTask} onClose={() => setEditingTask(null)} task={editingTask} />}
-            <h3 className="text-xl font-bold text-brand-text">All Tasks</h3>
-            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
-                {tasks.map(task => {
-                    const assignee = task.assigneeId ? getTeamMember(task.assigneeId) : null;
-                    return (
-                        <div key={task.id} className={`p-3 bg-brand-dark rounded-lg border-l-4 ${statusColors[task.status]}`}>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-semibold text-brand-text">{task.title}</p>
-                                    <p className="text-sm text-brand-text-secondary">{task.description}</p>
-                                </div>
-                                <div className="flex gap-2 flex-shrink-0">
-                                    <button onClick={() => setEditingTask(task)} className="text-sm text-brand-accent hover:underline">Edit</button>
-                                    <button onClick={() => handleDelete(task.id)} className="text-sm text-red-400 hover:underline">Delete</button>
-                                </div>
-                            </div>
-                             <div className="text-xs text-brand-text-secondary mt-2 flex items-center gap-4">
-                                <span>Status: <span className="font-semibold">{task.status}</span></span>
-                                <span>Due: <span className="font-semibold">{task.dueDate}</span></span>
-                                {assignee && <span>Assignee: <span className="font-semibold">{assignee.name}</span></span>}
-                            </div>
-                        </div>
-                    )
-                })}
-            </div>
-        </div>
-    );
-};
-
-const SponsorshipHub: React.FC = () => {
-    const { sponsors, addSponsor, updateSponsorStatus, deleteSponsor } = useData();
-    const [newSponsor, setNewSponsor] = useState({ name: '', tier: SponsorTier.Bronze });
-
-    const handleAddSponsor = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newSponsor.name) return;
-        addSponsor(newSponsor);
-        setNewSponsor({ name: '', tier: SponsorTier.Bronze });
-    };
-
-    const handleDelete = (sponsorId: string) => {
-        if (window.confirm("Are you sure you want to remove this sponsor?")) {
-            deleteSponsor(sponsorId);
-        }
-    }
-
-    return (
-         <div className="space-y-6">
-            <div>
-                <h3 className="text-xl font-bold text-brand-text mb-4">Sponsorship Pipeline</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                    {sponsors.map(sponsor => (
-                        <div key={sponsor.id} className="p-3 bg-brand-dark rounded-lg flex justify-between items-center border border-brand-border">
-                            <div className="flex items-center">
-                                <div className="h-10 w-20 flex items-center justify-center mr-4 bg-white/5 p-1 rounded">
-                                    <img src={sponsor.logoUrl} alt={sponsor.name} className="h-full w-auto object-contain" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-brand-text">{sponsor.name}</p>
-                                    <p className="text-sm text-brand-text-secondary">{sponsor.tier}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={sponsor.status}
-                                    onChange={e => updateSponsorStatus(sponsor.id, e.target.value as any)}
-                                    className={`p-2 border rounded-lg text-sm bg-brand-dark ${sponsor.status === 'secured' ? 'border-green-500/30 text-green-400' : 'border-yellow-500/30 text-yellow-400'}`}
-                                >
-                                    <option value="pending">Pending</option>
-                                    <option value="secured">Secured</option>
-                                </select>
-                                <button onClick={() => handleDelete(sponsor.id)} className="text-red-400 p-1 rounded-full hover:bg-red-500/20"><TrashIcon className="w-4 h-4"/></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-            <div className="border-t border-brand-border pt-6">
-                 <h3 className="text-xl font-bold text-brand-text mb-4">Add Potential Sponsor</h3>
-                 <form onSubmit={handleAddSponsor} className="flex flex-col md:flex-row gap-4 items-end">
-                    <div className="flex-grow">
-                        <label className="text-sm font-semibold text-brand-text-secondary">Company Name</label>
-                        <input type="text" value={newSponsor.name} onChange={e => setNewSponsor(p => ({...p, name: e.target.value}))} placeholder="e.g., Velocity Parts" required className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
-                    </div>
-                    <div>
-                         <label className="text-sm font-semibold text-brand-text-secondary">Tier</label>
-                        <select value={newSponsor.tier} onChange={e => setNewSponsor(p => ({...p, tier: e.target.value as SponsorTier}))} className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg">
-                             {Object.values(SponsorTier).map(tier => <option key={tier} value={tier}>{tier}</option>)}
-                        </select>
-                    </div>
-                    <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> Add Sponsor</button>
+                    <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" required className="flex-grow p-2 bg-brand-dark border border-brand-border rounded-lg"/>
+                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount ($)" required className="w-32 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
+                    <select value={type} onChange={e => setType(e.target.value as any)} className="p-2 bg-brand-dark border border-brand-border rounded-lg">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                    <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> Add</button>
                  </form>
             </div>
         </div>
     )
-};
-
-const ContentManagement: React.FC = () => {
-    const { 
-        news, addNewsPost, updateNewsPost, deleteNewsPost, 
-        carHighlights, addCarHighlight, updateCarHighlight, deleteCarHighlight 
-    } = useData();
-    
-    // News State
-    const [newPostTitle, setNewPostTitle] = useState('');
-    const [newPostContent, setNewPostContent] = useState('');
-    const [newPostIsPublic, setNewPostIsPublic] = useState(true);
-
-    // Highlights State
-    const [newHighlightTitle, setNewHighlightTitle] = useState('');
-    const [newHighlightDesc, setNewHighlightDesc] = useState('');
-    const [newHighlightIsPublic, setNewHighlightIsPublic] = useState(true);
-
-    const handleAddPost = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newPostTitle || !newPostContent) return;
-        addNewsPost({ title: newPostTitle, content: newPostContent, isPublic: newPostIsPublic });
-        setNewPostTitle('');
-        setNewPostContent('');
-    };
-    
-    const handleAddHighlight = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newHighlightTitle || !newHighlightDesc) return;
-        addCarHighlight({ title: newHighlightTitle, description: newHighlightDesc, isPublic: newHighlightIsPublic });
-        setNewHighlightTitle('');
-        setNewHighlightDesc('');
-    };
-
-    return (
-        <div className="space-y-8">
-            {/* News Management */}
-            <div className="space-y-4">
-                <h3 className="text-xl font-bold text-brand-text">Manage News Posts</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-2 border-b border-brand-border pb-4">
-                    {news.map(post => (
-                        <div key={post.id} className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                            <p className="font-semibold">{post.title}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                                <label className="flex items-center text-sm gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={post.isPublic} onChange={(e) => updateNewsPost({...post, isPublic: e.target.checked})} className="accent-brand-accent"/>
-                                    Public
-                                </label>
-                                <button onClick={() => deleteNewsPost(post.id)} className="text-sm text-red-400 hover:underline">Delete</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                <form onSubmit={handleAddPost} className="space-y-2 pt-4">
-                    <h4 className="font-semibold text-brand-text">Add New Post</h4>
-                    <input type="text" placeholder="Post Title" value={newPostTitle} onChange={e => setNewPostTitle(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                    <textarea placeholder="Post Content..." value={newPostContent} onChange={e => setNewPostContent(e.target.value)} required rows={3} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                    <div className="flex justify-between items-center">
-                        <label className="flex items-center text-sm gap-2 cursor-pointer">
-                            <input type="checkbox" checked={newPostIsPublic} onChange={(e) => setNewPostIsPublic(e.target.checked)} className="accent-brand-accent"/>
-                            Make Public
-                        </label>
-                        <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">Add Post</button>
-                    </div>
-                </form>
-            </div>
-            
-            {/* Car Highlights Management */}
-            <div className="space-y-4 border-t border-brand-border pt-8">
-                <h3 className="text-xl font-bold text-brand-text">Manage Car Highlights</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-2 border-b border-brand-border pb-4">
-                     {carHighlights.map(h => (
-                        <div key={h.id} className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                            <p className="font-semibold">{h.title}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                                <label className="flex items-center text-sm gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={h.isPublic} onChange={(e) => updateCarHighlight({...h, isPublic: e.target.checked})} className="accent-brand-accent" />
-                                    Public
-                                </label>
-                                <button onClick={() => deleteCarHighlight(h.id)} className="text-sm text-red-400 hover:underline">Delete</button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-                 <form onSubmit={handleAddHighlight} className="space-y-2 pt-4">
-                    <h4 className="font-semibold text-brand-text">Add New Highlight</h4>
-                    <input type="text" placeholder="Highlight Title" value={newHighlightTitle} onChange={e => setNewHighlightTitle(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                    <textarea placeholder="Description..." value={newHighlightDesc} onChange={e => setNewHighlightDesc(e.target.value)} required rows={3} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                    <div className="flex justify-between items-center">
-                        <label className="flex items-center text-sm gap-2 cursor-pointer">
-                            <input type="checkbox" checked={newHighlightIsPublic} onChange={(e) => setNewHighlightIsPublic(e.target.checked)} className="accent-brand-accent"/>
-                            Make Public
-                        </label>
-                        <button type="submit" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">Add Highlight</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
 }
 
 const CompetitionManagement: React.FC = () => {
@@ -702,266 +385,93 @@ const CompetitionManagement: React.FC = () => {
 
     const handleSave = () => {
         updateCompetitionProgress(progress);
-        alert("Competition progress saved!");
+        alert("Progress saved!");
     };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h3 className="text-xl font-bold text-brand-text mb-4">Competition Progress Tracker</h3>
-                <p className="text-sm text-brand-text-secondary mb-4">Adjust the sliders to update the team's progress on the main dashboard.</p>
-                <div className="space-y-4">
-                    {progress.map((item, index) => (
-                        <div key={item.category}>
-                            <label className="block text-sm font-semibold text-brand-text-secondary mb-1">{item.category}: {item.progress}%</label>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={item.progress}
-                                onChange={(e) => handleProgressChange(index, parseInt(e.target.value))}
-                                className="w-full h-2 bg-brand-border rounded-lg appearance-none cursor-pointer accent-brand-accent"
-                            />
-                        </div>
-                    ))}
-                </div>
-                <button onClick={handleSave} className="mt-6 bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">
-                    Save Progress
-                </button>
-            </div>
-        </div>
-    );
-};
-
-const ProtocolManagement: React.FC = () => {
-    const { protocols, addProtocol, updateProtocol, deleteProtocol } = useData();
-    const [editingProtocol, setEditingProtocol] = useState<Protocol | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const handleAddNew = () => {
-        setEditingProtocol({ id: '', title: '', description: '', steps: ['']});
-        setIsModalOpen(true);
-    };
-
-    const handleEdit = (protocol: Protocol) => {
-        setEditingProtocol(protocol);
-        setIsModalOpen(true);
-    };
-
-    const handleDelete = (protocolId: string) => {
-        if(window.confirm('Are you sure you want to delete this protocol?')) {
-            deleteProtocol(protocolId);
-        }
-    };
-
-    const handleSave = (protocolToSave: Protocol) => {
-        if(protocolToSave.id) {
-            updateProtocol(protocolToSave);
-        } else {
-            addProtocol({
-                title: protocolToSave.title,
-                description: protocolToSave.description,
-                steps: protocolToSave.steps
-            });
-        }
-        setIsModalOpen(false);
-        setEditingProtocol(null);
-    };
-
-    const ProtocolEditorModal = () => {
-        const [protocol, setProtocol] = useState(editingProtocol!);
-
-        const handleStepChange = (index: number, value: string) => {
-            const newSteps = [...protocol.steps];
-            newSteps[index] = value;
-            setProtocol(p => ({...p!, steps: newSteps}));
-        };
-
-        const addStep = () => {
-            setProtocol(p => ({...p!, steps: [...p!.steps, '']}));
-        }
-
-        const removeStep = (index: number) => {
-             setProtocol(p => ({...p!, steps: p!.steps.filter((_, i) => i !== index)}));
-        }
-
-        return (
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={protocol.id ? 'Edit Protocol' : 'Create New Protocol'}>
-                <div className="space-y-4">
-                     <input type="text" placeholder="Protocol Title" value={protocol.title} onChange={e => setProtocol(p => ({...p!, title: e.target.value}))} className="w-full p-2 bg-brand-dark border border-brand-border rounded-md"/>
-                     <textarea placeholder="Description" value={protocol.description} onChange={e => setProtocol(p => ({...p!, description: e.target.value}))} rows={2} className="w-full p-2 bg-brand-dark border border-brand-border rounded-md"/>
-                    <div className="space-y-2">
-                        <h4 className="font-semibold text-brand-text-secondary">Steps</h4>
-                        {protocol.steps.map((step, index) => (
-                             <div key={index} className="flex items-center gap-2">
-                                <input type="text" value={step} onChange={e => handleStepChange(index, e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-md"/>
-                                <button onClick={() => removeStep(index)} className="text-red-400 p-1 rounded-full hover:bg-red-500/20"><TrashIcon className="w-4 h-4"/></button>
-                             </div>
-                        ))}
-                        <button onClick={addStep} className="text-sm text-brand-accent hover:underline flex items-center gap-1"><PlusCircleIcon className="w-4 h-4"/> Add Step</button>
-                    </div>
-                    <div className="pt-4 flex justify-end gap-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-brand-border text-brand-text font-semibold rounded-lg">Cancel</button>
-                        <button type="button" onClick={() => handleSave(protocol)} className="px-4 py-2 bg-brand-accent text-brand-dark font-bold rounded-lg">Save Protocol</button>
-                    </div>
-                </div>
-            </Modal>
-        )
-    }
-
-    return (
-        <div className="space-y-4">
-            {isModalOpen && editingProtocol && <ProtocolEditorModal />}
-            <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-brand-text">Team Protocols</h3>
-                <button onClick={handleAddNew} className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover flex items-center gap-2"><PlusCircleIcon className="w-5 h-5"/> New Protocol</button>
-            </div>
-            <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-2">
-                {protocols.map(protocol => (
-                    <div key={protocol.id} className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-semibold text-brand-text">{protocol.title}</p>
-                                <p className="text-sm text-brand-text-secondary">{protocol.description}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleEdit(protocol)} className="text-sm text-brand-accent hover:underline">Edit</button>
-                                <button onClick={() => handleDelete(protocol.id)} className="text-sm text-red-400 hover:underline">Delete</button>
-                            </div>
-                        </div>
+            <h3 className="text-xl font-bold text-brand-text mb-4">Competition Readiness Sliders</h3>
+            <div className="space-y-4">
+                {progress.map((item, index) => (
+                    <div key={item.category}>
+                        <label className="block text-sm font-semibold text-brand-text-secondary mb-1">{item.category}: {item.progress}%</label>
+                        <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={item.progress}
+                            onChange={(e) => handleProgressChange(index, parseInt(e.target.value))}
+                            className="w-full h-2 bg-brand-border rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                        />
                     </div>
                 ))}
             </div>
+            <button onClick={handleSave} className="mt-6 bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">
+                Save Progress
+            </button>
         </div>
-    )
+    );
 };
 
 const AppSettings: React.FC = () => {
     const { announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl } = useAppState();
-    const { loadData, publicPortalContentHistory, loginHistory } = useData(); // for data import/export
+    const { loadData } = useData();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setTeamLogoUrl(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            reader.onloadend = () => setTeamLogoUrl(reader.result as string);
+            reader.readAsDataURL(e.target.files[0]);
         }
     };
 
-    const handleExport = () => {
-        const dataToExport = {
-          announcement,
-          competitionDate,
-          teamLogoUrl,
-          publicPortalContentHistory,
-          loginHistory,
-        };
-        const dataStr = JSON.stringify(dataToExport, null, 2);
-        const blob = new Blob([dataStr], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `blizzard-racing-hq-backup-${new Date().toISOString().split('T')[0]}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const importedData = JSON.parse(event.target?.result as string);
-                    if (window.confirm("Are you sure you want to import this data? This will overwrite all current team data.")) {
-                        loadData(importedData);
-                        alert("Data imported successfully.");
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert("Failed to parse the import file. Please ensure it's a valid backup file.");
-                }
-            };
-            reader.readAsText(file);
-        }
-    };
-    
     return (
         <div className="space-y-6">
             <div>
                 <h3 className="text-xl font-bold text-brand-text mb-4">Global Announcement</h3>
-                 <input type="text" value={announcement || ''} onChange={e => setAnnouncement(e.target.value)} placeholder="e.g., Team meeting tomorrow at 4 PM" className="w-full mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
+                 <input type="text" value={announcement || ''} onChange={e => setAnnouncement(e.target.value)} placeholder="Critical updates for all team members..." className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg"/>
                  <button onClick={() => setAnnouncement(null)} className="text-xs text-red-400 hover:underline mt-1">Clear Announcement</button>
             </div>
              <div className="border-t border-brand-border pt-6">
-                <h3 className="text-xl font-bold text-brand-text mb-4">Competition Date</h3>
-                 <input type="datetime-local" value={competitionDate || ''} onChange={e => setCompetitionDate(e.target.value)} className="w-full md:w-1/2 mt-1 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
+                <h3 className="text-xl font-bold text-brand-text mb-4">Competition Timeline</h3>
+                 <input type="datetime-local" value={competitionDate || ''} onChange={e => setCompetitionDate(e.target.value)} className="w-full md:w-1/2 p-2 bg-brand-dark border border-brand-border rounded-lg"/>
             </div>
              <div className="border-t border-brand-border pt-6">
-                <h3 className="text-xl font-bold text-brand-text mb-4">Team Logo</h3>
+                <h3 className="text-xl font-bold text-brand-text mb-4">Branding</h3>
                 <div className="flex items-center gap-4">
-                    <div className="bg-white p-2 rounded-md border border-brand-border">
-                        <img src={teamLogoUrl} alt="Team Logo" className="h-16 w-16 object-contain" />
+                    <div className="bg-white p-2 rounded-md border border-brand-border h-16 w-16 flex items-center justify-center">
+                        <img src={teamLogoUrl} alt="Logo" className="h-full w-auto object-contain" />
                     </div>
                     <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" className="hidden"/>
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-brand-surface hover:bg-brand-border text-sm font-semibold px-4 py-2 rounded-lg">
-                        <UploadIcon className="w-4 h-4"/> Change Logo
+                    <button onClick={() => fileInputRef.current?.click()} className="bg-brand-surface hover:bg-brand-border text-sm font-semibold px-4 py-2 rounded-lg">
+                        Update Team Logo
                     </button>
-                </div>
-            </div>
-            <div className="border-t border-brand-border pt-6">
-                <h3 className="text-xl font-bold text-brand-text mb-4">Data Management</h3>
-                 <p className="text-sm text-brand-text-secondary mb-4">Export a full backup of all team data, or import a previous backup to restore the system state.</p>
-                <div className="flex gap-4">
-                    <button onClick={handleExport} className="flex items-center gap-2 bg-blue-500/20 text-blue-300 font-bold py-2 px-4 rounded-lg hover:bg-blue-500/30">
-                        <DownloadIcon className="w-5 h-5"/> Export Data
-                    </button>
-                     <input type="file" id="import-file" onChange={handleImport} accept=".json" className="hidden"/>
-                    <label htmlFor="import-file" className="flex items-center gap-2 bg-yellow-500/20 text-yellow-300 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500/30 cursor-pointer">
-                        <UploadIcon className="w-5 h-5"/> Import Data
-                    </label>
-                </div>
-                 <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-lg text-sm flex items-start gap-2">
-                    <AlertTriangleIcon className="w-8 h-8 flex-shrink-0" />
-                    <div>
-                        <span className="font-bold">Warning:</span> Importing data is a destructive action that will permanently overwrite all existing information. This cannot be undone. Always export a backup first.
-                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-
 // --- MAIN COMPONENT ---
-
-type Tab = 'users' | 'activity' | 'cloud' | 'finances' | 'projects' | 'tasks' | 'sponsors' | 'content' | 'competition' | 'protocols' | 'settings';
+type Tab = 'audit' | 'users' | 'cloud' | 'finances' | 'competition' | 'settings';
 
 const ManagerPanelPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<Tab>('users');
+    const [activeTab, setActiveTab] = useState<Tab>('audit');
     
     const tabs = [
-        { id: 'users', name: 'User Management', icon: <UsersIcon className="w-5 h-5"/>, component: <UserManagement /> },
-        { id: 'activity', name: 'User Activity', icon: <BarChartIcon className="w-5 h-5"/>, component: <UserActivity /> },
-        { id: 'cloud', name: 'Cloud Persistence', icon: <UploadCloudIcon className="w-5 h-5"/>, component: <CloudSyncSettings /> },
-        { id: 'finances', name: 'Financial Command', icon: <DollarSignIcon className="w-5 h-5"/>, component: <FinancialCommand /> },
-        { id: 'projects', name: 'Project Analytics', icon: <PieChartIcon className="w-5 h-5"/>, component: <ProjectAnalytics /> },
-        { id: 'tasks', name: 'Task Control', icon: <ClipboardListIcon className="w-5 h-5"/>, component: <TaskControl /> },
-        { id: 'sponsors', name: 'Sponsorship Hub', icon: <TrophyIcon className="w-5 h-5"/>, component: <SponsorshipHub /> },
-        { id: 'content', name: 'Content Management', icon: <NewspaperIcon className="w-5 h-5"/>, component: <ContentManagement /> },
-        { id: 'competition', name: 'Competition Prep', icon: <FlagIcon className="w-5 h-5"/>, component: <CompetitionManagement /> },
-        { id: 'protocols', name: 'Protocols', icon: <FileCheckIcon className="w-5 h-5"/>, component: <ProtocolManagement /> },
-        { id: 'settings', name: 'App Settings', icon: <Settings2Icon className="w-5 h-5"/>, component: <AppSettings /> },
+        { id: 'audit', name: 'Portfolio Audit', icon: <ShieldCheckIcon className="w-5 h-5"/>, component: <PortfolioAuditor /> },
+        { id: 'users', name: 'User Control', icon: <UsersIcon className="w-5 h-5"/>, component: <UserManagement /> },
+        { id: 'cloud', name: 'Cloud Sync', icon: <UploadCloudIcon className="w-5 h-5"/>, component: <CloudSyncSettings /> },
+        { id: 'finances', name: 'Financials', icon: <DollarSignIcon className="w-5 h-5"/>, component: <FinancialCommand /> },
+        { id: 'competition', name: 'Marking Prep', icon: <FlagIcon className="w-5 h-5"/>, component: <CompetitionManagement /> },
+        { id: 'settings', name: 'HQ Settings', icon: <Settings2Icon className="w-5 h-5"/>, component: <AppSettings /> },
     ];
 
     const activeComponent = tabs.find(tab => tab.id === activeTab)?.component;
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in pb-20">
             <h1 className="text-3xl font-bold text-brand-text mb-6">Manager Command Center</h1>
             <div className="flex flex-col lg:flex-row gap-8">
                 <div className="lg:w-1/4">
@@ -971,7 +481,7 @@ const ManagerPanelPage: React.FC = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as Tab)}
                                 className={`flex items-center flex-shrink-0 gap-3 w-full text-left p-3 rounded-lg font-semibold transition-colors ${
-                                    activeTab === tab.id ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'
+                                    activeTab === tab.id ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-dark-secondary border border-transparent hover:border-brand-border'
                                 }`}
                             >
                                 {tab.icon}
@@ -981,7 +491,7 @@ const ManagerPanelPage: React.FC = () => {
                     </nav>
                 </div>
                 <div className="lg:w-3/4">
-                    <div className="bg-brand-dark-secondary p-6 rounded-xl shadow-md border border-brand-border min-h-[60vh]">
+                    <div className="bg-brand-dark-secondary p-8 rounded-2xl shadow-xl border border-brand-border min-h-[60vh]">
                         {activeComponent}
                     </div>
                 </div>
