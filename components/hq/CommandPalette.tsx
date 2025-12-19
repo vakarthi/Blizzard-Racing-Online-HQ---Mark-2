@@ -64,8 +64,7 @@ const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         })),
         ];
 
-        // Updated UserRole.Manager to UserRole.ProjectManager
-        if (user?.role === UserRole.ProjectManager) {
+        if (user?.role === UserRole.Manager) {
             commandList.push({ id: 'nav-manager', type: 'Navigation', title: 'Go to Manager Panel', icon: <Settings2Icon className="w-5 h-5"/>, action: () => navigate('/manager'), keywords: 'admin command center' });
         }
         

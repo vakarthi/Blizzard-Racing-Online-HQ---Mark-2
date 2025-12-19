@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useData } from '../contexts/AppContext';
@@ -42,8 +43,7 @@ const LoginPage: React.FC = () => {
 
   const checkEmailForManager = () => {
     const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-    // Updated UserRole.Manager to UserRole.ProjectManager
-    if (foundUser && foundUser.role === UserRole.ProjectManager) {
+    if (foundUser && foundUser.role === UserRole.Manager) {
         setIsManagerLogin(true);
     } else {
         setIsManagerLogin(false);

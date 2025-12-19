@@ -1,3 +1,4 @@
+
 import { AeroResult, DesignParameters, ScrutineeringItem } from '../types';
 import { F1_IN_SCHOOLS_RULES } from './mockData';
 
@@ -11,17 +12,28 @@ export const performScrutineering = (params: DesignParameters): ScrutineeringIte
 
         // Fix: Add type check to ensure value is a number before comparison.
         if (typeof value === 'number') {
-            if (rule.min !== undefined && value < rule.min) {
-                status = 'FAIL';
-                notes = `Value is below the minimum of ${rule.min}${rule.unit}.`;
-            }
-            if (rule.max !== undefined && value > rule.max) {
-                status = 'FAIL';
-                notes = `Value is above the maximum of ${rule.max}${rule.unit}.`;
-            }
+          if (rule.min !== undefined && value < rule.min) {
+              status = 'FAIL';
+              notes = `Value (${value}${rule.unit}) is below the minimum of ${rule.min}${rule.unit}. [Infringement identified in Regional report].`;
+          }
+          if (rule.max !== undefined && value > rule.max) {
+              status = 'FAIL';
+              notes = `Value (${value}${rule.unit}) is above the maximum of ${rule.max}${rule.unit}. [Severe penalty potential].`;
+          }
         } else {
             status = 'FAIL';
             notes = `Invalid or missing value for this parameter.`
+        }
+
+        // Specific Blizzard Racing Failures Logic (based on user's real car results)
+        if (rule.id === 'D4.3.2' && status === 'FAIL') {
+          notes = "FAILURE: Halo Plan Visibility check failed. Portions of the cockpit floor are obstructed in the plan view. (-5pts deduction risk)";
+        }
+        if (rule.id === 'D7.6.3' && status === 'FAIL') {
+          notes = `FAILURE: Wing thickness is ${value}mm. This deviates from the technical standard measured in Regional Finals. (-5pts deduction risk)`;
+        }
+        if (rule.id === 'D4.2' && status === 'FAIL') {
+          notes = "CRITICAL FAILURE: No-go-zone intrusion detected. Front wheel assembly overlaps restricted volume. (-25pts deduction risk)";
         }
 
         return {
@@ -38,7 +50,13 @@ export const performScrutineering = (params: DesignParameters): ScrutineeringIte
 
 export const generateAeroSuggestions = (result: AeroResult): string => {
     const suggestions: string[] = [];
-    const { liftToDragRatio, aeroBalance, dragBreakdown, parameters } = result;
+    const { liftToDragRatio, aeroBalance, dragBreakdown, parameters, scrutineeringReport } = result;
+
+    const failedRules = scrutineeringReport?.filter(r => r.status === 'FAIL');
+
+    if (failedRules && failedRules.length > 0) {
+        suggestions.push(`**URGENT: Legal Compliance Issues.** Your design has ${failedRules.length} scrutineering failures. Performance doesn't matter if the car is disqualified or penalized 65+ points like in our Regional run.`);
+    }
 
     if (liftToDragRatio < 3.5) {
         suggestions.push("Your **lift-to-drag ratio is low**, indicating inefficiency. Try increasing the span of your front or rear wings to generate more downforce relative to drag, or reduce the front wing chord to cut drag if downforce is sufficient.");

@@ -15,34 +15,32 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-// Fix: Use Component from the react import directly to ensure setState and props are recognized by the TypeScript compiler
+// Fix: Directly extend Component from react and use class fields to ensure property visibility (state, props, setState).
 class ErrorBoundary extends Component<Props, State> {
+  // Fix: Define state as a class property to resolve "Property 'state' does not exist on type 'ErrorBoundary'" error.
   public state: State = {
     hasError: false,
     error: null,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI.
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // You can also log the error to an error reporting service
     console.error("Uncaught error:", error, errorInfo);
   }
 
+  // Fix: Defined handleRetry to correctly use setState from the base Component class.
   public handleRetry = () => {
-    // Fix: Accessing setState from base class correctly when using Component from react
     this.setState({ hasError: false, error: null });
-    // A full reload might be necessary if assets failed to load due to network issues
+    // A full reload might be necessary if assets failed to load
     window.location.reload();
   };
 
   public render() {
-    // Fix: Accessing the state property from base class correctly when using Component from react
+    // Fix: Access state from the instance after explicit declaration.
     if (this.state.hasError) {
-      // Fallback UI
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">
           <AlertTriangleIcon className="w-16 h-16 text-yellow-400 mb-4" />
@@ -66,7 +64,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    // Fix: Accessing children from props in base class correctly when using Component from react
+    // Fix: Correctly accessing children from the base Component class props.
     return this.props.children;
   }
 }

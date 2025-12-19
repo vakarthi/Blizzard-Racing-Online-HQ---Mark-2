@@ -1,4 +1,5 @@
 
+
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
@@ -25,15 +26,14 @@ interface NavItem {
   roles?: UserRole[];
 }
 
-// Corrected roles to use valid members from UserRole enum
 const navItems: NavItem[] = [
   { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
-  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.DesignEngineer, UserRole.ManufacturingEngineer, UserRole.ProjectManager] },
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.ProjectManager, UserRole.DesignEngineer, UserRole.GraphicDesigner] },
+  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
   { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.ProjectManager, UserRole.DesignEngineer, UserRole.GraphicDesigner] },
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -81,7 +81,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
             <span className="ml-4">{item.name}</span>
           </NavLink>
         ))}
-        {user?.role === UserRole.ProjectManager && (
+        {user?.role === UserRole.Manager && (
             <NavLink
                 to="manager"
                 className={({ isActive }) =>
@@ -184,7 +184,7 @@ const HqApp: React.FC = () => {
                 <Route path="toolbox" element={<ToolboxPage />} />
                 <Route path="portal-editor" element={<PortalEditorPage />} />
                 <Route path="settings" element={<SettingsPage />} />
-                {user?.role === UserRole.ProjectManager && <Route path="manager" element={<ManagerPanelGate />} />}
+                {user?.role === UserRole.Manager && <Route path="manager" element={<ManagerPanelGate />} />}
                 <Route path="*" element={<div>Not Found</div>} />
             </Routes>
         </HqLayout>

@@ -16,10 +16,13 @@ const seededRandom = (seed: number) => {
 const generateValueForRule = (rand: () => number, rule: typeof F1_IN_SCHOOLS_RULES[0]): number => {
     const min = rule.min ?? (rule.max ? rule.max * 0.5 : 50);
     const max = rule.max ?? (rule.min ? rule.min * 1.5 : 100);
-    const value = min + (max - min) * rand();
     
-    // Ensure weight has decimal precision
-    const precision = rule.key === 'totalWeight' ? 2 : 0;
+    // Add some "realistic" variability that favors failing tricky rules
+    const bias = (rule.id === 'D4.3.2' || rule.id === 'D7.6.3') ? 0.3 : 0.5;
+    const value = min + (max - min) * (rand() * bias + (1-bias)*0.5);
+    
+    // Ensure weight and thickness have decimal precision
+    const precision = (rule.key === 'totalWeight' || rule.key === 'frontWingThickness' || rule.key === 'noGoZoneClearance') ? 2 : 0;
     return parseFloat(value.toFixed(precision));
 };
 

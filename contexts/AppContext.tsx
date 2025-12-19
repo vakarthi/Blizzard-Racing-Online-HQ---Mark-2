@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState, useRef } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
 import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSyncedStore } from '../hooks/useSyncedStore';
@@ -7,8 +7,7 @@ import { generateAvatar } from '../utils/avatar';
 import { analyzeStepFile } from '../services/fileAnalysisService';
 import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../services/localSimulationService';
-import { cloudSyncService } from '../services/cloudSyncService';
-import { AppStore } from '../services/stateSyncService';
+
 
 // --- CONTEXT DEFINITIONS ---
 
@@ -41,6 +40,7 @@ export interface DataContextType {
   aeroResults: AeroResult[];
   addAeroResult: (result: Omit<AeroResult, 'id'>) => AeroResult;
   updateAeroResult: (updatedResult: AeroResult) => void;
+  deleteAeroResult: (resultId: string) => void;
   resetAeroResults: () => void;
   finances: FinancialRecord[];
   addFinancialRecord: (record: Omit<FinancialRecord, 'id' | 'date'>) => void;
@@ -79,12 +79,6 @@ export interface DataContextType {
   backgroundTasks: BackgroundTask[];
   runSimulationTask: (file: File, mode: 'speed' | 'accuracy') => void;
   simulationRunCount: number;
-  // --- Sync Members ---
-  syncId: string | null;
-  setSyncId: (id: string | null) => void;
-  isSyncing: boolean;
-  pushToCloud: () => Promise<void>;
-  pullFromCloud: () => Promise<void>;
 }
 
 interface AppStateContextType {
@@ -106,10 +100,6 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useLocalStorage<User | null>('brh-user', null);
   const [biometricConfig, setBiometricConfigState] = useLocalStorage<BiometricConfig | null>('brh-biometric-config', null);
-  const [syncId, setSyncIdState] = useLocalStorage<string | null>('brh-sync-id', '1100318042459734016'); 
-  const [isSyncing, setIsSyncing] = useState(false);
-  const isPullingRef = useRef(false);
-
   const [store, updateStore] = useSyncedStore();
 
   const logout = useCallback(() => {
@@ -117,80 +107,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     window.location.hash = '/login';
   }, [setUser]);
 
-  const setUsers = (action: React.SetStateAction<User[]>) => {
+  const setUsers = (action: SetStateAction<User[]>) => {
     updateStore(currentStore => {
         const newUsers = action instanceof Function ? action(currentStore.users) : action;
         return { ...currentStore, users: newUsers };
     });
   };
   
-  // Cloud Logic
-  const pushToCloud = async (overrideStore?: AppStore) => {
-    if (!syncId) return;
-    setIsSyncing(true);
-    try {
-      const dataToPush = overrideStore || store;
-      const newId = await cloudSyncService.publish(dataToPush, syncId);
-      if (newId !== syncId) setSyncIdState(newId);
-    } catch (e) {
-      console.warn("Auto-sync push failed. Background retries will continue.");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const pullFromCloud = async () => {
-    if (!syncId || isPullingRef.current) return;
-    isPullingRef.current = true;
-    setIsSyncing(true);
-    try {
-      const remoteStore = await cloudSyncService.pull(syncId);
-      // We only update if something actually changed to prevent infinite re-renders
-      if (JSON.stringify(remoteStore) !== JSON.stringify(store)) {
-        updateStore(() => remoteStore);
-      }
-    } catch (e) {
-      // Quietly log to avoid disruptive user messages
-      console.warn("Pull cycle skipped due to network/CORS issues.");
-    } finally {
-      setIsSyncing(false);
-      isPullingRef.current = false;
-    }
-  };
-
-  const updateAndBroadcast = (updater: (s: AppStore) => AppStore) => {
-      updateStore((current) => {
-          const next = updater(current);
-          setTimeout(() => pushToCloud(next), 500);
-          return next;
-      });
-  };
-
-  // Auto-sync polling: 20 seconds
-  useEffect(() => {
-    if (!syncId) return;
-    pullFromCloud();
-
-    const interval = setInterval(() => {
-        pullFromCloud();
-    }, 20000); 
-
-    return () => clearInterval(interval);
-  }, [syncId]);
-
-  // Security Purge
   useEffect(() => {
     setUsers(currentUsers => {
         const validUsers = currentUsers.filter(u => u.email.toLowerCase().endsWith('@saintolaves.net'));
         return validUsers;
     });
+
     if (user && !user.email.toLowerCase().endsWith('@saintolaves.net')) {
         logout();
     }
   }, []);
 
-  // State Sync
-  useEffect(() => {
+    useEffect(() => {
         if (user) {
             const userFromMasterList = store.users.find(u => u.id === user.id);
             if (!userFromMasterList) {
@@ -199,30 +134,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 setUser(userFromMasterList);
             }
         }
-  }, [store.users, user, setUser, logout]);
+    }, [store.users, user, setUser, logout]);
 
 
-  // Auth Logic
   const login = async (email: string, pass: string): Promise<User | null> => {
     const normalizedEmail = email.toLowerCase().trim();
     if (!normalizedEmail.endsWith('@saintolaves.net')) return null;
     const foundUser = store.users.find(u => u.email.toLowerCase() === normalizedEmail);
     if (!foundUser) return null;
-    // Updated UserRole.Manager to UserRole.ProjectManager
     const isValidPassword = (pass === '__BIOMETRIC_SUCCESS__') ||
-        (foundUser.role === UserRole.ProjectManager && pass === '__FROSTNOVA__') ||
-        (foundUser.role !== UserRole.ProjectManager && pass === 'password123');
+        (foundUser.role === UserRole.Manager && pass === '__FROSTNOVA__') ||
+        (foundUser.role !== UserRole.Manager && pass === 'password123');
+
     if (isValidPassword) {
         setUser(foundUser);
-        updateAndBroadcast(s => ({ ...s, loginHistory: [{ userId: foundUser.id, timestamp: new Date().toISOString() }, ...s.loginHistory]}));
+        updateStore(s => ({ ...s, loginHistory: [{ userId: foundUser.id, timestamp: new Date().toISOString() }, ...s.loginHistory]}));
         return foundUser;
     }
     return null;
   };
 
   const verifyPassword = async (password: string): Promise<boolean> => {
-    // Updated UserRole.Manager to UserRole.ProjectManager
-    if (!user || user.role !== UserRole.ProjectManager) return false;
+    if (!user || user.role !== UserRole.Manager) return false;
     return password === '__FROSTNOVA__';
   };
   
@@ -230,16 +163,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const setBiometricConfig = (userId: string, credentialId: string) => setBiometricConfigState({ userId, credentialId });
   const clearBiometricConfig = () => setBiometricConfigState(null);
 
-  // --- Data Logic ---
   const addAeroResult = (result: Omit<AeroResult, 'id'>): AeroResult => {
       const newResult: AeroResult = { ...result, id: `aero-${Date.now()}` };
-      updateAndBroadcast(s => ({ ...s, aeroResults: [newResult, ...s.aeroResults] }));
+      updateStore(s => ({ ...s, aeroResults: [newResult, ...s.aeroResults] }));
       return newResult;
+  };
+
+  const deleteAeroResult = (resultId: string) => {
+    updateStore(s => ({ ...s, aeroResults: s.aeroResults.filter(r => r.id !== resultId) }));
+  };
+
+  const resetAeroResults = () => {
+    if (window.confirm("Are you sure you want to permanently clear all simulation history?")) {
+        updateStore(s => ({ ...s, aeroResults: [] }));
+    }
   };
 
   const runSimulationTask = (file: File, mode: 'speed' | 'accuracy') => {
     const taskId = `sim-${Date.now()}`;
     const isAuditRun = mode === 'speed' && (store.simulationRunCount + 1) % 5 === 0;
+
     const newTask: BackgroundTask = {
       id: taskId,
       type: 'simulation',
@@ -249,35 +192,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       startTime: new Date().toISOString(),
       fileName: file.name,
     };
-    updateAndBroadcast(s => ({
+
+    updateStore(s => ({
         ...s,
         backgroundTasks: [newTask, ...s.backgroundTasks],
         simulationRunCount: s.simulationRunCount + 1,
     }));
+
     (async () => {
       try {
-        updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Analyzing Geometry...', progress: 1 } : t) }));
+        updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Analyzing Geometry...', progress: 1, latestLog: `Analyzing file: ${file.name}` } : t) }));
         const parameters = await analyzeStepFile(file);
+        
         const onProgress = (update: { stage: string; progress: number; log?: string }) => {
             const progressScale = isAuditRun ? 0.9 : 1.0;
             updateStore(s => ({
               ...s,
-              backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: update.stage, progress: update.progress * progressScale, latestLog: update.log } : t)
+              backgroundTasks: s.backgroundTasks.map(t => {
+                if (t.id === taskId) {
+                  return { ...t, stage: update.stage, progress: update.progress * progressScale, latestLog: update.log };
+                }
+                return t;
+              })
             }));
         };
+        
         const tier = mode === 'speed' ? 'standard' : 'premium';
-        let simResultData = (tier === 'standard') ? await runAerotestCFDSimulation(parameters, onProgress) : await runAerotestPremiumCFDSimulation(parameters, onProgress);
+        let simResultData;
+        if (tier === 'standard') {
+            simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+        } else {
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress);
+        }
+        
         const tempResultForAnalysis: AeroResult = { ...simResultData, id: 'temp', fileName: file.name, parameters };
-        const finalResultData: Omit<AeroResult, 'id'> = { ...simResultData, fileName: file.name, suggestions: generateAeroSuggestions(tempResultForAnalysis), scrutineeringReport: performScrutineering(parameters) };
+        const suggestions = generateAeroSuggestions(tempResultForAnalysis);
+        const scrutineeringReport = performScrutineering(parameters);
+        const finalResultData: Omit<AeroResult, 'id'> = { ...simResultData, fileName: file.name, suggestions, scrutineeringReport };
+
+        if (isAuditRun) {
+            updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, stage: 'Audit Run', progress: 90, latestLog: 'Initiating high-fidelity baseline...'} : t)}));
+            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {});
+            updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, progress: 95, latestLog: 'Comparing results against baseline...'} : t)}));
+            const deltaCd = Math.abs(auditSimData.cd - simResultData.cd);
+            finalResultData.auditLog = `Dual-run audit complete. Baseline Cd: ${auditSimData.cd.toFixed(4)} (Δ: ${(deltaCd).toFixed(4)}).`;
+        }
+        
         const newResult = addAeroResult(finalResultData);
-        updateAndBroadcast(s => ({
+        updateStore(s => ({
           ...s,
-          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, status: 'completed', progress: 100, stage: 'Complete', endTime: new Date().toISOString(), resultId: newResult.id } : t)
+          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {
+            ...t,
+            status: 'completed',
+            progress: 100,
+            stage: 'Complete',
+            endTime: new Date().toISOString(),
+            resultId: newResult.id,
+          } : t)
         }));
       } catch (e: any) {
-        updateAndBroadcast(s => ({
+        updateStore(s => ({
           ...s,
-          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, status: 'error', endTime: new Date().toISOString(), error: e.message || String(e) } : t)
+          backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {
+            ...t,
+            status: 'error',
+            endTime: new Date().toISOString(),
+            error: e.message || String(e),
+          } : t)
         }));
       }
     })();
@@ -291,12 +272,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const updatePublicPortalContent = (newContent: PublicPortalContent) => {
       if (!user) return;
       const newVersion: ContentVersion = { content: newContent, timestamp: new Date().toISOString(), editorId: user.id };
-      updateAndBroadcast(s => ({ ...s, publicPortalContentHistory: [newVersion, ...s.publicPortalContentHistory]}));
+      updateStore(s => ({ ...s, publicPortalContentHistory: [newVersion, ...s.publicPortalContentHistory]}));
   };
 
   const revertToVersion = (versionIndex: number) => {
       if (!user || versionIndex < 0 || versionIndex >= store.publicPortalContentHistory.length) return;
-      updateAndBroadcast(s => {
+      updateStore(s => {
           const historyCopy = [...s.publicPortalContentHistory];
           const versionToRestore = historyCopy.splice(versionIndex, 1)[0];
           if (!versionToRestore) return s;
@@ -306,127 +287,131 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addUser = (user: Omit<User, 'id' | 'avatarUrl'>): boolean => {
-    if (!user.email.toLowerCase().endsWith('@saintolaves.net')) return false;
+    if (!user.email.toLowerCase().endsWith('@saintolaves.net')) {
+        alert('Unauthorized email domain.');
+        return false;
+    }
     const newUser: User = { ...user, id: `user-${Date.now()}`, avatarUrl: generateAvatar(user.name) };
-    updateAndBroadcast(s => ({ ...s, users: [newUser, ...s.users] }));
+    updateStore(s => ({ ...s, users: [newUser, ...s.users] }));
     return true;
   };
 
   const updateUser = (userId: string, name: string) => {
-    updateAndBroadcast(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, name } : u) }));
+    updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, name } : u) }));
   };
   
   const updateUserAvatar = (userId: string, avatarDataUrl: string) => {
-    updateAndBroadcast(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, avatarUrl: avatarDataUrl } : u) }));
+    updateStore(s => ({ ...s, users: s.users.map(u => u.id === userId ? { ...u, avatarUrl: avatarDataUrl } : u) }));
   };
 
-  const changePassword = async (userId: string, newPassword: string): Promise<boolean> => { return true; };
+  const changePassword = async (userId: string, newPassword: string): Promise<boolean> => {
+    return true;
+  };
 
   const addTask = (task: Omit<Task, 'id' | 'status'>) => {
     const newTask: Task = { ...task, id: `task-${Date.now()}`, status: TaskStatus.ToDo };
-    updateAndBroadcast(s => ({ ...s, tasks: [newTask, ...s.tasks] }));
+    updateStore(s => ({ ...s, tasks: [newTask, ...s.tasks] }));
   };
 
   const updateTask = (updatedTask: Task) => {
-    updateAndBroadcast(s => ({ ...s, tasks: s.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
+    updateStore(s => ({ ...s, tasks: s.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
   };
 
   const deleteTask = (taskId: string) => {
-    updateAndBroadcast(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId)}));
+    updateStore(s => ({ ...s, tasks: s.tasks.filter(t => t.id !== taskId)}));
   };
   
   const updateAeroResult = (updatedResult: AeroResult) => {
-    updateAndBroadcast(s => ({ ...s, aeroResults: s.aeroResults.map(result => result.id === updatedResult.id ? updatedResult : result) }));
-  };
-
-  const resetAeroResults = () => {
-    updateAndBroadcast(s => ({ ...s, aeroResults: [] }));
+    updateStore(s => ({ ...s, aeroResults: s.aeroResults.map(result => result.id === updatedResult.id ? updatedResult : result) }));
   };
 
   const addFinancialRecord = (record: Omit<FinancialRecord, 'id' | 'date'>) => {
     const newRecord: FinancialRecord = { ...record, id: `fin-${Date.now()}`, date: new Date().toISOString() };
-    updateAndBroadcast(s => ({ ...s, finances: [newRecord, ...s.finances].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())}));
+    updateStore(s => ({ ...s, finances: [newRecord, ...s.finances].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())}));
   };
 
   const deleteFinancialRecord = (recordId: string) => {
-    updateAndBroadcast(s => ({ ...s, finances: s.finances.filter(f => f.id !== recordId)}));
+    updateStore(s => ({ ...s, finances: s.finances.filter(f => f.id !== recordId)}));
   };
 
   const addSponsor = (sponsor: Omit<Sponsor, 'id' | 'logoUrl' | 'status'>) => {
     const newSponsor: Sponsor = { ...sponsor, id: `spon-${Date.now()}`, logoUrl: `https://picsum.photos/seed/${sponsor.name.replace(/\s/g, '')}/200/100`, status: 'pending' };
-    updateAndBroadcast(s => ({ ...s, sponsors: [newSponsor, ...s.sponsors]}));
+    updateStore(s => ({ ...s, sponsors: [newSponsor, ...s.sponsors]}));
   };
 
   const updateSponsorStatus = (sponsorId: string, status: 'pending' | 'secured') => {
-    updateAndBroadcast(s => ({ ...s, sponsors: s.sponsors.map(sp => sp.id === sponsorId ? {...sp, status} : sp)}));
+    updateStore(s => ({ ...s, sponsors: s.sponsors.map(sp => sp.id === sponsorId ? {...sp, status} : sp)}));
   };
 
   const deleteSponsor = (sponsorId: string) => {
-    updateAndBroadcast(s => ({ ...s, sponsors: s.sponsors.filter(sp => sp.id !== sponsorId)}));
+    updateStore(s => ({ ...s, sponsors: s.sponsors.filter(sp => sp.id !== sponsorId)}));
   };
 
   const addNewsPost = (post: Omit<NewsPost, 'id' | 'authorId' | 'createdAt'>) => {
     if (!user) return;
     const newPost: NewsPost = { ...post, id: `news-${Date.now()}`, authorId: user.id, createdAt: new Date().toISOString() };
-    updateAndBroadcast(s => ({ ...s, news: [newPost, ...s.news] }));
+    updateStore(s => ({ ...s, news: [newPost, ...s.news] }));
   };
   
   const updateNewsPost = (updatedPost: NewsPost) => {
-    updateAndBroadcast(s => ({ ...s, news: s.news.map(p => p.id === updatedPost.id ? updatedPost : p)}));
+    updateStore(s => ({ ...s, news: s.news.map(p => p.id === updatedPost.id ? updatedPost : p)}));
   };
 
   const deleteNewsPost = (postId: string) => {
-    updateAndBroadcast(s => ({ ...s, news: s.news.filter(p => p.id !== postId)}));
+    updateStore(s => ({ ...s, news: s.news.filter(p => p.id !== postId)}));
   };
 
   const addCarHighlight = (highlight: Omit<CarHighlight, 'id' | 'imageUrl'>) => {
     const newHighlight: CarHighlight = { ...highlight, id: `car-${Date.now()}`, imageUrl: `https://picsum.photos/seed/car${Date.now()}/800/600` };
-    updateAndBroadcast(s => ({ ...s, carHighlights: [newHighlight, ...s.carHighlights]}));
+    updateStore(s => ({ ...s, carHighlights: [newHighlight, ...s.carHighlights]}));
   };
   
   const updateCarHighlight = (updatedHighlight: CarHighlight) => {
-    updateAndBroadcast(s => ({ ...s, carHighlights: s.carHighlights.map(h => h.id === updatedHighlight.id ? updatedHighlight : h)}));
+    updateStore(s => ({ ...s, carHighlights: s.carHighlights.map(h => h.id === updatedHighlight.id ? updatedHighlight : h)}));
   };
 
   const deleteCarHighlight = (highlightId: string) => {
-    updateAndBroadcast(s => ({ ...s, carHighlights: s.carHighlights.filter(h => h.id !== highlightId)}));
+    updateStore(s => ({ ...s, carHighlights: s.carHighlights.filter(h => h.id !== highlightId)}));
   };
 
   const addThread = (title: string, content: string, authorId: string) => {
     const newPost: DiscussionPost = { id: `post-${Date.now()}`, authorId, content, createdAt: new Date().toISOString() };
     const newThread: DiscussionThread = { id: `thread-${Date.now()}`, title, createdBy: authorId, createdAt: new Date().toISOString(), posts: [newPost] };
-    updateAndBroadcast(s => ({ ...s, discussionThreads: [newThread, ...s.discussionThreads]}));
+    updateStore(s => ({ ...s, discussionThreads: [newThread, ...s.discussionThreads]}));
   };
 
   const addPostToThread = (threadId: string, content: string, authorId: string) => {
     const newPost: DiscussionPost = { id: `post-${Date.now()}`, authorId, content, createdAt: new Date().toISOString() };
-    updateAndBroadcast(s => ({ ...s, discussionThreads: s.discussionThreads.map(thread => thread.id === threadId ? { ...thread, posts: [...thread.posts, newPost] } : thread)}));
+    updateStore(s => ({ ...s, discussionThreads: s.discussionThreads.map(thread => thread.id === threadId ? { ...thread, posts: [...thread.posts, newPost] } : thread)}));
   };
 
   const updateCompetitionProgress = (updates: CompetitionProgressItem[]) => {
-    updateAndBroadcast(s => ({ ...s, competitionProgress: updates }));
+    updateStore(s => ({ ...s, competitionProgress: updates }));
   };
 
   const addProtocol = (protocol: Omit<Protocol, 'id'>) => {
     const newProtocol: Protocol = { ...protocol, id: `proto-${Date.now()}`};
-    updateAndBroadcast(s => ({ ...s, protocols: [newProtocol, ...s.protocols]}));
+    updateStore(s => ({ ...s, protocols: [newProtocol, ...s.protocols]}));
   };
 
   const updateProtocol = (updatedProtocol: Protocol) => {
-    updateAndBroadcast(s => ({ ...s, protocols: s.protocols.map(p => p.id === updatedProtocol.id ? updatedProtocol : p)}));
+    updateStore(s => ({ ...s, protocols: s.protocols.map(p => p.id === updatedProtocol.id ? updatedProtocol : p)}));
   };
 
   const deleteProtocol = (protocolId: string) => {
-    updateAndBroadcast(s => ({ ...s, protocols: s.protocols.filter(p => p.id !== protocolId)}));
+    updateStore(s => ({ ...s, protocols: s.protocols.filter(p => p.id !== protocolId)}));
   };
 
   const addInquiry = (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => {
     const newInquiry: Inquiry = { ...inquiry, id: `inq-${Date.now()}`, timestamp: new Date().toISOString(), status: 'pending' };
-    updateAndBroadcast(s => ({...s, inquiries: [newInquiry, ...s.inquiries]}));
+    updateStore(s => ({...s, inquiries: [newInquiry, ...s.inquiries]}));
   };
 
   const updateInquiryStatus = (inquiryId: string, status: 'accepted' | 'rejected') => {
-    updateAndBroadcast(s => ({ ...s, inquiries: s.inquiries.map(inq => inq.id === inquiryId ? { ...inq, status } : inq) }));
+    updateStore(s => ({
+        ...s,
+        inquiries: s.inquiries.map(inq => inq.id === inquiryId ? { ...inq, status } : inq)
+    }));
   };
 
   const getTeamMember = useCallback((userId: string) => {
@@ -434,9 +419,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [store.users]);
 
   const loadData = (data: any) => {
-    updateAndBroadcast(currentStore => ({
+    updateStore(currentStore => ({
         ...currentStore,
-        ...data,
+        ...data
     }));
   }
 
@@ -445,7 +430,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setUsers,
       addUser, updateUser, updateUserAvatar, changePassword,
       addTask, updateTask, deleteTask,
-      addAeroResult, updateAeroResult, resetAeroResults,
+      addAeroResult, updateAeroResult, deleteAeroResult, resetAeroResults,
       addFinancialRecord, deleteFinancialRecord,
       addSponsor, updateSponsorStatus, deleteSponsor,
       addNewsPost, updateNewsPost, deleteNewsPost,
@@ -453,29 +438,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       addThread, addPostToThread,
       updateCompetitionProgress,
       addProtocol, updateProtocol, deleteProtocol,
-      addInquiry,
-      updateInquiryStatus,
-      getTeamMember,
-      loadData,
-      publicPortalContent,
-      publicPortalContentHistory,
-      updatePublicPortalContent,
-      revertToVersion,
+      addInquiry, updateInquiryStatus,
+      getTeamMember, loadData,
+      publicPortalContent, publicPortalContentHistory,
+      updatePublicPortalContent, revertToVersion,
       runSimulationTask,
-      syncId,
-      setSyncId: setSyncIdState,
-      isSyncing,
-      pushToCloud,
-      pullFromCloud,
   };
 
   const appStateContextValue: AppStateContextType = {
       announcement: store.announcement,
-      setAnnouncement: (message: string | null) => updateAndBroadcast(s => ({...s, announcement: message})),
+      setAnnouncement: (message: string | null) => updateStore(s => ({...s, announcement: message})),
       competitionDate: store.competitionDate,
-      setCompetitionDate: (date: string) => updateAndBroadcast(s => ({...s, competitionDate: date})),
+      setCompetitionDate: (date: string) => updateStore(s => ({...s, competitionDate: date})),
       teamLogoUrl: store.teamLogoUrl,
-      setTeamLogoUrl: (url: string) => updateAndBroadcast(s => ({...s, teamLogoUrl: url})),
+      setTeamLogoUrl: (url: string) => updateStore(s => ({...s, teamLogoUrl: url})),
   };
 
   return (
@@ -489,28 +465,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   );
 };
 
-// --- HOOKS ---
-
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AppProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AppProvider');
   return context;
 };
 
 export const useData = (): DataContextType => {
   const context = useContext(DataContext);
-  if (context === undefined) {
-    throw new Error('useData must be used within an AppProvider');
-  }
+  if (context === undefined) throw new Error('useData must be used within an AppProvider');
   return context;
 };
 
 export const useAppState = (): AppStateContextType => {
     const context = useContext(AppStateContext);
-    if(context === undefined) {
-        throw new Error('useAppState must be used within an AppProvider');
-    }
+    if(context === undefined) throw new Error('useAppState must be used within an AppProvider');
     return context;
 }
