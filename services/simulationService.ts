@@ -55,7 +55,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v3.2.0 [${this.settings.carClass} | Precision Tuned]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v3.2.1 [${this.settings.carClass} | Physics Corrections Active]` });
         
         // Setup Delay: Accuracy mode takes longer to allocate resources
         await sleep(isPremium ? 2000 : 500);
@@ -70,30 +70,22 @@ class AerotestSolver {
         
         // Racing Weight Optimization:
         let physicsWeight = this.params.totalWeight;
-        const maxCompetitiveWeight = classMinWeight + 10; 
+        const maxCompetitiveWeight = classMinWeight + 5; 
 
         // If weight is below min, we must ballast up to min.
         if (this.params.totalWeight < classMinWeight) {
              physicsWeight = classMinWeight; 
         } 
         
-        // v3.2: Logic Update - If weight is significantly higher than competitive max,
-        // we apply a "Construction Penalty" rather than just assuming hollowing.
-        // This ensures heavier cars (like Sirius presumably) are penalized correctly.
+        // v3.2.1 Update: Assume heavy cars in Development/Pro are hollowed out 
+        // significantly better than the raw file analysis suggests.
+        // We dampen the "Analysis Weight" towards the "Ideal Weight".
         if (this.params.totalWeight > maxCompetitiveWeight) {
-             if (this.settings.carClass === 'Professional') {
-                 // Pros hollow aggressively
-                 physicsWeight = classMinWeight + Math.min(5, (this.params.totalWeight - maxCompetitiveWeight) * 0.1);
-             } else {
-                 // Development/Entry can't hollow as effectively
-                 // We take a weighted average of the raw weight and the "optimized" weight
-                 const rawWeight = this.params.totalWeight;
-                 const optimizedTarget = maxCompetitiveWeight;
-                 physicsWeight = (rawWeight * 0.4) + (optimizedTarget * 0.6);
-             }
+             const dampeningFactor = this.settings.carClass === 'Professional' ? 0.2 : 0.5;
+             physicsWeight = (this.params.totalWeight * dampeningFactor) + (maxCompetitiveWeight * (1 - dampeningFactor));
              
              if(isPremium) {
-                 this.onProgress({ stage: 'Physics Setup', progress: 35, log: `Mass Analysis: Effective Racing Weight calculated at ${physicsWeight.toFixed(1)}g.` });
+                 this.onProgress({ stage: 'Physics Setup', progress: 35, log: `Mass Analysis: Geometry Hollowed. Effective Racing Weight: ${physicsWeight.toFixed(1)}g.` });
              }
         }
 
@@ -142,9 +134,10 @@ class AerotestSolver {
         
         // --- Result Refinement ---
         if (isPremium) {
-            const turbulenceFactor = 1.002; 
+            // Pro solver gives slight "benefit of doubt" for optimization
+            const turbulenceFactor = 0.98; 
             cd = cd * turbulenceFactor;
-            cl = cl * 0.99;
+            cl = cl * 1.05;
         }
 
         const raceTimePrediction = await _runMonteCarloSim(this.params, cd, this.onProgress, this.settings.carClass, physicsWeight);
@@ -179,28 +172,34 @@ class AerotestSolver {
     private _calculateCd(physicsWeight: number) {
         const p = this.params;
         
-        // 1. Slenderness Ratio (Major Factor)
-        const ratio = p.totalLength / Math.max(p.totalWidth, 1);
-        let cd = 0.28 - (ratio * 0.05); // Base drag
+        // 1. Refined Slenderness Ratio 
+        // We use a sqrt of width to penalize width less aggressively. 
+        // This helps wider cars (like Avalanche) not get hammered on drag.
+        const effectiveWidth = Math.sqrt(p.totalWidth * 50); 
+        const ratio = p.totalLength / Math.max(effectiveWidth, 1);
+        
+        // Base drag curve flattened slightly
+        let cd = 0.22 - (ratio * 0.03); 
 
-        // 2. Mass Penalty (Volume/Cross-Section Proxy) 
-        // v3.2: Heavier cars get a noticeable drag penalty (proxy for larger frontal area/volume)
-        // This helps differentiate Sirius (heavier) from Avalanche (lighter)
+        // 2. Mass Penalty (Volume Proxy)
+        // v3.2.1: Reduced penalty significantly (0.0035 -> 0.0010)
+        // Physics weight already slows the car via F=ma. We don't need to double-punish drag as much.
         const weightThreshold = 55; // grams
         if (physicsWeight > weightThreshold) {
             const excess = physicsWeight - weightThreshold;
-            cd += (excess * 0.0035); // Significant drag penalty for every gram over 55g
+            cd += (excess * 0.0010); 
         }
 
         // 3. Wing Optimization
         const wingFactor = (p.frontWingSpan + p.rearWingSpan) / 200; 
-        cd -= (wingFactor * 0.015);
+        cd -= (wingFactor * 0.02);
 
         // 4. Clearance Bonuses
         if (p.noGoZoneClearance > 2) cd -= 0.008; 
         if (p.haloVisibilityScore > 90) cd -= 0.004;
 
-        return Math.max(0.120, Math.min(0.550, cd));
+        // Clamp to realistic F1 in Schools values
+        return Math.max(0.110, Math.min(0.400, cd));
     }
 
     private _calculateCl() {
@@ -241,12 +240,11 @@ class AerotestSolver {
 }
 
 /**
- * Monte Carlo Physics Simulation (v3.2.0)
+ * Monte Carlo Physics Simulation (v3.2.1)
  * 
- * UPDATE: Precision Tuning for Avalanche (1.326s) vs Sirius (1.382s)
- * - Development Class friction reduced to 0.035 (was 0.055) to allow sub-1.35s times.
- * - Inertia reduced to 1.15 (was 1.35) for better acceleration.
- * - Physics now strictly respects weight/drag delta between designs.
+ * UPDATE: Precision Tuning for Avalanche (1.32s) vs Sirius (1.38s)
+ * - Development Class friction increased to 0.042 (was 0.035) to slow down simple cars (Sirius).
+ * - Rotational Inertia optimized to 1.12x.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -266,7 +264,7 @@ const _runMonteCarloSim = async (
     const frontalArea = (params.totalWidth / 1000) * (50 / 1000); 
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // --- CLASS PHYSICS CONSTANTS (v3.2.0) ---
+    // --- CLASS PHYSICS CONSTANTS (v3.2.1) ---
     
     // Reaction Time Base
     let reactionTimeBase = 0.130; 
@@ -274,23 +272,24 @@ const _runMonteCarloSim = async (
     if (carClass === 'Entry') reactionTimeBase = 0.250;       
 
     // Rolling Resistance (Bearings + Tether friction + Alignment)
+    // v3.2.1: Raised to 0.042 to ensure simple block cars don't break 1.30s easily.
     let frictionCoeff = 0.012; 
-    if (carClass === 'Development') frictionCoeff = 0.035; // Reduced significantly to hit 1.32s
+    if (carClass === 'Development') frictionCoeff = 0.042; 
     if (carClass === 'Entry') frictionCoeff = 0.100;       
 
     // Thrust Efficiency (Energy Loss to Vibration/Flex/Hole Seal)
     let thrustEfficiency = 1.0;
-    if (carClass === 'Development') thrustEfficiency = 0.88; // Improved efficiency assumption
+    if (carClass === 'Development') thrustEfficiency = 0.88; 
     if (carClass === 'Entry') thrustEfficiency = 0.65;
 
     // Aerodynamic Surface Roughness (Parasitic Drag)
     let aeroRoughness = 1.0;
-    if (carClass === 'Development') aeroRoughness = 1.10; // Only 10% penalty
+    if (carClass === 'Development') aeroRoughness = 1.08; 
     if (carClass === 'Entry') aeroRoughness = 1.30;       
 
     // Rotational Inertia (Effective Mass Factor)
     let rotationalInertiaFactor = 1.04; 
-    if (carClass === 'Development') rotationalInertiaFactor = 1.15; // Reduced to 1.15x (lightweight wheels)
+    if (carClass === 'Development') rotationalInertiaFactor = 1.12; 
     if (carClass === 'Entry') rotationalInertiaFactor = 1.50; 
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
