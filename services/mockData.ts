@@ -221,6 +221,10 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         bestFinishLineSpeed: 21.15,
         worstFinishLineSpeed: 21.15,
         averageFinishLineSpeed: 21.15,
+        // Fix: Added missing bestStartSpeed, worstStartSpeed, and averageStartSpeed properties to satisfy type requirements.
+        bestStartSpeed: 15.5,
+        worstStartSpeed: 15.5,
+        averageStartSpeed: 15.5,
         bestAverageSpeed: 17.31,
         worstAverageSpeed: 17.31,
         averageSpeed: 17.31,

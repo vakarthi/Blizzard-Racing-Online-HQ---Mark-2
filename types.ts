@@ -66,7 +66,7 @@ export interface PerformancePoint {
 
 export interface MonteCarloPoint {
     time: number;
-    finishSpeed: number;
+    startSpeed: number; // Changed from finishSpeed to startSpeed
 }
 
 export interface ProbabilisticRaceTimePrediction {
@@ -79,6 +79,11 @@ export interface ProbabilisticRaceTimePrediction {
     bestFinishLineSpeed: number; // m/s
     worstFinishLineSpeed: number; // m/s
     averageFinishLineSpeed: number; // m/s
+
+    // Start Speeds (Sampled at track entry, approx 5m)
+    bestStartSpeed: number;
+    worstStartSpeed: number;
+    averageStartSpeed: number;
 
     // Average Track Speeds (Distance / Time)
     bestAverageSpeed: number; // m/s

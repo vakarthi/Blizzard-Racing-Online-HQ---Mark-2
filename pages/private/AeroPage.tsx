@@ -174,116 +174,313 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     );
 };
 
-// Fix: Add the missing ComparisonTab component
-const ComparisonTab: React.FC<{ results: AeroResult[] }> = ({ results }) => {
-    return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
-                <h3 className="text-lg font-bold text-brand-accent mb-4 uppercase tracking-tighter">Performance Comparison</h3>
-                <PerformanceGraph results={results} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Metric Comparison</h4>
-                    <div className="space-y-4">
-                        {results.length > 0 ? results.map(res => (
-                            <div key={res.id} className="flex justify-between items-center text-sm p-3 bg-brand-dark rounded border border-brand-border">
-                                <span className="text-brand-text font-semibold">{res.parameters.carName}</span>
-                                <div className="flex gap-4">
-                                    <span className="font-mono text-brand-accent">Cd: {res.cd.toFixed(4)}</span>
-                                    <span className="font-mono text-green-400">L/D: {res.liftToDragRatio.toFixed(2)}</span>
-                                </div>
-                            </div>
-                        )) : <p className="text-brand-text-secondary text-sm">No results to compare.</p>}
-                    </div>
+const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = ({ results, onClear }) => {
+    if (results.length < 2) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 animate-fade-in">
+                <div className="p-4 bg-brand-dark rounded-full border border-brand-border">
+                    <BarChartIcon className="w-12 h-12 text-brand-border" />
                 </div>
+                <div>
+                    <h3 className="text-xl font-bold text-brand-text">Comparison Engine Idle</h3>
+                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'History' tab to compare their aerodynamic signatures.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8 animate-fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2"><BarChartIcon className="w-6 h-6 text-brand-accent"/> Performance Head-to-Head</h2>
+                <button onClick={onClear} className="text-sm font-bold text-red-400 hover:underline">Reset Comparison</button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
+                    <h3 className="text-xs font-black text-brand-accent uppercase mb-4 tracking-widest">Efficiency Curves (L/D)</h3>
+                    <PerformanceGraph results={results} height={300} />
+                </div>
+                <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
+                    <h3 className="text-xs font-black text-brand-accent uppercase mb-4 tracking-widest">Velocity Profiles (Acc.)</h3>
+                    <SpeedTimeGraph result={results} height={300} showTitle={false} />
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-brand-border">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-brand-dark-secondary text-brand-text-secondary uppercase text-xs font-bold">
+                        <tr>
+                            <th className="px-6 py-4">Metric</th>
+                            {results.map(r => (
+                                <th key={r.id} className="px-6 py-4 text-center">{r.parameters.carName}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border">
+                        {[
+                            { key: 'cd', label: 'Drag (Cd)', best: 'min' },
+                            { key: 'averageRaceTime', label: 'Avg Race Time', best: 'min' },
+                            { key: 'averageFinishLineSpeed', label: 'Finish Speed', best: 'max' }
+                        ].map(m => {
+                            const values = results.map(r => m.key === 'cd' ? r.cd : (r.raceTimePrediction as any)[m.key]);
+                            const bestVal = m.best === 'min' ? Math.min(...values) : Math.max(...values);
+                            
+                            return (
+                                <tr key={m.key} className="bg-brand-dark/30 hover:bg-brand-dark/50 transition-colors">
+                                    <td className="px-6 py-4 font-bold text-brand-text-secondary">{m.label}</td>
+                                    {results.map((r, i) => (
+                                        <td key={r.id} className={`px-6 py-4 text-center font-mono ${values[i] === bestVal ? 'text-green-400 bg-green-500/5 font-bold' : ''}`}>
+                                            {m.key === 'cd' ? r.cd.toFixed(4) : 
+                                             m.key === 'averageRaceTime' ? `${values[i].toFixed(3)}s` : 
+                                             `${(values[i] * 3.6).toFixed(1)} km/h`}
+                                        </td>
+                                    ))}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 };
 
-// Fix: Add the missing AeroPage main component
 const AeroPage: React.FC = () => {
-    const { aeroResults, deleteAeroResult, resetAeroResults } = useData();
-    const [selectedResult, setSelectedResult] = useState<AeroResult | null>(null);
-    const [activeTab, setActiveTab] = useState<'history' | 'comparison'>('history');
+  const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult } = useData();
+  const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'comparison' | 'history'>('setup');
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
+  const [stepFile, setStepFile] = useState<File | null>(null);
+  const [mode, setMode] = useState<'speed' | 'accuracy'>('speed');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
+  
+  const currentResult = useMemo(() => {
+    if (selectedResultId === 'benchmark-optimum') return THEORETICAL_OPTIMUM;
+    return aeroResults.find(r => r.id === selectedResultId) || aeroResults[0];
+  }, [selectedResultId, aeroResults]);
 
-    const displayResults = useMemo(() => {
-        const list = [...aeroResults];
-        // Add a benchmark if list is empty or for baseline comparison
-        if (list.length === 0) return [THEORETICAL_OPTIMUM];
-        return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    }, [aeroResults]);
+  const runningSimulations = backgroundTasks.filter(t => t.type === 'simulation' && t.status === 'running');
+  
+  const handleSimulate = async () => {
+    if (!stepFile) return;
+    runSimulationTask(stepFile, mode);
+    setStepFile(null);
+    setActiveTab('setup'); // Stay here to see progress
+  };
 
-    return (
-        <div className="animate-fade-in space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-brand-text">Aero Testing</h1>
-                <div className="flex gap-2">
-                    <button onClick={resetAeroResults} className="flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-colors text-sm font-bold">
-                        <TrashIcon className="w-4 h-4" /> Reset History
-                    </button>
-                </div>
-            </div>
+  const toggleComparison = (id: string) => {
+    setComparisonIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
+  };
 
-            {selectedResult ? (
-                <div className="space-y-6">
-                    <button onClick={() => setSelectedResult(null)} className="text-brand-accent hover:underline flex items-center gap-2 font-bold uppercase text-xs tracking-widest">
-                        &larr; Back to History
-                    </button>
-                    <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border shadow-md">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-brand-text">{selectedResult.parameters.carName}</h2>
-                            <span className="text-xs text-brand-text-secondary font-mono">{new Date(selectedResult.timestamp).toLocaleString()}</span>
-                        </div>
-                        <DetailedAnalysisContent result={selectedResult} />
-                    </div>
-                </div>
-            ) : (
-                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border shadow-md">
-                    <div className="flex gap-4 mb-6">
-                        <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-lg font-bold transition-colors ${activeTab === 'history' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-border'}`}>Simulation History</button>
-                        <button onClick={() => setActiveTab('comparison')} className={`px-4 py-2 rounded-lg font-bold transition-colors ${activeTab === 'comparison' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:bg-brand-border'}`}>Baseline Comparison</button>
-                    </div>
+  const comparisonResults = useMemo(() => {
+    return aeroResults.filter(r => comparisonIds.has(r.id));
+  }, [aeroResults, comparisonIds]);
 
-                    {activeTab === 'history' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {displayResults.map(res => (
-                                <div key={res.id} onClick={() => setSelectedResult(res)} className="bg-brand-dark p-4 rounded-xl border border-brand-border hover:border-brand-accent transition-all cursor-pointer group">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h3 className="font-bold text-brand-text group-hover:text-brand-accent transition-colors truncate pr-4">{res.parameters.carName}</h3>
-                                        {res.id !== 'benchmark-optimum' && (
-                                            <button onClick={(e) => { e.stopPropagation(); deleteAeroResult(res.id); }} className="text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                                                <TrashIcon className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-brand-dark-secondary p-2 rounded">
-                                            <p className="text-brand-text-secondary uppercase">Drag (Cd)</p>
-                                            <p className="font-mono font-bold">{res.cd.toFixed(4)}</p>
-                                        </div>
-                                        <div className="bg-brand-dark-secondary p-2 rounded">
-                                            <p className="text-brand-text-secondary uppercase">Efficiency (L/D)</p>
-                                            <p className="font-mono font-bold text-green-400">{res.liftToDragRatio.toFixed(2)}</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 flex justify-between items-center">
-                                        <span className="text-[10px] text-brand-text-secondary uppercase font-bold tracking-widest">{new Date(res.timestamp).toLocaleDateString()}</span>
-                                        <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${res.tier === 'premium' ? 'bg-brand-accent/20 text-brand-accent' : 'bg-brand-border text-brand-text-secondary'}`}>
-                                            {res.tier || 'standard'}
-                                        </span>
+  return (
+    <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Engine</h1>
+            <p className="text-brand-text-secondary mt-1">v2.7.5 Physics Engine | Monte Carlo Simulation Active</p>
+        </div>
+        
+        <div className="flex bg-brand-dark-secondary p-1 rounded-xl border border-brand-border shadow-lg overflow-x-auto">
+            {(['setup', 'results', 'comparison', 'history'] as const).map(tab => (
+                <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 capitalize whitespace-nowrap ${
+                        activeTab === tab 
+                        ? 'bg-brand-accent text-brand-dark shadow-glow-accent' 
+                        : 'text-brand-text-secondary hover:text-brand-text hover:bg-brand-dark'
+                    }`}
+                >
+                    {tab}
+                </button>
+            ))}
+        </div>
+      </header>
+
+      <main className="min-h-[60vh]">
+          {activeTab === 'setup' && (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-fade-in">
+                  <div className="lg:col-span-3 space-y-8">
+                      <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl">
+                          <h2 className="text-2xl font-bold text-brand-text mb-6 flex items-center gap-3">
+                              <UploadCloudIcon className="w-8 h-8 text-brand-accent" />
+                              Initialize Simulation
+                          </h2>
+
+                          <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="group relative flex flex-col justify-center items-center py-16 px-10 border-4 border-dashed rounded-3xl cursor-pointer transition-all duration-300 border-brand-border bg-brand-dark/50 hover:border-brand-accent/50 hover:bg-brand-dark"
+                            >
+                                <div className="mb-6 p-4 bg-brand-dark rounded-full border border-brand-border group-hover:border-brand-accent transition-all">
+                                    <UploadCloudIcon className="w-12 h-12 text-brand-text-secondary group-hover:text-brand-accent" />
+                                </div>
+                                <h3 className="text-xl font-bold text-brand-text mb-2 text-center">
+                                    {stepFile ? stepFile.name : 'Select Car Geometry'}
+                                </h3>
+                                <p className="text-brand-text-secondary text-sm text-center">
+                                    Upload <span className="text-brand-text font-bold">.STEP</span> or <span className="text-brand-text font-bold">.STP</span> for class-accurate mass derivation.
+                                </p>
+                                <input type="file" ref={fileInputRef} onChange={(e) => setStepFile(e.target.files?.[0] || null)} accept=".step,.stp" className="hidden" />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Entry Class</label>
+                                    <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
+                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>DEV</button>
+                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>PRO</button>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <ComparisonTab results={aeroResults} />
-                    )}
-                </div>
-            )}
-        </div>
-    );
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={handleSimulate}
+                                        disabled={!stepFile || runningSimulations.length > 0}
+                                        className="w-full bg-brand-accent text-brand-dark font-black py-4 rounded-xl hover:bg-brand-accent-hover transition-all disabled:opacity-30 text-lg shadow-glow-accent group"
+                                    >
+                                        <WindIcon className="w-6 h-6 mr-3" /> RUN SOLVER
+                                    </button>
+                                </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full">
+                          <h2 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
+                              <InfoIcon className="w-5 h-5 text-brand-accent" />
+                              Active Solves
+                          </h2>
+                          <div className="space-y-4">
+                              {runningSimulations.length > 0 ? runningSimulations.map(task => (
+                                  <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse">
+                                      <div className="flex justify-between items-center mb-2">
+                                          <span className="text-sm font-bold text-brand-accent">{task.fileName}</span>
+                                          <span className="text-xs font-mono">{task.progress.toFixed(0)}%</span>
+                                      </div>
+                                      <div className="w-full bg-brand-surface h-2 rounded-full overflow-hidden">
+                                          <div className="bg-brand-accent h-full transition-all duration-300" style={{ width: `${task.progress}%` }}></div>
+                                      </div>
+                                      <p className="text-[10px] text-brand-text-secondary mt-2 uppercase tracking-tighter">{task.stage}</p>
+                                      {task.latestLog && <p className="text-[9px] text-brand-text-secondary mt-1 font-mono italic truncate">{task.latestLog}</p>}
+                                  </div>
+                              )) : (
+                                  <div className="flex flex-col items-center justify-center py-10 text-brand-text-secondary border border-dashed border-brand-border rounded-xl">
+                                      <CommandIcon className="w-10 h-10 opacity-20 mb-2" />
+                                      <p className="text-xs font-bold uppercase tracking-widest">No Active Solves</p>
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
+
+          {activeTab === 'results' && (
+              <div className="animate-fade-in">
+                  {currentResult ? (
+                      <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl">
+                          <div className="flex justify-between items-start mb-8">
+                                <div>
+                                    <h2 className="text-3xl font-bold text-brand-text">{currentResult.parameters.carName}</h2>
+                                    <p className="text-brand-text-secondary font-mono text-sm">{currentResult.id === 'benchmark-optimum' ? 'Theoretical Benchmark' : `Analysis Date: ${new Date(currentResult.timestamp).toLocaleDateString()}`}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => toggleComparison(currentResult.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${comparisonIds.has(currentResult.id) ? 'bg-brand-accent text-brand-dark border-brand-accent' : 'border-brand-border text-brand-text-secondary hover:text-brand-text'}`}
+                                    >
+                                        {comparisonIds.has(currentResult.id) ? 'In Comparison' : 'Add to Compare'}
+                                    </button>
+                                </div>
+                          </div>
+                          <DetailedAnalysisContent result={currentResult} />
+                      </div>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                          <WindIcon className="w-16 h-16 text-brand-border" />
+                          <h3 className="text-xl font-bold text-brand-text">Simulation Ledger Empty</h3>
+                          <button onClick={() => setActiveTab('setup')} className="text-brand-accent hover:underline font-bold">Return to Setup</button>
+                      </div>
+                  )}
+              </div>
+          )}
+
+          {activeTab === 'comparison' && (
+              <ComparisonTab results={comparisonResults} onClear={() => setComparisonIds(new Set())} />
+          )}
+
+          {activeTab === 'history' && (
+              <div className="space-y-4 animate-fade-in">
+                  <div className="flex justify-between items-end mb-4">
+                      <h2 className="text-2xl font-bold">Analysis History</h2>
+                      <button onClick={resetAeroResults} className="text-xs font-bold text-red-400 hover:underline flex items-center gap-1"><TrashIcon className="w-3 h-3"/> Wipe History</button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                      {[THEORETICAL_OPTIMUM, ...aeroResults].map(res => (
+                          <div key={res.id} className="group flex items-center justify-between p-4 rounded-xl border border-brand-border bg-brand-dark-secondary hover:border-brand-accent/30 transition-all">
+                              <div className="flex items-center gap-4">
+                                  <input 
+                                      type="checkbox" 
+                                      checked={comparisonIds.has(res.id)} 
+                                      onChange={() => toggleComparison(res.id)}
+                                      className="w-4 h-4 rounded border-brand-border text-brand-accent bg-brand-dark focus:ring-brand-accent"
+                                  />
+                                  <div onClick={() => { setSelectedResultId(res.id); setActiveTab('results'); }} className="flex flex-col cursor-pointer">
+                                      <p className="font-bold text-brand-text">{res.parameters.carName}</p>
+                                      <p className="text-[10px] text-brand-text-secondary uppercase">{res.tier === 'premium' ? 'Professional' : 'Development'} Class</p>
+                                  </div>
+                              </div>
+                              <div onClick={() => { setSelectedResultId(res.id); setActiveTab('results'); }} className="flex items-center gap-8 font-mono text-sm cursor-pointer">
+                                  <div className="hidden md:block text-center">
+                                      <p className="text-[9px] text-brand-text-secondary uppercase">Cd</p>
+                                      <p className="font-bold">{res.cd.toFixed(4)}</p>
+                                  </div>
+                                  <div className="text-center">
+                                      <p className="text-[9px] text-brand-text-secondary uppercase">Avg Speed</p>
+                                      <p className="font-bold text-brand-accent">{(res.raceTimePrediction!.averageSpeed * 3.6).toFixed(1)} km/h</p>
+                                  </div>
+                                  <div className="text-center">
+                                      <p className="text-[9px] text-brand-text-secondary uppercase">Time</p>
+                                      <p className="font-bold text-yellow-400">{res.raceTimePrediction!.averageRaceTime.toFixed(3)}s</p>
+                                  </div>
+                                  {res.id !== 'benchmark-optimum' && (
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); deleteAeroResult(res.id); }}
+                                        className="p-2 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                          <TrashIcon className="w-4 h-4" />
+                                      </button>
+                                  )}
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
+      </main>
+
+      <footer className="mt-12 p-8 bg-brand-accent/5 rounded-3xl border border-brand-accent/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+              <div className="p-3 bg-brand-accent/10 rounded-2xl text-brand-accent">
+                  <ShieldCheckIcon className="w-8 h-8" />
+              </div>
+              <div>
+                  <p className="text-brand-text font-bold">Aerotest v2.7.5</p>
+                  <p className="text-xs text-brand-text-secondary">Class-Dynamics Engine | Probabilistic Solver</p>
+              </div>
+          </div>
+      </footer>
+    </div>
+  );
 };
 
 export default AeroPage;

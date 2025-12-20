@@ -1,9 +1,9 @@
 
-import React, { ErrorInfo } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -39,7 +39,6 @@ class ErrorBoundary extends React.Component<Props, State> {
 
   /**
    * Resets the error state to allow the user to try again.
-   * This uses the setState method inherited from React.Component.
    */
   public handleRetry = () => {
     // Fix: access setState through 'this' which is now correctly recognized as inherited from React.Component
