@@ -11,26 +11,30 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
   const [hoveredPoint, setHoveredPoint] = useState<{ car: string; speed: number; ld: number; x: number; y: number } | null>(null);
 
   const padding = { top: 40, right: 120, bottom: 50, left: 60 };
-  const width = 800; // Fixed internal coordinate system width
+  const width = 800;
 
-  // Generate curve data if not already present
+  // Generate curve data from results
   const curves = useMemo(() => {
+    const colors = ['#00BFFF', '#A78BFA', '#4ADE80', '#FBBF24', '#F472B6'];
+    
     return results.map((result, idx) => {
-      // Speed range 5 to 25 m/s in steps of 2.5
-      const points = [];
-      const frontalArea = (result.parameters.totalWidth / 1000) * (45 / 1000);
-      const airDensity = 1.225;
-
-      for (let speed = 5; speed <= 25; speed += 2.5) {
-        // Simple Reynolds number effect simulation
-        // Efficiency usually peaks at a certain Reynolds number
-        const reEffect = 1 + (Math.log(speed / 10) * 0.05); 
-        const ldRatio = result.liftToDragRatio * reEffect;
-        
-        points.push({ speed, ldRatio });
+      let points = [];
+      
+      // Use real simulation data if available
+      if (result.performanceCurve && result.performanceCurve.length > 0) {
+          points = result.performanceCurve.map(p => ({
+              speed: p.speed,
+              ldRatio: p.ldRatio
+          }));
+      } else {
+          // Fallback for older results (approximate physics)
+          for (let speed = 5; speed <= 30; speed += 2.5) {
+            const reEffect = 1 + (Math.log(speed / 10) * 0.05); 
+            const ldRatio = result.liftToDragRatio * reEffect;
+            points.push({ speed, ldRatio });
+          }
       }
       
-      const colors = ['#00BFFF', '#A78BFA', '#4ADE80', '#FBBF24', '#F472B6'];
       return {
         id: result.id,
         name: result.fileName,
@@ -45,12 +49,12 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
     let allLd = curves.flatMap(c => c.points.map(p => p.ldRatio));
     if (allLd.length === 0) return { minLd: 0, maxLd: 10 };
     return {
-      minLd: Math.max(0, Math.min(...allLd) - 1),
-      maxLd: Math.max(...allLd) + 1
+      minLd: Math.max(0, Math.min(...allLd) - 0.5),
+      maxLd: Math.max(...allLd) + 0.5
     };
   }, [curves]);
 
-  const getX = (speed: number) => padding.left + ((speed - 5) / 20) * (width - padding.left - padding.right);
+  const getX = (speed: number) => padding.left + ((speed - 5) / 25) * (width - padding.left - padding.right);
   const getY = (ld: number) => height - padding.bottom - ((ld - minLd) / (maxLd - minLd)) * (height - padding.top - padding.bottom);
 
   return (
@@ -68,7 +72,7 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
           );
         })}
 
-        {[5, 10, 15, 20, 25].map(speed => {
+        {[5, 10, 15, 20, 25, 30].map(speed => {
           const x = getX(speed);
           return (
             <g key={speed}>
@@ -80,10 +84,11 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
 
         {/* Axes Labels */}
         <text x={width/2 - padding.right/2} y={height - 5} fill="var(--color-text-secondary)" fontSize="12" fontWeight="bold" textAnchor="middle">Velocity (m/s)</text>
-        <text x={15} y={height/2} fill="var(--color-text-secondary)" fontSize="12" fontWeight="bold" textAnchor="middle" transform={`rotate(-90 15 ${height/2})`}>Aero Efficiency (L/D Ratio)</text>
+        <text x={15} y={height/2} fill="var(--color-text-secondary)" fontSize="12" fontWeight="bold" textAnchor="middle" transform={`rotate(-90 15 ${height/2})`}>L/D Ratio</text>
 
         {/* Curves */}
         {curves.map(curve => {
+          if (curve.points.length === 0) return null;
           const pathData = curve.points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(p.speed)} ${getY(p.ldRatio)}`).join(' ');
           return (
             <g key={curve.id}>
@@ -96,15 +101,15 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
                 strokeLinejoin="round"
                 className="transition-all duration-300 group-hover:opacity-30 hover:!opacity-100 hover:!stroke-width-[5px] cursor-pointer"
               />
-              {/* Interaction points */}
-              {curve.points.map(p => (
+              {/* Interaction points (sampled) */}
+              {curve.points.filter((_, i) => i % 2 === 0).map(p => (
                 <circle
                   key={p.speed}
                   cx={getX(p.speed)}
                   cy={getY(p.ldRatio)}
                   r="4"
                   fill={curve.color}
-                  className="cursor-crosshair"
+                  className="cursor-crosshair opacity-0 group-hover:opacity-100 transition-opacity"
                   onMouseEnter={() => setHoveredPoint({ car: curve.name, speed: p.speed, ld: p.ldRatio, x: getX(p.speed), y: getY(p.ldRatio) })}
                   onMouseLeave={() => setHoveredPoint(null)}
                 />
@@ -127,10 +132,13 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
 
         {/* Tooltip */}
         {hoveredPoint && (
-          <g transform={`translate(${hoveredPoint.x + 10}, ${hoveredPoint.y - 40})`}>
-            <rect width="120" height="45" fill="rgba(0,0,0,0.8)" rx="4" stroke="var(--color-border)" />
-            <text x="60" y="18" fill="white" fontSize="11" fontWeight="bold" textAnchor="middle">{hoveredPoint.car}</text>
-            <text x="60" y="34" fill="var(--color-accent-default)" fontSize="10" textAnchor="middle">{hoveredPoint.speed}m/s : {hoveredPoint.ld.toFixed(3)} L/D</text>
+          <g transform={`translate(${hoveredPoint.x}, ${hoveredPoint.y})`}>
+            <circle r="6" fill="white" stroke={hoveredPoint.y > height/2 ? "black" : "white"} strokeWidth="2" />
+            <g transform={`translate(10, ${hoveredPoint.y < height / 2 ? 10 : -50})`}>
+                <rect width="130" height="45" fill="rgba(13,17,23,0.95)" rx="4" stroke="var(--color-border)" className="shadow-xl" />
+                <text x="65" y="18" fill="white" fontSize="11" fontWeight="bold" textAnchor="middle" className="truncate w-full px-2">{hoveredPoint.car}</text>
+                <text x="65" y="34" fill="var(--color-accent-default)" fontSize="10" textAnchor="middle">{hoveredPoint.speed}m/s : {hoveredPoint.ld.toFixed(3)} L/D</text>
+            </g>
           </g>
         )}
       </svg>

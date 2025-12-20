@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, CarClass } from '../../types';
-import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon } from '../../components/icons';
+import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import MonteCarloScatterPlot from '../../components/hq/MonteCarloScatterPlot';
@@ -260,7 +260,7 @@ const AeroPage: React.FC = () => {
   const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult } = useData();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'comparison' | 'history'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
-  const [stepFile, setStepFile] = useState<File | null>(null);
+  const [stepFiles, setStepFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<'speed' | 'accuracy'>('speed');
   const [carClass, setCarClass] = useState<CarClass>('Professional');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -273,10 +273,36 @@ const AeroPage: React.FC = () => {
 
   const runningSimulations = backgroundTasks.filter(t => t.type === 'simulation' && t.status === 'running');
   
+  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+          const newFiles = Array.from(e.target.files);
+          setStepFiles(prev => {
+              const combined = [...prev, ...newFiles];
+              // De-duplicate by name
+              const unique = combined.filter((file, index, self) => 
+                  index === self.findIndex((t) => t.name === file.name)
+              );
+              // Limit to 20
+              return unique.slice(0, 20);
+          });
+      }
+      // Reset input so the same file can be selected again if it was removed
+      if (e.target) e.target.value = '';
+  };
+
+  const removeFile = (fileName: string) => {
+      setStepFiles(prev => prev.filter(f => f.name !== fileName));
+  };
+
   const handleSimulate = async () => {
-    if (!stepFile) return;
-    runSimulationTask(stepFile, mode, carClass);
-    setStepFile(null);
+    if (stepFiles.length === 0) return;
+    
+    // Dispatch all tasks to the queue
+    stepFiles.forEach(file => {
+        runSimulationTask(file, mode, carClass);
+    });
+    
+    setStepFiles([]);
     setActiveTab('setup'); // Stay here to see progress
   };
 
@@ -322,26 +348,54 @@ const AeroPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-fade-in">
                   <div className="lg:col-span-3 space-y-8">
                       <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl">
-                          <h2 className="text-2xl font-bold text-brand-text mb-6 flex items-center gap-3">
-                              <UploadCloudIcon className="w-8 h-8 text-brand-accent" />
-                              Initialize Simulation
-                          </h2>
+                          <div className="flex justify-between items-start mb-6">
+                              <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
+                                  <UploadCloudIcon className="w-8 h-8 text-brand-accent" />
+                                  Initialize Simulation
+                              </h2>
+                              <span className="bg-brand-dark px-3 py-1 rounded-full text-xs font-bold border border-brand-border text-brand-text-secondary">
+                                  Batch Mode Active (Max 20)
+                              </span>
+                          </div>
 
                           <div 
                                 onClick={() => fileInputRef.current?.click()}
-                                className="group relative flex flex-col justify-center items-center py-16 px-10 border-4 border-dashed rounded-3xl cursor-pointer transition-all duration-300 border-brand-border bg-brand-dark/50 hover:border-brand-accent/50 hover:bg-brand-dark"
+                                className="group relative flex flex-col justify-center items-center py-12 px-10 border-4 border-dashed rounded-3xl cursor-pointer transition-all duration-300 border-brand-border bg-brand-dark/50 hover:border-brand-accent/50 hover:bg-brand-dark"
                             >
-                                <div className="mb-6 p-4 bg-brand-dark rounded-full border border-brand-border group-hover:border-brand-accent transition-all">
-                                    <UploadCloudIcon className="w-12 h-12 text-brand-text-secondary group-hover:text-brand-accent" />
+                                <div className="mb-4 p-4 bg-brand-dark rounded-full border border-brand-border group-hover:border-brand-accent transition-all">
+                                    <UploadCloudIcon className="w-10 h-10 text-brand-text-secondary group-hover:text-brand-accent" />
                                 </div>
-                                <h3 className="text-xl font-bold text-brand-text mb-2 text-center">
-                                    {stepFile ? stepFile.name : 'Select Car Geometry'}
+                                <h3 className="text-lg font-bold text-brand-text mb-1 text-center">
+                                    Drop .STEP files here
                                 </h3>
-                                <p className="text-brand-text-secondary text-sm text-center">
-                                    Upload <span className="text-brand-text font-bold">.STEP</span> or <span className="text-brand-text font-bold">.STP</span> for class-accurate mass derivation.
+                                <p className="text-brand-text-secondary text-xs text-center">
+                                    Supports bulk upload. Geometry will be queued.
                                 </p>
-                                <input type="file" ref={fileInputRef} onChange={(e) => setStepFile(e.target.files?.[0] || null)} accept=".step,.stp" className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".step,.stp" multiple className="hidden" />
                           </div>
+
+                          {stepFiles.length > 0 && (
+                              <div className="mt-4 bg-brand-dark rounded-xl border border-brand-border overflow-hidden">
+                                  <div className="p-3 bg-brand-dark-secondary border-b border-brand-border flex justify-between items-center">
+                                      <span className="text-xs font-bold text-brand-text-secondary uppercase">Execution Queue ({stepFiles.length})</span>
+                                      <button onClick={() => setStepFiles([])} className="text-xs text-red-400 hover:underline">Clear All</button>
+                                  </div>
+                                  <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                                      {stepFiles.map((file, idx) => (
+                                          <div key={`${file.name}-${idx}`} className="flex justify-between items-center p-2 rounded hover:bg-brand-surface group">
+                                              <div className="flex items-center gap-2 overflow-hidden">
+                                                  <span className="text-xs font-mono text-brand-accent">{idx + 1}.</span>
+                                                  <span className="text-sm truncate text-brand-text">{file.name}</span>
+                                                  <span className="text-[10px] text-brand-text-secondary ml-1">({(file.size / 1024).toFixed(0)}KB)</span>
+                                              </div>
+                                              <button onClick={() => removeFile(file.name)} className="text-brand-text-secondary hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  <XIcon className="w-3 h-3" />
+                                              </button>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </div>
+                          )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                                 <div className="space-y-2">
@@ -362,10 +416,19 @@ const AeroPage: React.FC = () => {
                                 <div className="md:col-span-2 flex items-end">
                                     <button
                                         onClick={handleSimulate}
-                                        disabled={!stepFile || runningSimulations.length > 0}
-                                        className="w-full bg-brand-accent text-brand-dark font-black py-4 rounded-xl hover:bg-brand-accent-hover transition-all disabled:opacity-30 text-lg shadow-glow-accent group"
+                                        disabled={stepFiles.length === 0 || runningSimulations.length > 0}
+                                        className="w-full bg-brand-accent text-brand-dark font-black py-4 rounded-xl hover:bg-brand-accent-hover transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg shadow-glow-accent group relative overflow-hidden"
                                     >
-                                        <WindIcon className="w-6 h-6 mr-3" /> RUN SOLVER
+                                        <div className="relative z-10 flex items-center justify-center">
+                                            {runningSimulations.length > 0 ? (
+                                                <>Solver Busy ({runningSimulations.length} active)...</>
+                                            ) : (
+                                                <>
+                                                    <WindIcon className="w-6 h-6 mr-3" /> 
+                                                    {stepFiles.length > 1 ? `RUN BATCH SOLVER (${stepFiles.length})` : 'RUN SOLVER'}
+                                                </>
+                                            )}
+                                        </div>
                                     </button>
                                 </div>
                           </div>
@@ -373,16 +436,16 @@ const AeroPage: React.FC = () => {
                   </div>
 
                   <div className="lg:col-span-2 space-y-6">
-                      <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full">
+                      <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full flex flex-col">
                           <h2 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
                               <InfoIcon className="w-5 h-5 text-brand-accent" />
-                              Active Solves
+                              Simulation Queue
                           </h2>
-                          <div className="space-y-4">
+                          <div className="space-y-3 flex-grow overflow-y-auto max-h-[600px]">
                               {runningSimulations.length > 0 ? runningSimulations.map(task => (
                                   <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse">
                                       <div className="flex justify-between items-center mb-2">
-                                          <span className="text-sm font-bold text-brand-accent">{task.fileName}</span>
+                                          <span className="text-sm font-bold text-brand-accent truncate max-w-[150px]">{task.fileName}</span>
                                           <span className="text-xs font-mono">{task.progress.toFixed(0)}%</span>
                                       </div>
                                       <div className="w-full bg-brand-surface h-2 rounded-full overflow-hidden">
@@ -392,7 +455,7 @@ const AeroPage: React.FC = () => {
                                       {task.latestLog && <p className="text-[9px] text-brand-text-secondary mt-1 font-mono italic truncate">{task.latestLog}</p>}
                                   </div>
                               )) : (
-                                  <div className="flex flex-col items-center justify-center py-10 text-brand-text-secondary border border-dashed border-brand-border rounded-xl">
+                                  <div className="flex flex-col items-center justify-center py-10 text-brand-text-secondary border border-dashed border-brand-border rounded-xl h-full">
                                       <CommandIcon className="w-10 h-10 opacity-20 mb-2" />
                                       <p className="text-xs font-bold uppercase tracking-widest">No Active Solves</p>
                                   </div>
