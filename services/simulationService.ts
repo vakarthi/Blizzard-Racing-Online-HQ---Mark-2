@@ -55,7 +55,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.9 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.2 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
         
         // Setup Delay: Accuracy mode takes longer to allocate resources
         await sleep(isPremium ? 2000 : 500);
@@ -245,12 +245,11 @@ class AerotestSolver {
 }
 
 /**
- * Monte Carlo Physics Simulation (v2.8.9)
+ * Monte Carlo Physics Simulation (v2.9.2)
  * 
- * UPDATE: Tuned constants to penalize Development and Entry classes correctly.
- * - Thrust Efficiency dropped for lower classes (chassis flex/alignment).
- * - Friction increased significantly for non-ceramic bearings.
- * - Surface Roughness penalty added to drag calculation.
+ * UPDATE: Calibration for Specific Class Windows:
+ * - Development: Target 1.30s - 1.50s (Eff 0.75, Friction 0.090)
+ * - Entry: Target 1.60s - 2.00s (Eff 0.55, Friction 0.250)
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -270,34 +269,43 @@ const _runMonteCarloSim = async (
     const frontalArea = (params.totalWidth / 1000) * (50 / 1000); 
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // --- CLASS PHYSICS CONSTANTS ---
+    // --- CLASS PHYSICS CONSTANTS (v2.9.2) ---
     
     // Reaction Time Base
     let reactionTimeBase = 0.130; 
-    if (carClass === 'Development') reactionTimeBase = 0.170; // Slower reaction for dev
-    if (carClass === 'Entry') reactionTimeBase = 0.220;       // Slower for entry
+    if (carClass === 'Development') reactionTimeBase = 0.200; // Slower reaction
+    if (carClass === 'Entry') reactionTimeBase = 0.350;       // Very slow reaction
 
     // Rolling Resistance (Bearings + Tether friction + Alignment)
-    // Pro: Ceramic bearings, perfect alignment (0.012)
-    // Dev: Steel/Hybrid bearings, good alignment (0.035) -> significant penalty
-    // Entry: Standard bearings, average alignment (0.055)
+    // Pro: Ceramic bearings (0.012)
+    // Dev: Steel/Hybrid bearings + misalignment (0.090)
+    // Entry: Standard bearings + massive friction (0.250)
     let frictionCoeff = 0.012; 
-    if (carClass === 'Development') frictionCoeff = 0.035;
-    if (carClass === 'Entry') frictionCoeff = 0.055;
+    if (carClass === 'Development') frictionCoeff = 0.090;
+    if (carClass === 'Entry') frictionCoeff = 0.250;
 
-    // Thrust Efficiency (Energy Loss)
-    // Pro: Stiff chassis, perfect hole (100% transfer)
-    // Dev: Some flex/misalignment (95% transfer)
-    // Entry: More flex (90% transfer)
+    // Thrust Efficiency (Energy Loss to Vibration/Flex/Hole Seal)
+    // Pro: Stiff chassis (100% transfer)
+    // Dev: Chassis flex (75% transfer)
+    // Entry: Major losses (55% transfer)
     let thrustEfficiency = 1.0;
-    if (carClass === 'Development') thrustEfficiency = 0.95;
-    if (carClass === 'Entry') thrustEfficiency = 0.90;
+    if (carClass === 'Development') thrustEfficiency = 0.75;
+    if (carClass === 'Entry') thrustEfficiency = 0.55;
 
     // Aerodynamic Surface Roughness (Parasitic Drag)
     // Multiplier to Cd
     let aeroRoughness = 1.0;
-    if (carClass === 'Development') aeroRoughness = 1.08; // 8% penalty for paint/finish
-    if (carClass === 'Entry') aeroRoughness = 1.15;       // 15% penalty
+    if (carClass === 'Development') aeroRoughness = 1.35; // 35% penalty
+    if (carClass === 'Entry') aeroRoughness = 1.60;       // 60% penalty
+
+    // Rotational Inertia (Effective Mass Factor)
+    // Accounts for energy used to spin up wheels. 
+    // Pro: Custom lightweight wheels (~4%)
+    // Dev: Standard plastic wheels (~50%)
+    // Entry: Solid/Heavy wheels (~120%)
+    let rotationalInertiaFactor = 1.04; 
+    if (carClass === 'Development') rotationalInertiaFactor = 1.50; 
+    if (carClass === 'Entry') rotationalInertiaFactor = 2.20; 
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
     
@@ -326,6 +334,9 @@ const _runMonteCarloSim = async (
         let velocity = 0;
         let startSpeed = 0;
 
+        // Effective Mass for F=ma (Linear + Rotational Inertia)
+        const effectiveMass = simMass * rotationalInertiaFactor;
+
         // --- 2. INTEGRATION LOOP ---
         while(distance < TRACK_DISTANCE && time < 5.0) {
             // Thrust Curve Logic
@@ -342,12 +353,11 @@ const _runMonteCarloSim = async (
             const dragForce = 0.5 * AIR_DENSITY * (velocity * velocity) * simCd * frontalArea;
             
             // Rolling Resistance
-            // Tether drag scales with velocity
             const rollingResistance = (simMass * 9.81 * simFriction) + (0.005 * velocity);
 
             const netForce = thrust - dragForce - rollingResistance;
             
-            const acceleration = netForce / simMass;
+            const acceleration = netForce / effectiveMass;
 
             // Euler Integration
             velocity += acceleration * TIME_STEP;
