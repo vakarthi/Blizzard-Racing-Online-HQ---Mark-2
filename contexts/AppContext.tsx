@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, SetStateAction } from 'react';
-import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask } from '../types';
+import { User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight, DiscussionThread, DiscussionPost, UserRole, SponsorTier, CompetitionProgressItem, Protocol, TaskStatus, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, CarClass } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useSyncedStore } from '../hooks/useSyncedStore';
 import { generateAvatar } from '../utils/avatar';
@@ -77,7 +77,7 @@ export interface DataContextType {
   addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp' | 'status'>) => void;
   updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
   backgroundTasks: BackgroundTask[];
-  runSimulationTask: (file: File, mode: 'speed' | 'accuracy') => void;
+  runSimulationTask: (file: File, mode: 'speed' | 'accuracy', carClass: CarClass) => void;
   clearBackgroundTasks: () => void;
   simulationRunCount: number;
 }
@@ -137,6 +137,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [store.users, user, setUser, logout]);
 
+    // Global Heartbeat / Refresh every 2 minutes
+    useEffect(() => {
+      const intervalId = setInterval(() => {
+          try {
+              const raw = localStorage.getItem('brh-synced-store');
+              if (raw) {
+                  // We reload data to ensure global consistency across the session
+                  loadData(JSON.parse(raw));
+              }
+          } catch (e) {
+              console.error("Global update failed", e);
+          }
+      }, 2 * 60 * 1000); // 2 minutes
+
+      return () => clearInterval(intervalId);
+    }, []);
+
 
   const login = async (email: string, pass: string): Promise<User | null> => {
     const normalizedEmail = email.toLowerCase().trim();
@@ -184,7 +201,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateStore(s => ({ ...s, backgroundTasks: [] }));
   };
 
-  const runSimulationTask = (file: File, mode: 'speed' | 'accuracy') => {
+  const runSimulationTask = (file: File, mode: 'speed' | 'accuracy', carClass: CarClass) => {
     const taskId = `sim-${Date.now()}`;
     const isAuditRun = mode === 'speed' && (store.simulationRunCount + 1) % 5 === 0;
 
@@ -225,9 +242,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const tier = mode === 'speed' ? 'standard' : 'premium';
         let simResultData;
         if (tier === 'standard') {
-            simResultData = await runAerotestCFDSimulation(parameters, onProgress);
+            simResultData = await runAerotestCFDSimulation(parameters, onProgress, carClass);
         } else {
-            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress);
+            simResultData = await runAerotestPremiumCFDSimulation(parameters, onProgress, carClass);
         }
         
         const tempResultForAnalysis: AeroResult = { ...simResultData, id: 'temp', fileName: file.name, parameters };
@@ -237,7 +254,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (isAuditRun) {
             updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, stage: 'Audit Run', progress: 90, latestLog: 'Initiating high-fidelity baseline...'} : t)}));
-            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {});
+            const auditSimData = await runAerotestPremiumCFDSimulation(parameters, () => {}, carClass);
             updateStore(s => ({...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? {...t, progress: 95, latestLog: 'Comparing results against baseline...'} : t)}));
             const deltaCd = Math.abs(auditSimData.cd - simResultData.cd);
             finalResultData.auditLog = `Dual-run audit complete. Baseline Cd: ${auditSimData.cd.toFixed(4)} (Δ: ${(deltaCd).toFixed(4)}).`;

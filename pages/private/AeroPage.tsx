@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { AeroResult } from '../../types';
+import { AeroResult, CarClass } from '../../types';
 import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
@@ -38,7 +38,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                                 <StopwatchIcon className="w-4 h-4" /> 20m Performance Profile
                             </h3>
                             <span className="text-[10px] font-black px-2 py-1 bg-brand-accent/10 border border-brand-accent/20 rounded-full text-brand-accent uppercase">
-                                {result.tier === 'premium' ? 'Professional Class' : 'Development Class'}
+                                {result.carClass || (result.tier === 'premium' ? 'Professional Class' : 'Development Class')}
                             </span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -52,7 +52,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                             </div>
                             <div className="text-center">
                                 <p className="text-xs text-brand-text-secondary mb-1">Physical Asymptote</p>
-                                <p className="text-xl font-bold font-mono">0.912s</p>
+                                <p className="text-xl font-bold font-mono">0.916s</p>
                             </div>
                         </div>
                     </div>
@@ -65,7 +65,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                         <ShieldCheckIcon className="w-8 h-8 text-green-400 mb-2" />
                         <h4 className="font-bold text-xs uppercase text-brand-text-secondary">Physics Validation</h4>
                         <p className="text-3xl font-black font-mono text-green-400">100%</p>
-                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">v2.7.5 Reality Engine</p>
+                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">v2.8.4 Reality Engine</p>
                     </div>
                     
                     <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
@@ -219,21 +219,31 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                     </thead>
                     <tbody className="divide-y divide-brand-border">
                         {[
+                            { key: 'carClass', label: 'Class', best: 'none' },
                             { key: 'cd', label: 'Drag (Cd)', best: 'min' },
                             { key: 'averageRaceTime', label: 'Avg Race Time', best: 'min' },
                             { key: 'averageFinishLineSpeed', label: 'Finish Speed', best: 'max' }
                         ].map(m => {
-                            const values = results.map(r => m.key === 'cd' ? r.cd : (r.raceTimePrediction as any)[m.key]);
-                            const bestVal = m.best === 'min' ? Math.min(...values) : Math.max(...values);
+                            const values = results.map(r => m.key === 'cd' ? r.cd : (m.key === 'carClass' ? r.carClass : (r.raceTimePrediction as any)[m.key]));
+                            
+                            // Only calculate best if it's a number
+                            let bestVal: any = null;
+                            if (m.best !== 'none') {
+                                const numericValues = values.filter(v => typeof v === 'number') as number[];
+                                if(numericValues.length > 0) {
+                                    bestVal = m.best === 'min' ? Math.min(...numericValues) : Math.max(...numericValues);
+                                }
+                            }
                             
                             return (
                                 <tr key={m.key} className="bg-brand-dark/30 hover:bg-brand-dark/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-brand-text-secondary">{m.label}</td>
                                     {results.map((r, i) => (
-                                        <td key={r.id} className={`px-6 py-4 text-center font-mono ${values[i] === bestVal ? 'text-green-400 bg-green-500/5 font-bold' : ''}`}>
-                                            {m.key === 'cd' ? r.cd.toFixed(4) : 
-                                             m.key === 'averageRaceTime' ? `${values[i].toFixed(3)}s` : 
-                                             `${(values[i] * 3.6).toFixed(1)} km/h`}
+                                        <td key={r.id} className={`px-6 py-4 text-center font-mono ${bestVal !== null && values[i] === bestVal ? 'text-green-400 bg-green-500/5 font-bold' : ''}`}>
+                                            {m.key === 'carClass' ? (values[i] || 'N/A') :
+                                             m.key === 'cd' ? (values[i] as number).toFixed(4) : 
+                                             m.key === 'averageRaceTime' ? `${(values[i] as number).toFixed(3)}s` : 
+                                             `${((values[i] as number) * 3.6).toFixed(1)} km/h`}
                                         </td>
                                     ))}
                                 </tr>
@@ -252,6 +262,7 @@ const AeroPage: React.FC = () => {
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
   const [stepFile, setStepFile] = useState<File | null>(null);
   const [mode, setMode] = useState<'speed' | 'accuracy'>('speed');
+  const [carClass, setCarClass] = useState<CarClass>('Professional');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [comparisonIds, setComparisonIds] = useState<Set<string>>(new Set());
   
@@ -264,7 +275,7 @@ const AeroPage: React.FC = () => {
   
   const handleSimulate = async () => {
     if (!stepFile) return;
-    runSimulationTask(stepFile, mode);
+    runSimulationTask(stepFile, mode, carClass);
     setStepFile(null);
     setActiveTab('setup'); // Stay here to see progress
   };
@@ -334,13 +345,21 @@ const AeroPage: React.FC = () => {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Entry Class</label>
-                                    <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
-                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>DEV</button>
-                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>PRO</button>
+                                    <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Competition Class</label>
+                                    <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border overflow-hidden">
+                                        <button onClick={() => setCarClass('Entry')} className={`flex-1 py-3 text-sm font-bold transition-all border-r border-brand-border/50 ${carClass === 'Entry' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>Entry</button>
+                                        <button onClick={() => setCarClass('Development')} className={`flex-1 py-3 text-sm font-bold transition-all border-r border-brand-border/50 ${carClass === 'Development' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>Dev</button>
+                                        <button onClick={() => setCarClass('Professional')} className={`flex-1 py-3 text-sm font-bold transition-all ${carClass === 'Professional' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>Pro</button>
                                     </div>
                                 </div>
-                                <div className="flex items-end">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Solver Engine</label>
+                                    <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
+                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Speed (V4)</button>
+                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Accuracy (V4)</button>
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2 flex items-end">
                                     <button
                                         onClick={handleSimulate}
                                         disabled={!stepFile || runningSimulations.length > 0}
@@ -436,7 +455,7 @@ const AeroPage: React.FC = () => {
                                   />
                                   <div onClick={() => { setSelectedResultId(res.id); setActiveTab('results'); }} className="flex flex-col cursor-pointer">
                                       <p className="font-bold text-brand-text">{res.parameters.carName}</p>
-                                      <p className="text-[10px] text-brand-text-secondary uppercase">{res.tier === 'premium' ? 'Professional' : 'Development'} Class</p>
+                                      <p className="text-[10px] text-brand-text-secondary uppercase">{res.carClass || 'Professional'} Class | {res.tier === 'premium' ? 'Pro' : 'Std'} Solver</p>
                                   </div>
                               </div>
                               <div onClick={() => { setSelectedResultId(res.id); setActiveTab('results'); }} className="flex items-center gap-8 font-mono text-sm cursor-pointer">
@@ -474,8 +493,8 @@ const AeroPage: React.FC = () => {
                   <ShieldCheckIcon className="w-8 h-8" />
               </div>
               <div>
-                  <p className="text-brand-text font-bold">Aerotest v2.7.5</p>
-                  <p className="text-xs text-brand-text-secondary">Class-Dynamics Engine | Probabilistic Solver</p>
+                  <p className="text-brand-text font-bold">Aerotest v2.8.4</p>
+                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Probabilistic Solver</p>
               </div>
           </div>
       </footer>

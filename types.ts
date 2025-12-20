@@ -121,12 +121,15 @@ export interface VerificationCheck {
     message: string;
 }
 
+export type CarClass = 'Entry' | 'Development' | 'Professional';
+
 export interface AeroResult {
   id: string;
   timestamp: string;
   fileName: string;
   tier?: 'standard' | 'premium';
   thrustModel?: 'standard' | 'competition' | 'pro-competition';
+  carClass?: CarClass;
   
   // Input parameters
   parameters: DesignParameters;

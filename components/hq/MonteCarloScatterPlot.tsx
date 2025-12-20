@@ -24,8 +24,10 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
     
     const minTime = Math.min(...times) * 0.995;
     const maxTime = Math.max(...times) * 1.005;
-    const minSpeed = Math.min(...speeds) * 0.98;
-    const maxSpeed = Math.max(...speeds) * 1.02;
+    
+    // Dynamic Speed Bounds: Handles velocities up to and beyond 101 km/h
+    const minSpeed = Math.min(...speeds) * 0.95;
+    const maxSpeed = Math.max(...speeds) * 1.05;
 
     const getX = (t: number) => padding.left + ((t - minTime) / (maxTime - minTime)) * (width - padding.left - padding.right);
     const getY = (s: number) => height - padding.bottom - ((s - minSpeed) / (maxSpeed - minSpeed)) * (height - padding.top - padding.bottom);
@@ -70,7 +72,7 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
                     );
                 })}
 
-                {/* Y Axis Labels (Start Speed) */}
+                {/* Y Axis Labels (Start Speed) - Calibrated for high velocities */}
                 {[0, 0.5, 1].map(v => {
                     const speed = minSpeed + v * (maxSpeed - minSpeed);
                     const y = getY(speed);
@@ -92,9 +94,9 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
                         key={i}
                         cx={getX(p.time)}
                         cy={getY(p.startSpeed)}
-                        r="3"
+                        r="3.5"
                         fill="var(--color-accent-default)"
-                        fillOpacity="0.12"
+                        fillOpacity="0.14"
                         className="hover:r-5 hover:fill-opacity-100 transition-all cursor-crosshair hover:stroke-white hover:stroke-1"
                         onMouseEnter={() => setHoveredPoint(p)}
                         onMouseLeave={() => setHoveredPoint(null)}
@@ -110,10 +112,10 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
                     <g transform={`translate(${getX(hoveredPoint.time)}, ${getY(hoveredPoint.startSpeed)})`}>
                         <circle r="5" fill="white" stroke="var(--color-accent-default)" strokeWidth="2" />
                         <g transform="translate(15, -50)">
-                            <rect width="130" height="45" fill="rgba(13,17,23,0.98)" rx="8" stroke="var(--color-accent-default)" strokeWidth="1.5" className="shadow-xl" />
+                            <rect width="135" height="45" fill="rgba(13,17,23,0.98)" rx="8" stroke="var(--color-accent-default)" strokeWidth="1.5" className="shadow-xl" />
                             <text x="12" y="18" fill="white" fontSize="10" fontWeight="black" className="uppercase">Iteration D-{(hoveredPoint.time * 1000).toFixed(0)}</text>
                             <text x="12" y="32" fill="var(--color-accent-default)" fontSize="12" fontWeight="bold">{(hoveredPoint.startSpeed * 3.6).toFixed(2)} km/h</text>
-                            <text x="120" y="32" fill="var(--color-text-secondary)" fontSize="10" textAnchor="end">{hoveredPoint.time.toFixed(4)}s</text>
+                            <text x="125" y="32" fill="var(--color-text-secondary)" fontSize="10" textAnchor="end">{hoveredPoint.time.toFixed(4)}s</text>
                         </g>
                     </g>
                 )}
@@ -125,8 +127,8 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
                     <p className="text-xl font-mono font-bold text-green-400">{(100 - (pred.stdDevTime || 0) * 800).toFixed(1)}%</p>
                 </div>
                 <div className="bg-brand-dark p-3 rounded-xl border border-brand-border group-hover:border-brand-accent/30 transition-colors">
-                    <p className="text-[10px] text-brand-text-secondary uppercase font-bold tracking-widest mb-1">Confidence</p>
-                    <p className="text-xl font-mono font-bold text-brand-accent">σ-3.0</p>
+                    <p className="text-[10px] text-brand-text-secondary uppercase font-bold tracking-widest mb-1">Peak Velocity</p>
+                    <p className="text-xl font-mono font-bold text-brand-accent">{(pred.bestFinishLineSpeed * 3.6).toFixed(1)} <span className="text-[10px]">km/h</span></p>
                 </div>
                 <div className="bg-brand-dark p-3 rounded-xl border border-brand-border group-hover:border-brand-accent/30 transition-colors">
                     <p className="text-[10px] text-brand-text-secondary uppercase font-bold tracking-widest mb-1">μ Velocity</p>

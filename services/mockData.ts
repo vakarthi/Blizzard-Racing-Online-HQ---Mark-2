@@ -198,12 +198,12 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         },
         turbulenceModel: 'Detached Eddy Simulation (DES)'
     },
-    cd: 0.1020, // 1. Drag Coefficient (Floor)
-    cl: 0.0120, // 2. Lift Coefficient (Near zero better)
+    cd: 0.1300, 
+    cl: 0.0120, 
     liftToDragRatio: 0.118, 
     dragBreakdown: { pressure: 40, skinFriction: 60 },
     aeroBalance: 50.0, 
-    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit).",
+    flowAnalysis: "Regulation-Max V2.8.3 (Isentropic Limit).",
     meshQuality: 100,
     finalResiduals: {
         continuity: 1.0e-7,
@@ -214,20 +214,19 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
-        bestRaceTime: 1.155, // Theoretical Floor
-        worstRaceTime: 1.155,
-        averageRaceTime: 1.155, 
-        averageDrag: 0.1020,
-        bestFinishLineSpeed: 21.15,
-        worstFinishLineSpeed: 21.15,
-        averageFinishLineSpeed: 21.15,
-        // Fix: Added missing bestStartSpeed, worstStartSpeed, and averageStartSpeed properties to satisfy type requirements.
-        bestStartSpeed: 15.5,
-        worstStartSpeed: 15.5,
-        averageStartSpeed: 15.5,
-        bestAverageSpeed: 17.31,
-        worstAverageSpeed: 17.31,
-        averageSpeed: 17.31,
+        bestRaceTime: 0.916, // World Class Floor
+        worstRaceTime: 0.916,
+        averageRaceTime: 0.916, 
+        averageDrag: 0.1300,
+        bestFinishLineSpeed: 28.5, // ~102.6 km/h (Theoretical Max)
+        worstFinishLineSpeed: 28.5,
+        averageFinishLineSpeed: 28.5,
+        bestStartSpeed: 22.0,
+        worstStartSpeed: 22.0,
+        averageStartSpeed: 22.0,
+        bestAverageSpeed: 21.83,
+        worstAverageSpeed: 21.83,
+        averageSpeed: 21.83,
         trustIndex: 100,
         isPhysical: true
     }

@@ -15,7 +15,6 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-// Fix: Explicitly use React.Component to ensure inherited members like setState and props are recognized by TypeScript
 class ErrorBoundary extends React.Component<Props, State> {
   // Initialize state with default values
   public state: State = {
@@ -41,7 +40,6 @@ class ErrorBoundary extends React.Component<Props, State> {
    * Resets the error state to allow the user to try again.
    */
   public handleRetry = () => {
-    // Fix: access setState through 'this' which is now correctly recognized as inherited from React.Component
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
     window.location.reload();
@@ -74,7 +72,6 @@ class ErrorBoundary extends React.Component<Props, State> {
     }
 
     // Otherwise, render the children components
-    // Fix: access props through 'this.props' which is now correctly recognized as inherited from React.Component
     return this.props.children;
   }
 }
