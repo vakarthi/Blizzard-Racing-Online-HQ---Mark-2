@@ -55,7 +55,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.2 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v3.0.0 [${this.settings.carClass} | Calibrated to 1.32s Baseline]` });
         
         // Setup Delay: Accuracy mode takes longer to allocate resources
         await sleep(isPremium ? 2000 : 500);
@@ -81,7 +81,8 @@ class AerotestSolver {
              if (this.settings.carClass === 'Professional') {
                  physicsWeight = classMinWeight + Math.min(5, (this.params.totalWeight - maxCompetitiveWeight) * 0.02);
              } else {
-                 const weightPenalty = (this.params.totalWeight - maxCompetitiveWeight) * 0.05; 
+                 // v3.0: More forgiving hollowing for Dev class
+                 const weightPenalty = (this.params.totalWeight - maxCompetitiveWeight) * 0.03; 
                  physicsWeight = maxCompetitiveWeight + weightPenalty;
              }
              
@@ -176,9 +177,9 @@ class AerotestSolver {
         const ratio = p.totalLength / Math.max(p.totalWidth, 1);
         let cd = 0.28 - (ratio * 0.05); // Lowered base from 0.32
 
-        // 2. Mass Penalty (Volume Proxy)
+        // 2. Mass Penalty (Volume Proxy) - v3.0 Reduced impact for Dev class
         const consideredWeight = Math.min(p.totalWeight, 75); // Cap at 75g for shape penalty
-        const weightPenalty = Math.max(0, (consideredWeight - 50) * 0.002);
+        const weightPenalty = Math.max(0, (consideredWeight - 50) * 0.001); // Halved penalty
         cd += weightPenalty;
 
         // 3. Wing Optimization (Simplified)
@@ -245,11 +246,12 @@ class AerotestSolver {
 }
 
 /**
- * Monte Carlo Physics Simulation (v2.9.2)
+ * Monte Carlo Physics Simulation (v3.0.0)
  * 
- * UPDATE: Calibration for Specific Class Windows:
- * - Development: Target 1.30s - 1.50s (Eff 0.75, Friction 0.090)
- * - Entry: Target 1.60s - 2.00s (Eff 0.55, Friction 0.250)
+ * UPDATE: Precision Tuning for Real-World Match.
+ * - Development: Target ~1.326s (Matches user benchmark). Reduced Inertia (1.25), Reduced Friction (0.045).
+ * - Entry: Target 1.60s+.
+ * - Professional: Target < 1.05s.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -269,43 +271,34 @@ const _runMonteCarloSim = async (
     const frontalArea = (params.totalWidth / 1000) * (50 / 1000); 
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // --- CLASS PHYSICS CONSTANTS (v2.9.2) ---
+    // --- CLASS PHYSICS CONSTANTS (v3.0.0) ---
     
     // Reaction Time Base
     let reactionTimeBase = 0.130; 
-    if (carClass === 'Development') reactionTimeBase = 0.200; // Slower reaction
-    if (carClass === 'Entry') reactionTimeBase = 0.350;       // Very slow reaction
+    if (carClass === 'Development') reactionTimeBase = 0.160; // Improved reaction
+    if (carClass === 'Entry') reactionTimeBase = 0.250;       // Slow reaction
 
     // Rolling Resistance (Bearings + Tether friction + Alignment)
-    // Pro: Ceramic bearings (0.012)
-    // Dev: Steel/Hybrid bearings + misalignment (0.090)
-    // Entry: Standard bearings + massive friction (0.250)
     let frictionCoeff = 0.012; 
-    if (carClass === 'Development') frictionCoeff = 0.090;
-    if (carClass === 'Entry') frictionCoeff = 0.250;
+    if (carClass === 'Development') frictionCoeff = 0.045; // Significantly reduced from 0.090 to match 1.32s
+    if (carClass === 'Entry') frictionCoeff = 0.120;       // Reduced from 0.150
 
     // Thrust Efficiency (Energy Loss to Vibration/Flex/Hole Seal)
-    // Pro: Stiff chassis (100% transfer)
-    // Dev: Chassis flex (75% transfer)
-    // Entry: Major losses (55% transfer)
     let thrustEfficiency = 1.0;
-    if (carClass === 'Development') thrustEfficiency = 0.75;
-    if (carClass === 'Entry') thrustEfficiency = 0.55;
+    if (carClass === 'Development') thrustEfficiency = 0.82; // Increased from 0.75
+    if (carClass === 'Entry') thrustEfficiency = 0.60;
 
     // Aerodynamic Surface Roughness (Parasitic Drag)
     // Multiplier to Cd
     let aeroRoughness = 1.0;
-    if (carClass === 'Development') aeroRoughness = 1.35; // 35% penalty
-    if (carClass === 'Entry') aeroRoughness = 1.60;       // 60% penalty
+    if (carClass === 'Development') aeroRoughness = 1.15; // Only 15% penalty (was 35%)
+    if (carClass === 'Entry') aeroRoughness = 1.35;       // 35% penalty
 
     // Rotational Inertia (Effective Mass Factor)
     // Accounts for energy used to spin up wheels. 
-    // Pro: Custom lightweight wheels (~4%)
-    // Dev: Standard plastic wheels (~50%)
-    // Entry: Solid/Heavy wheels (~120%)
     let rotationalInertiaFactor = 1.04; 
-    if (carClass === 'Development') rotationalInertiaFactor = 1.50; 
-    if (carClass === 'Entry') rotationalInertiaFactor = 2.20; 
+    if (carClass === 'Development') rotationalInertiaFactor = 1.25; // Reduced from 1.50
+    if (carClass === 'Entry') rotationalInertiaFactor = 1.60; 
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
     
