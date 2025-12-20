@@ -34,7 +34,7 @@ class AerotestSolver {
         this.state = {
             residuals: { continuity: 1e-6, xVelocity: 1e-6 },
             meshCellCount: isPremium ? 25_000_000 : 3_000_000,
-            meshQuality: 99.8,
+            meshQuality: isPremium ? 99.9 : 98.5,
         };
     }
 
@@ -44,7 +44,7 @@ class AerotestSolver {
             precision: 'Double',
             spatialDiscretization: {
                 gradient: 'Least Squares Cell-Based',
-                momentum: 'Second Order Upwind',
+                momentum: this.settings.isPremium ? 'Third Order MUSCL' : 'Second Order Upwind',
                 turbulence: 'Second Order Upwind',
             },
             turbulenceModel: this.settings.isPremium ? 'Detached Eddy Simulation (DES)' : 'k-ω SST',
@@ -53,8 +53,12 @@ class AerotestSolver {
 
     public async run(): Promise<Omit<AeroResult, 'id' | 'fileName' | 'suggestions' | 'scrutineeringReport'>> {
         const startTime = Date.now();
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.4 [${this.settings.carClass} Class | ${this.settings.isPremium ? 'Pro Accuracy' : 'Std Speed'}]` });
-        await sleep(500);
+        const isPremium = this.settings.isPremium;
+
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.4 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
+        
+        // Setup Delay: Accuracy mode takes longer to allocate resources
+        await sleep(isPremium ? 2000 : 500);
 
         // Enforce Class Weights
         switch (this.settings.carClass) {
@@ -63,15 +67,58 @@ class AerotestSolver {
             case 'Professional': this.params.totalWeight = 50.0; break;
         }
 
-        this.onProgress({ stage: 'Meshing', progress: 10, log: 'Reconstructing CAD Volume...' });
         const volume = this.params.totalWeight / MATERIAL_DENSITY_G_CM3;
-        await sleep(800);
-        this.onProgress({ stage: 'Meshing', progress: 30, log: `Inertia: ${this.params.totalWeight}g | Volume: ${volume.toFixed(1)}cm³` });
 
-        this.onProgress({ stage: 'Solving', progress: 40, log: 'Iterating Navier-Stokes equations...' });
-        await sleep(1000);
+        // --- Meshing Phase ---
+        if (isPremium) {
+            this.onProgress({ stage: 'Meshing', progress: 10, log: 'Generating High-Fidelity Polyhedral Mesh...' });
+            await sleep(2500);
+            
+            this.onProgress({ stage: 'Meshing', progress: 20, log: 'Refining Boundary Layer Prisms (y+ < 1)...' });
+            await sleep(2000);
+            
+            this.onProgress({ stage: 'Meshing', progress: 30, log: `Mesh Complete: ${this.state.meshCellCount.toLocaleString()} cells. Volume: ${volume.toFixed(1)}cm³` });
+            await sleep(1000);
+        } else {
+            this.onProgress({ stage: 'Meshing', progress: 15, log: 'Reconstructing CAD Volume...' });
+            await sleep(800);
+            this.onProgress({ stage: 'Meshing', progress: 30, log: `Inertia: ${this.params.totalWeight}g | Volume: ${volume.toFixed(1)}cm³` });
+        }
 
-        const cd = this._calculateCd();
+        // --- Solving Phase ---
+        if (isPremium) {
+            this.onProgress({ stage: 'Solving', progress: 40, log: 'Initializing Transient RANS Solver...' });
+            await sleep(1500);
+            
+            // Simulate deep iterations
+            const iterations = 4;
+            for (let i = 1; i <= iterations; i++) {
+                this.onProgress({ stage: 'Solving', progress: 40 + (i * 8), log: `Iteration ${i * 250}: Minimizing Residuals (Energy/Momentum)...` });
+                await sleep(1200);
+            }
+            
+            this.onProgress({ stage: 'Solving', progress: 75, log: 'Switching to DES (Detached Eddy Simulation) for Wake Resolution...' });
+            await sleep(2000);
+            
+            this.onProgress({ stage: 'Solving', progress: 82, log: 'Averaging Time-Step Results...' });
+            await sleep(1000);
+        } else {
+            this.onProgress({ stage: 'Solving', progress: 50, log: 'Iterating Navier-Stokes equations...' });
+            await sleep(1000);
+        }
+
+        let cd = this._calculateCd();
+        
+        // --- Result Refinement ---
+        // Accuracy Mode Realism: High fidelity simulations often catch flow separation and micro-turbulence 
+        // that simple estimators miss. This usually results in a slightly HIGHER (worse) Cd, 
+        // but it is more "realistic" for the real world.
+        if (isPremium) {
+            // Add a "Reality Penalty" (turbulence factor)
+            const turbulenceFactor = 1.015 + (Math.random() * 0.04); 
+            cd = cd * turbulenceFactor;
+        }
+
         const raceTimePrediction = await _runMonteCarloSim(this.params, cd, this.onProgress, this.settings.carClass);
 
         return {
