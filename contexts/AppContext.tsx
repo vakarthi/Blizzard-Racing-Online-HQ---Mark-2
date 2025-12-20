@@ -78,6 +78,7 @@ export interface DataContextType {
   updateInquiryStatus: (inquiryId: string, status: 'accepted' | 'rejected') => void;
   backgroundTasks: BackgroundTask[];
   runSimulationTask: (file: File, mode: 'speed' | 'accuracy') => void;
+  clearBackgroundTasks: () => void;
   simulationRunCount: number;
 }
 
@@ -177,6 +178,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (window.confirm("Are you sure you want to permanently clear all simulation history?")) {
         updateStore(s => ({ ...s, aeroResults: [] }));
     }
+  };
+
+  const clearBackgroundTasks = () => {
+    updateStore(s => ({ ...s, backgroundTasks: [] }));
   };
 
   const runSimulationTask = (file: File, mode: 'speed' | 'accuracy') => {
@@ -443,6 +448,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       publicPortalContent, publicPortalContentHistory,
       updatePublicPortalContent, revertToVersion,
       runSimulationTask,
+      clearBackgroundTasks,
   };
 
   const appStateContextValue: AppStateContextType = {

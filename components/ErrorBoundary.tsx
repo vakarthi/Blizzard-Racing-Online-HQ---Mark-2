@@ -1,5 +1,5 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -15,13 +15,15 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-// Fix: Directly extend Component from react and use class fields to ensure property visibility (state, props, setState).
-class ErrorBoundary extends Component<Props, State> {
-  // Fix: Define state as a class property to resolve "Property 'state' does not exist on type 'ErrorBoundary'" error.
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+// Fix: Explicitly extend React.Component and use a constructor to ensure props, state and setState are correctly typed and visible.
+class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
@@ -31,7 +33,7 @@ class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // Fix: Defined handleRetry to correctly use setState from the base Component class.
+  // Fix: Defined handleRetry to correctly use this.setState from the base React.Component class.
   public handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
@@ -39,7 +41,7 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   public render() {
-    // Fix: Access state from the instance after explicit declaration.
+    // Fix: Access state from the instance after explicit declaration in constructor.
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">

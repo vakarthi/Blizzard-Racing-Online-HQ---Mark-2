@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon } from '../../components/icons';
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, WindIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 
 // --- EDIT TASK MODAL ---
@@ -308,27 +309,44 @@ const FinancialCommand: React.FC = () => {
     )
 }
 
-const PieChart: React.FC<{data: {label: string, value: number, color: string}[]}> = ({ data }) => {
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-    if (total === 0) return <div className="text-center text-brand-text-secondary p-4">No data to display.</div>;
-    
+// Fix: Simple SVG-based PieChart component implementation for task distribution visualization
+const PieChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
+    const total = data.reduce((sum, d) => sum + d.value, 0);
     let cumulativePercent = 0;
-    const gradients = data.map(item => {
-        const percent = (item.value / total) * 100;
-        const start = cumulativePercent;
-        cumulativePercent += percent;
-        return `${item.color} ${start}% ${cumulativePercent}%`;
-    });
+
+    const getCoordinatesForPercent = (percent: number) => {
+        const x = Math.cos(2 * Math.PI * percent);
+        const y = Math.sin(2 * Math.PI * percent);
+        return [x, y];
+    };
+
+    if (total === 0) return <div className="text-center p-4 text-brand-text-secondary italic">No data to display</div>;
 
     return (
-        <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-32 h-32 rounded-full" style={{background: `conic-gradient(${gradients.join(', ')})`}}></div>
+        <div className="flex flex-col md:flex-row items-center gap-8 py-4">
+            <div className="relative w-48 h-48">
+                <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }} className="w-full h-full drop-shadow-lg">
+                    {data.map((slice, i) => {
+                        if (slice.value === 0) return null;
+                        const [startX, startY] = getCoordinatesForPercent(cumulativePercent);
+                        cumulativePercent += slice.value / total;
+                        const [endX, endY] = getCoordinatesForPercent(cumulativePercent);
+                        const largeArcFlag = slice.value / total > 0.5 ? 1 : 0;
+                        const pathData = [
+                            `M ${startX} ${startY}`,
+                            `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                            `L 0 0`,
+                        ].join(' ');
+                        return <path key={i} d={pathData} fill={slice.color} stroke="var(--color-bg-dark-secondary)" strokeWidth="0.02" />;
+                    })}
+                </svg>
+            </div>
             <div className="space-y-2">
-                {data.map(item => (
-                    <div key={item.label} className="flex items-center text-sm">
-                        <span className="w-3 h-3 rounded-sm mr-2" style={{backgroundColor: item.color}}></span>
-                        <span className="font-semibold text-brand-text">{item.label}:</span>
-                        <span className="ml-2 text-brand-text-secondary">{item.value} tasks ({((item.value/total)*100).toFixed(0)}%)</span>
+                {data.map((slice, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: slice.color }}></span>
+                        <span className="text-sm font-semibold text-brand-text">{slice.label}:</span>
+                        <span className="text-sm text-brand-text-secondary">{slice.value} ({total > 0 ? Math.round((slice.value / total) * 100) : 0}%)</span>
                     </div>
                 ))}
             </div>
@@ -602,7 +620,7 @@ const ContentManagement: React.FC = () => {
                                     <input type="checkbox" checked={h.isPublic} onChange={(e) => updateCarHighlight({...h, isPublic: e.target.checked})} className="accent-brand-accent" />
                                     Public
                                 </label>
-                                <button onClick={() => deleteCarHighlight(h.id)} className="text-sm text-red-400 hover:underline">Delete</button>
+                                <button onClick={() => deleteCarHighlight(h.id)} className="text-red-400 hover:underline">Delete</button>
                             </div>
                         </div>
                     ))}
@@ -772,7 +790,7 @@ const ProtocolManagement: React.FC = () => {
 
 const AppSettings: React.FC = () => {
     const { announcement, setAnnouncement, competitionDate, setCompetitionDate, teamLogoUrl, setTeamLogoUrl } = useAppState();
-    const { loadData, publicPortalContentHistory, loginHistory } = useData(); // for data import/export
+    const { loadData, publicPortalContentHistory, loginHistory, resetAeroResults, clearBackgroundTasks } = useData();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -787,9 +805,8 @@ const AppSettings: React.FC = () => {
     };
 
     const handleExport = () => {
-        // Collect all relevant data from context
         const dataToExport = {
-          ...useData(), // This grabs the whole data context state
+          ...useData(),
           announcement,
           competitionDate,
           teamLogoUrl,
@@ -852,7 +869,7 @@ const AppSettings: React.FC = () => {
             <div className="border-t border-brand-border pt-6">
                 <h3 className="text-xl font-bold text-brand-text mb-4">Data Management</h3>
                  <p className="text-sm text-brand-text-secondary mb-4">Export a full backup of all team data, or import a previous backup to restore the system state.</p>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                     <button onClick={handleExport} className="flex items-center gap-2 bg-blue-500/20 text-blue-300 font-bold py-2 px-4 rounded-lg hover:bg-blue-500/30">
                         <DownloadIcon className="w-5 h-5"/> Export Data
                     </button>
@@ -860,11 +877,22 @@ const AppSettings: React.FC = () => {
                     <label htmlFor="import-file" className="flex items-center gap-2 bg-yellow-500/20 text-yellow-300 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500/30 cursor-pointer">
                         <UploadIcon className="w-5 h-5"/> Import Data
                     </label>
+                    <button 
+                        onClick={() => {
+                            if(window.confirm("WARNING: This will permanently delete all aerodynamic simulation results and clear all active solver tasks for the entire team. Proceed?")) {
+                                resetAeroResults();
+                                clearBackgroundTasks();
+                            }
+                        }} 
+                        className="flex items-center gap-2 bg-red-500/20 text-red-400 font-bold py-2 px-4 rounded-lg hover:bg-red-500/30"
+                    >
+                        <WindIcon className="w-5 h-5"/> Wipe Aerotest Ledger
+                    </button>
                 </div>
                  <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-lg text-sm flex items-start gap-2">
                     <AlertTriangleIcon className="w-8 h-8 flex-shrink-0" />
                     <div>
-                        <span className="font-bold">Warning:</span> Importing data is a destructive action that will permanently overwrite all existing information. This cannot be undone. Always export a backup first.
+                        <span className="font-bold">Warning:</span> Data management operations are destructive. Always ensure you have a current export before performing wipes or imports.
                     </div>
                 </div>
             </div>
@@ -925,5 +953,4 @@ const ManagerPanelPage: React.FC = () => {
     );
 };
 
-// FIX: Added a default export for the ManagerPanelPage component to resolve the import error in ManagerPanelGate.
 export default ManagerPanelPage;

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult } from '../../types';
-import { WindIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, SettingsIcon, HistoryIcon, TrashIcon } from '../../components/icons';
+import { WindIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, SettingsIcon, HistoryIcon, TrashIcon, AlertTriangleIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
@@ -209,7 +209,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
 // --- MAIN COMPONENT ---
 
 const AeroPage: React.FC = () => {
-  const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult } = useData();
+  const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult, clearBackgroundTasks } = useData();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'comparison' | 'history'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
   const [stepFile, setStepFile] = useState<File | null>(null);
@@ -230,8 +230,6 @@ const AeroPage: React.FC = () => {
     if (!stepFile) return;
     runSimulationTask(stepFile, mode);
     setStepFile(null);
-    // Automatically switch to results when a run starts, or stay on setup to show progress?
-    // Let's stay on setup to show progress bars, then notify when done.
   };
 
   const toggleComparison = (id: string) => {
@@ -240,6 +238,12 @@ const AeroPage: React.FC = () => {
           if (next.has(id)) next.delete(id); else next.add(id);
           return next;
       });
+  };
+
+  const handleClearStuckTasks = () => {
+    if (window.confirm("This will clear all active operations. Only do this if the solver appears to be frozen or if you want to abort all pending runs.")) {
+        clearBackgroundTasks();
+    }
   };
 
   const comparisonResults = useMemo(() => {
@@ -333,10 +337,21 @@ const AeroPage: React.FC = () => {
 
                   <div className="lg:col-span-2 space-y-6">
                       <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full">
-                          <h2 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                              <InfoIcon className="w-5 h-5 text-brand-accent" />
-                              Active Operations
-                          </h2>
+                          <div className="flex justify-between items-center mb-4">
+                              <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                                  <InfoIcon className="w-5 h-5 text-brand-accent" />
+                                  Active Operations
+                              </h2>
+                              {backgroundTasks.length > 0 && (
+                                <button 
+                                    onClick={handleClearStuckTasks}
+                                    title="Force reset solver state"
+                                    className="p-1 hover:bg-red-500/10 text-brand-text-secondary hover:text-red-400 rounded transition-colors"
+                                >
+                                    <AlertTriangleIcon className="w-4 h-4" />
+                                </button>
+                              )}
+                          </div>
                           <div className="space-y-4">
                               {runningSimulations.length > 0 ? runningSimulations.map(task => (
                                   <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse">
