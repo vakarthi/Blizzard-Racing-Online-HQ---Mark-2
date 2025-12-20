@@ -64,6 +64,11 @@ export interface PerformancePoint {
   liftForce: number; // Newtons
 }
 
+export interface MonteCarloPoint {
+    time: number;
+    finishSpeed: number;
+}
+
 export interface ProbabilisticRaceTimePrediction {
     bestRaceTime: number; // seconds
     worstRaceTime: number; // seconds
@@ -79,6 +84,10 @@ export interface ProbabilisticRaceTimePrediction {
     bestAverageSpeed: number; // m/s
     worstAverageSpeed: number; // m/s
     averageSpeed: number; // m/s
+    
+    // Distribution Data
+    sampledPoints?: MonteCarloPoint[];
+    stdDevTime?: number;
     
     // Reality check fields
     trustIndex?: number; // 0-100%

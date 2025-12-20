@@ -1,9 +1,9 @@
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 interface State {
@@ -15,9 +15,9 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-/* Fix: Explicitly extend React.Component (via direct import) and declare state for proper TypeScript property access */
-class ErrorBoundary extends Component<Props, State> {
-  // Fix: Explicitly declare state on the class to resolve property access errors
+// Fix: Explicitly use React.Component to ensure inherited members like setState and props are recognized by TypeScript
+class ErrorBoundary extends React.Component<Props, State> {
+  // Initialize state with default values
   public state: State = {
     hasError: false,
     error: null,
@@ -28,22 +28,28 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log the error to an error reporting service if needed
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  /* Fix: handleRetry method uses setState which is now correctly inherited from React.Component */
+  /**
+   * Resets the error state to allow the user to try again.
+   * This uses the setState method inherited from React.Component.
+   */
   public handleRetry = () => {
+    // Fix: access setState through 'this' which is now correctly recognized as inherited from React.Component
     this.setState({ hasError: false, error: null });
-    // A full reload might be necessary if assets failed to load
+    // A full reload might be necessary if assets failed to load or if the app is in a broken state
     window.location.reload();
   };
 
   public render() {
-    /* Fix: access state properties through this.state, inherited from React.Component */
+    // If the state indicates an error, render the fallback UI
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">
@@ -61,7 +67,6 @@ class ErrorBoundary extends Component<Props, State> {
           <details className="mt-8 text-sm text-brand-text-secondary w-full max-w-2xl">
             <summary className="cursor-pointer">Error Details</summary>
             <pre className="mt-2 p-4 bg-brand-dark-secondary rounded-md whitespace-pre-wrap break-all">
-              {/* Fix: access error property from state. */}
               {this.state.error?.toString()}
             </pre>
           </details>
@@ -69,7 +74,8 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    /* Fix: access children through this.props, inherited from React.Component */
+    // Otherwise, render the children components
+    // Fix: access props through 'this.props' which is now correctly recognized as inherited from React.Component
     return this.props.children;
   }
 }
