@@ -55,7 +55,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.8 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.9 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
         
         // Setup Delay: Accuracy mode takes longer to allocate resources
         await sleep(isPremium ? 2000 : 500);
@@ -245,10 +245,12 @@ class AerotestSolver {
 }
 
 /**
- * Monte Carlo Physics Simulation (v2.8.8)
+ * Monte Carlo Physics Simulation (v2.8.9)
  * 
- * FIX: Removed artificial "effectiveFloor" limits for Development/Entry classes.
- * Physics calculation now fully dictates time.
+ * UPDATE: Tuned constants to penalize Development and Entry classes correctly.
+ * - Thrust Efficiency dropped for lower classes (chassis flex/alignment).
+ * - Friction increased significantly for non-ceramic bearings.
+ * - Surface Roughness penalty added to drag calculation.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -268,17 +270,34 @@ const _runMonteCarloSim = async (
     const frontalArea = (params.totalWidth / 1000) * (50 / 1000); 
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // Reaction Time
+    // --- CLASS PHYSICS CONSTANTS ---
+    
+    // Reaction Time Base
     let reactionTimeBase = 0.130; 
-    if (carClass === 'Entry') reactionTimeBase = 0.200;
-    if (carClass === 'Development') reactionTimeBase = 0.160;
+    if (carClass === 'Development') reactionTimeBase = 0.170; // Slower reaction for dev
+    if (carClass === 'Entry') reactionTimeBase = 0.220;       // Slower for entry
 
-    // Rolling Resistance (Bearings + Tether friction)
-    // Professional cars have ceramic bearings (low friction)
-    // Entry cars have steel bearings (higher friction)
-    let frictionCoeff = 0.015; 
-    if (carClass === 'Entry') frictionCoeff = 0.035;
-    if (carClass === 'Development') frictionCoeff = 0.025;
+    // Rolling Resistance (Bearings + Tether friction + Alignment)
+    // Pro: Ceramic bearings, perfect alignment (0.012)
+    // Dev: Steel/Hybrid bearings, good alignment (0.035) -> significant penalty
+    // Entry: Standard bearings, average alignment (0.055)
+    let frictionCoeff = 0.012; 
+    if (carClass === 'Development') frictionCoeff = 0.035;
+    if (carClass === 'Entry') frictionCoeff = 0.055;
+
+    // Thrust Efficiency (Energy Loss)
+    // Pro: Stiff chassis, perfect hole (100% transfer)
+    // Dev: Some flex/misalignment (95% transfer)
+    // Entry: More flex (90% transfer)
+    let thrustEfficiency = 1.0;
+    if (carClass === 'Development') thrustEfficiency = 0.95;
+    if (carClass === 'Entry') thrustEfficiency = 0.90;
+
+    // Aerodynamic Surface Roughness (Parasitic Drag)
+    // Multiplier to Cd
+    let aeroRoughness = 1.0;
+    if (carClass === 'Development') aeroRoughness = 1.08; // 8% penalty for paint/finish
+    if (carClass === 'Entry') aeroRoughness = 1.15;       // 15% penalty
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
     
@@ -292,14 +311,15 @@ const _runMonteCarloSim = async (
 
     for (let i = 0; i < ITERATIONS; i++) {
         // --- 1. SIMULATION SETUP ---
-        const simMass = baseMassKg * (1 + randG() * 0.001); // +/- 0.1% mass variance
-        const simCd = cd * (1 + randG() * 0.005); // +/- 0.5% aero variance
-        const simFriction = frictionCoeff * (1 + randG() * 0.05); // +/- 5% bearing variance
+        const simMass = baseMassKg * (1 + randG() * 0.001); 
+        // Apply aero roughness penalty to the base Cd
+        const simCd = (cd * aeroRoughness) * (1 + randG() * 0.005); 
+        const simFriction = frictionCoeff * (1 + randG() * 0.05); 
         
-        // CO2 Cartridge Variance
-        // 8g Cartridge typically peaks around 4.5N - 5.5N depending on temperature
-        const peakThrust = 5.2 * (1 + randG() * 0.02); // 2% thrust variance
-        const thrustDuration = 0.60 + (randG() * 0.01); // +/- 10ms duration
+        // CO2 Cartridge Variance with Efficiency Factor
+        const baseThrust = 5.2 * thrustEfficiency;
+        const peakThrust = baseThrust * (1 + randG() * 0.02); 
+        const thrustDuration = 0.60 + (randG() * 0.01); 
 
         let time = 0;
         let distance = 0;
@@ -311,37 +331,31 @@ const _runMonteCarloSim = async (
             // Thrust Curve Logic
             let thrust = 0;
             if (time < 0.05) {
-                // Initial burst (ramp up)
                 thrust = peakThrust * (time / 0.05);
             } else if (time < thrustDuration) {
-                // Sustained thrust (slight decay as gas cools/depletes)
                 thrust = peakThrust * (1 - 0.2 * ((time - 0.05) / (thrustDuration - 0.05)));
             } else {
-                // Exhausted
                 thrust = 0;
             }
 
             // Forces
-            // Drag = 0.5 * p * v^2 * Cd * A
             const dragForce = 0.5 * AIR_DENSITY * (velocity * velocity) * simCd * frontalArea;
             
-            // Rolling Resistance = Friction + (Velocity dependent tether drag)
-            // Tether drag increases slightly with speed due to vibration
+            // Rolling Resistance
+            // Tether drag scales with velocity
             const rollingResistance = (simMass * 9.81 * simFriction) + (0.005 * velocity);
 
             const netForce = thrust - dragForce - rollingResistance;
             
-            // F = ma -> a = F/m
             const acceleration = netForce / simMass;
 
             // Euler Integration
             velocity += acceleration * TIME_STEP;
-            if (velocity < 0) velocity = 0; // Cannot go backwards
+            if (velocity < 0) velocity = 0; 
             
             distance += velocity * TIME_STEP;
             time += TIME_STEP;
 
-            // Capture 5m trap speed
             if (distance >= START_SAMPLING_POINT && startSpeed === 0) {
                 startSpeed = velocity;
             }
@@ -374,7 +388,7 @@ const _runMonteCarloSim = async (
         bestRaceTime: results[0].time,
         worstRaceTime: results[ITERATIONS-1].time,
         averageRaceTime: avgTime,
-        averageDrag: cd,
+        averageDrag: cd * aeroRoughness, // Return effective Cd
         averageSpeed: avgSpeed,
         bestFinishLineSpeed: Math.max(...results.map(r => r.finishSpeed)),
         worstFinishLineSpeed: Math.min(...results.map(r => r.finishSpeed)),
