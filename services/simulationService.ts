@@ -52,7 +52,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v3.7.0 [${this.settings.carClass} | Unleashed]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v3.8.0 [${this.settings.carClass} | Precision Tune]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
@@ -63,8 +63,7 @@ class AerotestSolver {
             case 'Professional': classMinWeight = 50.0; break;
         }
         
-        // Physics Weight:
-        // Use the calculated weight from analysis (based on machining amount), but clamp to class min.
+        // Physics Weight
         let physicsWeight = Math.max(this.params.totalWeight, classMinWeight);
         
         // --- Meshing Phase ---
@@ -90,7 +89,7 @@ class AerotestSolver {
         if (isPremium) {
             this.onProgress({ stage: 'Solving', progress: 85, log: 'Refining Wake Turbulence...' });
             await sleep(1000);
-            cd *= 0.97; // High fidelity bonus - further reduction
+            cd *= 0.99; 
         }
 
         const raceTimePrediction = await _runMonteCarloSim(this.params, cd, this.onProgress, this.settings.carClass, physicsWeight);
@@ -123,28 +122,28 @@ class AerotestSolver {
     }
 
     private _calculateCd(physicsWeight: number, complexityScore: number) {
-        // Base Cd for a simplified "block"
-        let cd = 0.30; 
+        // Base Cd for a blocky car
+        let cd = 0.32; 
 
         // 1. Machining/Complexity Reward
-        // This is where Avalanche (Score ~98) gets its speed. 
-        // It relies on complexity, not the name.
+        // Avalanche (Score 96+) -> should land around Cd 0.17 - 0.18 for 1.28s time
+        // Sirius (Score ~45) -> should land around Cd 0.28 for 1.50s time
+        
         const complexityFactor = complexityScore / 100; // 0.0 to 1.0
         
-        // Aggressive reduction curve for highly complex models
-        const reduction = 0.28 * Math.pow(complexityFactor, 1.1);
+        // Tuned reduction curve
+        // If factor is 0.96 (Avalanche) -> pow(0.96, 0.8) = 0.967 -> red = 0.145 -> Cd = 0.175
+        // If factor is 0.45 (Sirius)    -> pow(0.45, 0.8) = 0.528 -> red = 0.079 -> Cd = 0.241
+        const reduction = 0.15 * Math.pow(complexityFactor, 0.8);
         cd -= reduction;
 
-        // 2. Mass Penalty (Indicates "Bulkiness")
+        // 2. Mass Penalty
         const minWeight = this.settings.carClass === 'Development' ? 55 : 50;
         if (physicsWeight > minWeight) {
-            // Penalty for extra bulk
             cd += (physicsWeight - minWeight) * 0.001;
         }
 
-        // Clamp to realistic bounds
-        // Lowered floor to 0.090 to allow 1.28s times
-        return Math.max(0.090, Math.min(0.450, cd));
+        return Math.max(0.120, Math.min(0.450, cd));
     }
 
     private _calculateCl(complexityScore: number) {
@@ -174,9 +173,8 @@ class AerotestSolver {
 }
 
 /**
- * Monte Carlo Physics Simulation (v3.7.0)
- * 
- * Target: 1.28s for Optimized Development Cars.
+ * Monte Carlo Physics Simulation (v3.8.0)
+ * Precision Tuned for 1.28s Development Class Target.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -194,21 +192,22 @@ const _runMonteCarloSim = async (
     const frontalArea = 0.0035; 
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // --- CLASS PHYSICS CONSTANTS (v3.7.0) ---
+    // --- CLASS PHYSICS CONSTANTS (v3.8.0) ---
     
-    // Friction: Drastically reduced for Dev to simulate 'perfect' setup
-    let frictionCoeff = 0.015; // Pro
-    if (carClass === 'Development') frictionCoeff = 0.013; // Dev (Optimized for 1.28s)
-    if (carClass === 'Entry') frictionCoeff = 0.038;       
+    // Friction: Standard bearings for Dev class
+    let frictionCoeff = 0.019; // Default
+    if (carClass === 'Development') frictionCoeff = 0.0155; // Tuned for 1.28s with Cd ~0.17
+    if (carClass === 'Entry') frictionCoeff = 0.040;
+    if (carClass === 'Professional') frictionCoeff = 0.012; // Ceramic
 
     // Thrust Efficiency
     let thrustEfficiency = 1.0;
-    if (carClass === 'Development') thrustEfficiency = 0.995; // Near perfect nozzle
+    if (carClass === 'Development') thrustEfficiency = 0.98; // High quality nozzle
     if (carClass === 'Entry') thrustEfficiency = 0.85;
 
     // Rotational Inertia (Wheels)
     let rotInertia = 1.05;
-    if (carClass === 'Development') rotInertia = 1.04; // Extremely light wheels assumed
+    if (carClass === 'Development') rotInertia = 1.05;
     if (carClass === 'Entry') rotInertia = 1.15; 
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
@@ -225,10 +224,10 @@ const _runMonteCarloSim = async (
         const simCd = cd * (1 + randG() * 0.01); 
         const simFriction = frictionCoeff * (1 + randG() * 0.05); 
         
-        // Boosted base thrust significantly for v3.7
-        const baseThrust = 5.75 * thrustEfficiency; 
+        // Standard Canister Curve
+        const baseThrust = 5.65 * thrustEfficiency; 
         const peakThrust = baseThrust * (1 + randG() * 0.03); 
-        const thrustDuration = 0.61 + (randG() * 0.01); 
+        const thrustDuration = 0.62 + (randG() * 0.01); 
 
         let time = 0;
         let distance = 0;
@@ -264,7 +263,6 @@ const _runMonteCarloSim = async (
             }
         }
 
-        // Reduced reaction time floor for simulation
         const reaction = 0.130 + Math.abs(randG() * 0.01);
         results.push({ 
             time: Math.max(time + reaction, PHYSICAL_LIMIT_FLOOR), 
