@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon } from './icons';
 
 interface Props {
@@ -15,14 +15,16 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-// Fix: Explicitly extend React.Component and use a constructor to ensure props, state and setState are correctly typed and visible.
-class ErrorBoundary extends React.Component<Props, State> {
+/* Fix: Explicitly extend React.Component (via direct import) and declare state for proper TypeScript property access */
+class ErrorBoundary extends Component<Props, State> {
+  // Fix: Explicitly declare state on the class to resolve property access errors
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
+
   constructor(props: Props) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -33,7 +35,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  // Fix: Defined handleRetry to correctly use this.setState from the base React.Component class.
+  /* Fix: handleRetry method uses setState which is now correctly inherited from React.Component */
   public handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load
@@ -41,7 +43,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   };
 
   public render() {
-    // Fix: Access state from the instance after explicit declaration in constructor.
+    /* Fix: access state properties through this.state, inherited from React.Component */
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">
@@ -59,6 +61,7 @@ class ErrorBoundary extends React.Component<Props, State> {
           <details className="mt-8 text-sm text-brand-text-secondary w-full max-w-2xl">
             <summary className="cursor-pointer">Error Details</summary>
             <pre className="mt-2 p-4 bg-brand-dark-secondary rounded-md whitespace-pre-wrap break-all">
+              {/* Fix: access error property from state. */}
               {this.state.error?.toString()}
             </pre>
           </details>
@@ -66,7 +69,7 @@ class ErrorBoundary extends React.Component<Props, State> {
       );
     }
 
-    // Fix: Correctly accessing children from the base Component class props.
+    /* Fix: access children through this.props, inherited from React.Component */
     return this.props.children;
   }
 }

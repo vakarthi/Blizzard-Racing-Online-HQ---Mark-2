@@ -72,7 +72,8 @@ const EditTaskModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task
 
 const UserManagement: React.FC = () => {
     const { users, setUsers, addUser } = useData();
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: UserRole.Engineer });
+    // Fix: Corrected invalid UserRole.Engineer to UserRole.DesignEngineer
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: UserRole.DesignEngineer });
 
     const handleRoleChange = (userId: string, newRole: UserRole) => {
         setUsers(prevUsers => prevUsers.map(u => u.id === userId ? { ...u, role: newRole } : u));
@@ -89,7 +90,8 @@ const UserManagement: React.FC = () => {
         if(!newUser.name || !newUser.email) return;
         const success = addUser(newUser);
         if (success) {
-            setNewUser({ name: '', email: '', role: UserRole.Engineer });
+            // Fix: Corrected invalid UserRole.Engineer to UserRole.DesignEngineer
+            setNewUser({ name: '', email: '', role: UserRole.DesignEngineer });
         }
     }
 

@@ -4,11 +4,11 @@ import { generateAvatar } from '../utils/avatar';
 
 export const MOCK_USERS_DATA = [
   { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager },
-  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.Engineer },
-  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Designer },
-  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.Member },
-  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Member },
-  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.Engineer },
+  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.ManufacturingEngineer },
+  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Marketing },
+  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.SocialsDesigner },
+  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Resource },
+  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.DesignEngineer },
 ];
 
 export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
@@ -17,10 +17,10 @@ export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
 }));
 
 export const MOCK_TASKS: Task[] = [
-  { id: 'task-1', title: 'Finalize chassis design', description: 'Incorporate feedback from aero team and complete CAD models.', status: TaskStatus.Done, assigneeId: 'user-3', dueDate: '2024-08-10' },
-  { id: 'task-2', title: 'Run new front wing simulation', description: 'Test v3.2 of the front wing with "high_downforce" configuration.', status: TaskStatus.InProgress, assigneeId: 'user-2', dueDate: '2024-08-15' },
-  { id: 'task-3', title: 'Prepare sponsorship pitch deck', description: 'Create a new deck for potential platinum sponsors.', status: TaskStatus.InReview, assigneeId: 'user-5', dueDate: '2024-08-20' },
-  { id: 'task-4', title: 'Machine new suspension uprights', description: 'CNC machine the latest uprights from the design team.', status: TaskStatus.ToDo, assigneeId: 'user-4', dueDate: '2024-08-25' },
+  { id: 'task-1', title: 'Finalize chassis design', description: 'Complete high-fidelity CAD models for v3.0.', status: TaskStatus.Done, assigneeId: 'user-6', dueDate: '2024-08-10' },
+  { id: 'task-2', title: 'Run new front wing simulation', description: 'Test v3.2 of the front wing with "high_downforce" configuration.', status: TaskStatus.InProgress, assigneeId: 'user-1', dueDate: '2024-08-15' },
+  { id: 'task-3', title: 'Prepare sponsorship pitch deck', description: 'Create a new deck for potential platinum sponsors.', status: TaskStatus.InReview, assigneeId: 'user-3', dueDate: '2024-08-20' },
+  { id: 'task-4', title: 'Manufacturing Run v1', description: 'Begin CNC milling for the first chassis prototype.', status: TaskStatus.ToDo, assigneeId: 'user-2', dueDate: '2024-08-25' },
 ];
 
 export const MOCK_FINANCES: FinancialRecord[] = [
@@ -39,7 +39,7 @@ export const MOCK_SPONSORS: Sponsor[] = [
 
 export const MOCK_NEWS: NewsPost[] = [
     {id: 'news-1', title: 'Regional Finals Result: 2nd Place!', content: 'Blizzard Racing is proud to announce a 2nd place finish at the Southeast Regional Finals! While we faced some technical challenges in scrutineering, our race pace was unmatched.', authorId: 'user-1', createdAt: '2024-07-15T10:00:00Z', isPublic: true},
-    {id: 'news-2', title: 'Breakthrough in Aero Dynamics Achieved', content: 'Our engineering team has made a significant leap forward in aerodynamic efficiency with the new "Vortex" sidepod design. Internal tests show a 5% reduction in drag while maintaining downforce...', authorId: 'user-2', createdAt: '2024-07-20T14:30:00Z', isPublic: false},
+    {id: 'news-2', title: 'Breakthrough in Aero Dynamics Achieved', content: 'Our engineering team has made a significant leap forward in aerodynamic efficiency with the new "Vortex" sidepod design. Internal tests show a 5% reduction in drag while maintaining downforce...', authorId: 'user-6', createdAt: '2024-07-20T14:30:00Z', isPublic: false},
     {id: 'news-3', title: 'Quantum Dynamics Joins as Platinum Partner', content: 'A huge welcome to Quantum Dynamics, who join us as a platinum partner for the upcoming season. Their expertise in materials science will be invaluable.', authorId: 'user-1', createdAt: '2024-07-22T09:00:00Z', isPublic: true},
 ];
 
@@ -55,50 +55,30 @@ export const MOCK_THREADS: DiscussionThread[] = [
      {
         id: 'thread-4',
         title: 'Refining Scrutineering Protocol',
-        createdBy: 'user-2',
+        createdBy: 'user-1',
         createdAt: '2024-08-03T11:00:00Z',
         posts: [
-            { id: 'post-4-1', authorId: 'user-2', content: 'The Regional report showed we lost 65 points in scrutineering. Specifically D4.3.2 (Halo) and D7.6.3 (Front Wing). We need Aerotest to catch these BEFORE we build.', createdAt: '2024-08-03T11:00:00Z' },
-            { id: 'post-4-2', authorId: 'user-1', content: 'Agreed. I am updating the internal checklist now. Anish, can you ensure the CAD analysis module covers the Halo plan-view visibility?', createdAt: '2024-08-03T12:30:00Z' },
+            { id: 'post-4-1', authorId: 'user-1', content: 'The Regional report showed we lost 65 points in scrutineering. Specifically D4.3.2 (Halo) and D7.6.3 (Front Wing). We need Aerotest to catch these BEFORE we build.', createdAt: '2024-08-03T11:00:00Z' },
+            { id: 'post-4-2', authorId: 'user-6', content: 'Agreed. I am updating the internal checklist now. Anish, can you ensure the CNC milling toolpath accounts for these clearances?', createdAt: '2024-08-03T12:30:00Z' },
         ]
     },
     {
         id: 'thread-3',
-        title: 'where',
+        title: 'Meeting spot',
         createdBy: 'user-1',
         createdAt: '2024-08-02T12:00:00Z',
         posts: [
-            { id: 'post-3-1', authorId: 'user-1', content: 'is the meeting spot for tomorrow?', createdAt: '2024-08-02T12:00:00Z' },
-        ]
-    },
-    {
-        id: 'thread-1',
-        title: 'Rear Wing Strategy for Nationals',
-        createdBy: 'user-2',
-        createdAt: '2024-08-01T10:00:00Z',
-        posts: [
-            { id: 'post-1-1', authorId: 'user-2', content: 'We need to decide on our primary rear wing configuration. Should we prioritize low drag for the straights or max downforce for the corners?', createdAt: '2024-08-01T10:00:00Z' },
-            { id: 'post-1-2', authorId: 'user-3', content: 'I think a balanced approach is best. The latest simulation (BR-03-Gamma) shows a good compromise. We can have a higher downforce setup in reserve.', createdAt: '2024-08-01T11:30:00Z' },
-            { id: 'post-1-3', authorId: 'user-1', content: 'Agreed. Let\'s go with the balanced setup as our primary. Anish, can you get the performance data for both options ready for the strategy meeting?', createdAt: '2024-08-02T09:00:00Z' },
-        ]
-    },
-    {
-        id: 'thread-2',
-        title: 'Sponsorship Outreach - Q4 Targets',
-        createdBy: 'user-5',
-        createdAt: '2024-07-28T14:00:00Z',
-        posts: [
-            { id: 'post-2-1', authorId: 'user-5', content: 'Here is the list of potential local businesses to approach for Bronze/Silver tier sponsorships. Please add any contacts you have.', createdAt: '2024-07-28T14:00:00Z' },
+            { id: 'post-3-1', authorId: 'user-1', content: 'Meeting in the workshop tomorrow at lunch to discuss manufacturing tolerances.', createdAt: '2024-08-02T12:00:00Z' },
         ]
     }
 ];
 
 export const MOCK_COMPETITION_PROGRESS: CompetitionProgressItem[] = [
-    { category: 'Design & Engineering', progress: 49 }, // From the report: 49/180
-    { category: 'Manufacturing', progress: 35 }, // Quality of finish was low (6/20)
-    { category: 'Scrutineering Compliance', progress: 40 }, // 45/110
-    { category: 'Portfolio & Pit Display', progress: 41 }, // 25/60
-    { category: 'Sponsorship & Marketing', progress: 72 }, // 58/80
+    { category: 'Design & Engineering', progress: 49 },
+    { category: 'Manufacturing', progress: 35 },
+    { category: 'Scrutineering Compliance', progress: 40 },
+    { category: 'Portfolio & Pit Display', progress: 41 },
+    { category: 'Sponsorship & Marketing', progress: 72 },
 ];
 
 export const MOCK_PROTOCOLS: Protocol[] = [
@@ -111,18 +91,6 @@ export const MOCK_PROTOCOLS: Protocol[] = [
             'Project 15mm clearance rays from the cockpit center.',
             'Ensure Halo structure does not intersect rays within the -5pt threshold.',
             'Cross-check with technical regulation D4.3.2 for front and side clearances.',
-        ]
-    },
-    {
-        id: 'proto-2',
-        title: 'New Member Onboarding',
-        description: 'Steps to integrate a new member into the Blizzard Racing team.',
-        steps: [
-            'Introduce new member to all team leads.',
-            'Provide access to HQ portal and communication channels.',
-            'Assign a mentor from their sub-team.',
-            'Review team handbook and code of conduct.',
-            'Assign an initial starter task.',
         ]
     }
 ];
@@ -137,8 +105,8 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   about: {
     title: "About Blizzard Racing",
     subtitle: "Learn about our mission, our history, and the competition that drives us to be the best.",
-    mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork. We are committed to innovation, sportsmanship, and inspiring the next generation of STEM leaders.",
-    history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School. In our first year, we achieved regional success, which fueled our ambition. Now in our third season, with the BR-02 and now the BR-03 challenger, we're leveraging advanced manufacturing techniques and data-driven design to compete at the national level.",
+    mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork.",
+    history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School.",
     stats: [
         { id: 1, label: "Regional Rank", value: "2nd" },
         { id: 2, label: "Race Time Score", value: "215/220" },
@@ -148,25 +116,25 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   },
   team: {
       title: "Meet The Team",
-      subtitle: "The dedicated individuals driving Blizzard Racing forward. A blend of experience, innovation, and passion for motorsport."
+      subtitle: "The dedicated individuals driving Blizzard Racing forward."
   },
   car: {
       title: "The BR-02 Challenger",
-      subtitle: "A culmination of cutting-edge technology and relentless innovation. Explore the key features of our latest car.",
+      subtitle: "A culmination of cutting-edge technology and relentless innovation.",
       carModelFbx: null,
       isCarModelBlurred: true,
   },
   competition: {
       title: "Competition Readiness",
-      subtitle: "Follow our progress as we prepare for the next big event. Each category represents a core part of the F1 in Schools challenge."
+      subtitle: "Follow our progress as we prepare for the next big event."
   },
   sponsors: {
       title: "Our Partners",
-      subtitle: "We are proud to be supported by industry leaders who share our vision for excellence and innovation. Their partnership is crucial to our success."
+      subtitle: "We are proud to be supported by industry leaders who share our vision."
   },
   news: {
       title: "News Feed",
-      subtitle: "The latest updates, announcements, and stories from inside Blizzard Racing."
+      subtitle: "The latest updates from inside Blizzard Racing."
   },
   contact: {
       title: "Contact Us",
@@ -174,12 +142,8 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   },
   aerotest: {
       title: "Aerotest: Simulation Engine",
-      subtitle: "A next-generation Computational Fluid Dynamics (CFD) solver, architected for superior accuracy and data intelligence.",
-      description: `Aerotest is a first-principles physics solver built on a foundation of numerical excellence. It implements a full, double-precision Reynolds-Averaged Navier-Stokes (RANS) solver with optional Detached Eddy Simulation (DES) modes for unparalleled turbulence-resolving capability.
-- **Meshing:** Automated hybrid mesher with polyhedral-hexcore cells and boundary layer inflation ensures optimal mesh quality and accuracy.
-- **Solver:** A GPU-accelerated, coupled implicit solver provides robust convergence, utilizing Algebraic Multigrid (AMG) methods to accelerate solutions.
-- **Physics:** Supports a modular framework for turbulence models (k-ω SST, Spalart-Allmaras), compressible and incompressible flows, and conjugate heat transfer.
-- **AI-Powered Insights:** Features an integrated AI for automated flow feature detection and a Design Performance Analyzer to directly link aerodynamic results to on-track performance.`
+      subtitle: "A next-generation Computational Fluid Dynamics (CFD) solver.",
+      description: `Aerotest is a first-principles physics solver built on a foundation of numerical excellence.`
   }
 };
 
@@ -197,12 +161,12 @@ export const F1_IN_SCHOOLS_RULES: readonly {
     { id: 'T3.6', description: 'Total Weight (Min)', min: 50.0, unit: 'g', key: 'totalWeight' },
     { id: 'T7.6.1', description: 'Front Wing Span', min: 75, unit: 'mm', key: 'frontWingSpan' },
     { id: 'T7.6.2', description: 'Front Wing Chord', min: 15, max: 25, unit: 'mm', key: 'frontWingChord' },
-    { id: 'D7.6.3', description: 'Front Wing Thickness', min: 3.5, max: 12.0, unit: 'mm', key: 'frontWingThickness' }, // NEW
+    { id: 'D7.6.3', description: 'Front Wing Thickness', min: 3.5, max: 12.0, unit: 'mm', key: 'frontWingThickness' },
     { id: 'T8.5', description: 'Rear Wing Height (Max)', max: 65, unit: 'mm', key: 'rearWingHeight' },
     { id: 'T8.6.1', description: 'Rear Wing Span', min: 65, unit: 'mm', key: 'rearWingSpan' },
-    { id: 'D4.3.2', description: 'Halo Plan Visibility', min: 80, unit: '%', key: 'haloVisibilityScore' }, // NEW
-    { id: 'D4.2', description: 'No-Go-Zone Clearance', min: 1.0, unit: 'mm', key: 'noGoZoneClearance' }, // NEW
-    { id: 'D6.2', description: 'Side/Plan Visibility', min: 90, unit: '%', key: 'visibilityScore' }, // NEW
+    { id: 'D4.3.2', description: 'Halo Plan Visibility', min: 80, unit: '%', key: 'haloVisibilityScore' },
+    { id: 'D4.2', description: 'No-Go-Zone Clearance', min: 1.0, unit: 'mm', key: 'noGoZoneClearance' },
+    { id: 'D6.2', description: 'Side/Plan Visibility', min: 90, unit: '%', key: 'visibilityScore' },
 ];
 
 export const THEORETICAL_OPTIMUM: AeroResult = {
@@ -234,15 +198,15 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         },
         turbulenceModel: 'Detached Eddy Simulation (DES)'
     },
-    cd: 0.1020, // 1. Drag Coefficient (Lower better)
+    cd: 0.1020, // 1. Drag Coefficient (Floor)
     cl: 0.0120, // 2. Lift Coefficient (Near zero better)
-    liftToDragRatio: 0.118, // 3. L/D Efficiency (Higher better)
+    liftToDragRatio: 0.118, 
     dragBreakdown: { pressure: 40, skinFriction: 60 },
-    aeroBalance: 50.0, // 4. Aero Balance (Near 50% better)
-    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit). Zero-slip boundary conditions and perfectly smooth surface assumption applied.",
-    meshQuality: 100, // 5. Mesh Quality (Higher better)
+    aeroBalance: 50.0, 
+    flowAnalysis: "Regulation-Max V2.5 (Isentropic Limit).",
+    meshQuality: 100,
     finalResiduals: {
-        continuity: 1.0e-7, // 6. Convergence stability (Lower better)
+        continuity: 1.0e-7,
         xVelocity: 1.0e-7,
         yVelocity: 1.0e-7,
         zVelocity: 1.0e-7
@@ -250,18 +214,17 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
-        bestRaceTime: 1.155, // Floor set to 1.155s (realistic physical limit)
+        bestRaceTime: 1.155, // Theoretical Floor
         worstRaceTime: 1.155,
         averageRaceTime: 1.155, 
         averageDrag: 0.1020,
         bestFinishLineSpeed: 21.15,
         worstFinishLineSpeed: 21.15,
-        averageFinishLineSpeed: 21.15, // Exit Speed (Higher better)
-        bestAverageSpeed: 17.31, // Calculated as 20m / 1.155s
+        averageFinishLineSpeed: 21.15,
+        bestAverageSpeed: 17.31,
         worstAverageSpeed: 17.31,
-        averageSpeed: 17.31, 
-        launchVariance: 0.0, 
-        trackConditionSensitivity: 0.1,
-        canisterPerformanceDelta: 0.1
+        averageSpeed: 17.31,
+        trustIndex: 100,
+        isPhysical: true
     }
 };

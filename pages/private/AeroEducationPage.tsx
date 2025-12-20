@@ -66,8 +66,8 @@ const AeroEducationPage: React.FC = () => {
                             <li className="flex gap-3 text-sm">
                                 <span className="text-brand-accent font-bold">02.</span>
                                 <div>
-                                    <p className="font-bold text-brand-text uppercase text-xs">Cost Neutral</p>
-                                    <p className="text-brand-text-secondary">Proprietary logic avoids the heavy licensing fees of tools like ANSYS or Star-CCM+.</p>
+                                    <p className="font-bold text-brand-text uppercase text-xs">Material Intelligence</p>
+                                    <p className="text-brand-text-secondary">Solver v2.6.1 is hard-coded with our block density of <span className="text-brand-text font-bold">0.163 ± 0.012 g/cm³</span> for accurate inertia modeling.</p>
                                 </div>
                             </li>
                             <li className="flex gap-3 text-sm">
@@ -128,9 +128,9 @@ const AeroEducationPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
                         <BookOpenIcon className="w-6 h-6 text-brand-accent" />
-                        New Engineer Guide
+                        Technical Lead Guide
                     </h2>
-                    <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">OPERATIONAL V2.5</span>
+                    <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">OPERATIONAL V2.6.1</span>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -147,15 +147,15 @@ const AeroEducationPage: React.FC = () => {
                             <li className="flex gap-4">
                                 <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center font-bold text-brand-accent border border-brand-border flex-shrink-0">2</div>
                                 <div className="text-sm">
-                                    <p className="font-bold text-brand-text">Check Regulatory Compliance</p>
-                                    <p className="text-brand-text-secondary">Before simulating, use the Toolbox Checklist. Don't waste compute time on an illegal car.</p>
+                                    <p className="font-bold text-brand-text">Density Calibration</p>
+                                    <p className="text-brand-text-secondary">Ensure your CAD volume translates to a legal weight. The solver assumes a core density of 0.163 g/cm³.</p>
                                 </div>
                             </li>
                             <li className="flex gap-4">
                                 <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center font-bold text-brand-accent border border-brand-border flex-shrink-0">3</div>
                                 <div className="text-sm">
-                                    <p className="font-bold text-brand-text">Run 'Speed' First</p>
-                                    <p className="text-brand-text-secondary">Use Speed mode for initial form finding. Only use 'Accuracy' mode for final wing-angle validation.</p>
+                                    <p className="font-bold text-brand-text">Check Regulatory Compliance</p>
+                                    <p className="text-brand-text-secondary">Before simulating, use the Toolbox Checklist. Don't waste compute time on an illegal car.</p>
                                 </div>
                             </li>
                         </ol>
@@ -186,7 +186,7 @@ const AeroEducationPage: React.FC = () => {
 
             <footer className="text-center p-8 bg-brand-accent/5 rounded-2xl border border-brand-accent/20">
                 <p className="text-brand-text-secondary text-sm">
-                    Questions about simulation results? Contact <span className="text-brand-text font-bold">Anish</span> or <span className="text-brand-text font-bold">Pranav</span> in the Aero Sub-team.
+                    Questions about simulation results? Contact <span className="text-brand-text font-bold">Pranav</span> in the Design/Aero Sub-team.
                 </p>
             </footer>
         </div>

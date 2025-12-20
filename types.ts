@@ -1,8 +1,12 @@
 
 export enum UserRole {
   Manager = 'Manager',
-  Engineer = 'Engineer',
-  Designer = 'Designer',
+  DesignEngineer = 'Design Engineer',
+  ManufacturingEngineer = 'Manufacturing Engineer',
+  GraphicDesigner = 'Graphic Designer',
+  SocialsDesigner = 'Socials & Design',
+  Marketing = 'Marketing',
+  Resource = 'Resource',
   Member = 'Member',
 }
 
@@ -76,10 +80,12 @@ export interface ProbabilisticRaceTimePrediction {
     worstAverageSpeed: number; // m/s
     averageSpeed: number; // m/s
     
-    // NEW for Premium simulation
-    launchVariance?: number; // ms, standard deviation of launch reaction time
-    trackConditionSensitivity?: number; // ms, time difference between optimal and suboptimal track
-    canisterPerformanceDelta?: number; // ms, time difference between best and worst canister performance
+    // Reality check fields
+    trustIndex?: number; // 0-100%
+    isPhysical?: boolean;
+    launchVariance?: number; // ms
+    trackConditionSensitivity?: number; // ms
+    canisterPerformanceDelta?: number; // ms
 }
 
 export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
@@ -163,7 +169,6 @@ export interface AeroResult {
   // Curve Data
   performanceCurve?: PerformancePoint[];
 }
-
 
 export interface FinancialRecord {
   id: string;

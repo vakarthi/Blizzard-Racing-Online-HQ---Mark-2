@@ -30,14 +30,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
-  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
-  { path: 'aero-academy', name: 'Aerotest Academy', icon: <GraduationCapIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.DesignEngineer] },
+  { path: 'aero-academy', name: 'Aerotest Academy', icon: <GraduationCapIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.DesignEngineer, UserRole.ManufacturingEngineer] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  { path: 'leads', name: 'Leads', icon: <BriefcaseIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
-  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
-  { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
+  { path: 'leads', name: 'Leads', icon: <BriefcaseIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Marketing] },
+  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.SocialsDesigner, UserRole.Marketing] },
+  { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.ManufacturingEngineer, UserRole.DesignEngineer] },
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.SocialsDesigner, UserRole.GraphicDesigner, UserRole.Marketing] },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {

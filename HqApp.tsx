@@ -1,5 +1,4 @@
 
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
@@ -28,12 +27,15 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '', name: 'Dashboard', icon: <HomeIcon className="w-6 h-6" /> },
-  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.Engineer, UserRole.Designer, UserRole.Manager] },
+  // Fix: replaced non-existent Engineer/Designer roles with correct UserRole members.
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-6 h-6" />, roles: [UserRole.DesignEngineer, UserRole.Manager] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-6 h-6" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-6 h-6" /> },
-  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
+  // Fix: replaced non-existent Engineer/Designer roles with correct UserRole members.
+  { path: 'socials', name: 'Socials', icon: <MessageSquareIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.SocialsDesigner, UserRole.Marketing] },
   { path: 'toolbox', name: 'Toolbox', icon: <WrenchIcon className="w-6 h-6" /> },
-  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.Engineer, UserRole.Designer] },
+  // Fix: replaced non-existent Engineer/Designer roles with correct UserRole members.
+  { path: 'portal-editor', name: 'Portal Editor', icon: <EditIcon className="w-6 h-6" />, roles: [UserRole.Manager, UserRole.GraphicDesigner, UserRole.SocialsDesigner] },
 ];
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {

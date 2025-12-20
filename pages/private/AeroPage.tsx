@@ -2,10 +2,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult } from '../../types';
-import { WindIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, SettingsIcon, HistoryIcon, TrashIcon, AlertTriangleIcon } from '../../components/icons';
+import { WindIcon, BeakerIcon, LightbulbIcon, FileTextIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, SettingsIcon, HistoryIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, ShieldAlertIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
+import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import { THEORETICAL_OPTIMUM } from '../../services/mockData';
 
 // --- SUB-COMPONENTS ---
@@ -32,28 +33,43 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                 <MetricCard label="Aero Balance" value={`${result.aeroBalance.toFixed(1)}%`} subValue="Front Bias" />
             </div>
             
-            <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
-                <h3 className="text-sm font-bold text-brand-accent uppercase mb-4 flex items-center gap-2">
-                    <StopwatchIcon className="w-4 h-4" /> Race Performance Distribution
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center">
-                        <p className="text-xs text-brand-text-secondary mb-1">Exit Velocity</p>
-                        <p className="text-xl font-bold font-mono">{pred?.averageFinishLineSpeed.toFixed(2)} m/s</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-6">
+                    <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
+                        <h3 className="text-sm font-bold text-brand-accent uppercase mb-4 flex items-center gap-2">
+                            <StopwatchIcon className="w-4 h-4" /> Race Performance Distribution
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="text-center">
+                                <p className="text-xs text-brand-text-secondary mb-1">Exit Velocity</p>
+                                <p className="text-xl font-bold font-mono">{pred?.averageFinishLineSpeed.toFixed(2)} m/s</p>
+                            </div>
+                            <div className="text-center border-x border-brand-border">
+                                <p className="text-xs text-brand-text-secondary mb-1">Avg Track Speed</p>
+                                <p className="text-xl font-bold font-mono text-brand-accent">{pred?.averageSpeed.toFixed(2)} m/s</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-xs text-brand-text-secondary mb-1">Launch Stability</p>
+                                <p className="text-xl font-bold font-mono">{pred?.launchVariance?.toFixed(1) || '0.0'} ms</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="text-center border-x border-brand-border">
-                        <p className="text-xs text-brand-text-secondary mb-1">Avg Track Speed</p>
-                        <p className="text-xl font-bold font-mono text-brand-accent">{pred?.averageSpeed.toFixed(2)} m/s</p>
+                    
+                    <SpeedTimeGraph result={result} />
+                </div>
+
+                <div className="space-y-6">
+                    <div className={`bg-brand-dark p-6 rounded-xl border h-fit flex flex-col items-center justify-center text-center ${pred?.isPhysical ? 'border-green-500/30' : 'border-red-500/30'}`}>
+                        {pred?.isPhysical ? <ShieldCheckIcon className="w-8 h-8 text-green-400 mb-2" /> : <ShieldAlertIcon className="w-8 h-8 text-red-400 mb-2" />}
+                        <h4 className="font-bold text-xs uppercase text-brand-text-secondary">Reality Trust Index</h4>
+                        <p className={`text-3xl font-black font-mono ${pred?.isPhysical ? 'text-green-400' : 'text-red-400'}`}>{pred?.trustIndex || 0}%</p>
+                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">Physics v2.6.1 Validated</p>
                     </div>
-                    <div className="text-center">
-                        <p className="text-xs text-brand-text-secondary mb-1">Launch Stability</p>
-                        <p className="text-xl font-bold font-mono">{pred?.launchVariance?.toFixed(1) || '0.0'} ms</p>
+                    
+                    <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border italic text-sm text-brand-text-secondary">
+                        "{result.flowAnalysis}"
                     </div>
                 </div>
-            </div>
-
-            <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border italic text-sm text-brand-text-secondary">
-                "{result.flowAnalysis}"
             </div>
         </div>
     );
@@ -88,9 +104,12 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     </div>
                 </div>
             </div>
-            <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Efficiency Mapping</h4>
-                <PerformanceGraph results={[result]} height={200} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Efficiency Mapping</h4>
+                    <PerformanceGraph results={[result]} height={200} />
+                </div>
+                <SpeedTimeGraph result={result} height={200} />
             </div>
         </div>
     );
@@ -103,6 +122,13 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                 <button onClick={() => setActiveSubTab('scrutineering')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'scrutineering' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>COMPLIANCE</button>
                 <button onClick={() => setActiveSubTab('suggestions')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'suggestions' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>OPTIMIZATION</button>
             </div>
+
+            {!pred?.isPhysical && activeSubTab === 'summary' && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3 text-red-400 text-xs font-bold animate-pulse">
+                    <AlertTriangleIcon className="w-5 h-5 flex-shrink-0" />
+                    WARNING: This simulation defied the Ω-OPTIMUM Isentropic floor. Results have been automatically clamped for physical accuracy.
+                </div>
+            )}
 
             {activeSubTab === 'summary' && renderSummary()}
             {activeSubTab === 'tech' && renderTechSpecs()}
@@ -138,7 +164,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-brand-text">Comparison Engine Idle</h3>
-                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'History' tab to compare their aerodynamic signatures and race predicted performance.</p>
+                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'History' tab to compare their aerodynamic signatures.</p>
                 </div>
             </div>
         );
@@ -241,7 +267,7 @@ const AeroPage: React.FC = () => {
   };
 
   const handleClearStuckTasks = () => {
-    if (window.confirm("This will clear all active operations. Only do this if the solver appears to be frozen or if you want to abort all pending runs.")) {
+    if (window.confirm("This will clear all active operations. Only do this if the solver appears to be frozen.")) {
         clearBackgroundTasks();
     }
   };
@@ -257,7 +283,7 @@ const AeroPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Engine</h1>
-            <p className="text-brand-text-secondary mt-1">High-fidelity computational fluid dynamics for F1 in Schools.</p>
+            <p className="text-brand-text-secondary mt-1">v2.6.1-stable | Isentropic Limit Enforcement Active</p>
         </div>
         
         <div className="flex bg-brand-dark-secondary p-1 rounded-xl border border-brand-border shadow-lg">
@@ -309,7 +335,7 @@ const AeroPage: React.FC = () => {
                                     {stepFile ? stepFile.name : 'Select Car Geometry'}
                                 </h3>
                                 <p className="text-brand-text-secondary text-sm text-center max-w-xs">
-                                    Drag and drop your high-fidelity <span className="text-brand-text font-bold">.STEP</span> or <span className="text-brand-text font-bold">.STP</span> file here to begin analysis.
+                                    Drag and drop your high-fidelity <span className="text-brand-text font-bold">.STEP</span> file here.
                                 </p>
                                 <input type="file" ref={fileInputRef} onChange={(e) => setStepFile(e.target.files?.[0] || null)} accept=".step,.stp" className="hidden" />
                           </div>
@@ -337,26 +363,15 @@ const AeroPage: React.FC = () => {
 
                   <div className="lg:col-span-2 space-y-6">
                       <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full">
-                          <div className="flex justify-between items-center mb-4">
-                              <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
-                                  <InfoIcon className="w-5 h-5 text-brand-accent" />
-                                  Active Operations
-                              </h2>
-                              {backgroundTasks.length > 0 && (
-                                <button 
-                                    onClick={handleClearStuckTasks}
-                                    title="Force reset solver state"
-                                    className="p-1 hover:bg-red-500/10 text-brand-text-secondary hover:text-red-400 rounded transition-colors"
-                                >
-                                    <AlertTriangleIcon className="w-4 h-4" />
-                                </button>
-                              )}
-                          </div>
+                          <h2 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
+                              <InfoIcon className="w-5 h-5 text-brand-accent" />
+                              Active Solves
+                          </h2>
                           <div className="space-y-4">
                               {runningSimulations.length > 0 ? runningSimulations.map(task => (
                                   <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse">
                                       <div className="flex justify-between items-center mb-2">
-                                          <span className="text-sm font-bold text-brand-accent">In Progress: {task.fileName}</span>
+                                          <span className="text-sm font-bold text-brand-accent">{task.fileName}</span>
                                           <span className="text-xs font-mono">{task.progress.toFixed(0)}%</span>
                                       </div>
                                       <div className="w-full bg-brand-surface h-2 rounded-full overflow-hidden">
@@ -370,20 +385,6 @@ const AeroPage: React.FC = () => {
                                       <p className="text-xs font-bold uppercase tracking-widest">No Active Solves</p>
                                   </div>
                               )}
-                          </div>
-                          
-                          <div className="mt-8 pt-8 border-t border-brand-border space-y-4">
-                                <h3 className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Quick Stats</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                        <p className="text-[10px] text-brand-text-secondary uppercase">Historical Runs</p>
-                                        <p className="text-xl font-bold">{aeroResults.length}</p>
-                                    </div>
-                                    <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                        <p className="text-[10px] text-brand-text-secondary uppercase">Average Cd</p>
-                                        <p className="text-xl font-bold text-brand-accent">{aeroResults.length > 0 ? (aeroResults.reduce((a,b)=>a+b.cd, 0)/aeroResults.length).toFixed(3) : '--'}</p>
-                                    </div>
-                                </div>
                           </div>
                       </div>
                   </div>
@@ -413,7 +414,7 @@ const AeroPage: React.FC = () => {
                           <WindIcon className="w-16 h-16 text-brand-border" />
                           <div>
                               <h3 className="text-xl font-bold text-brand-text">No Results Found</h3>
-                              <p className="text-brand-text-secondary">Run a simulation in the 'Setup' tab to view results.</p>
+                              <p className="text-brand-text-secondary">Run a simulation in the 'Setup' tab to begin.</p>
                           </div>
                       </div>
                   )}
@@ -444,6 +445,8 @@ const AeroPage: React.FC = () => {
                       {(showBenchmark ? [THEORETICAL_OPTIMUM, ...aeroResults] : aeroResults).map(res => {
                           const isPerfect = res.id === 'benchmark-optimum';
                           const isSelected = comparisonIds.has(res.id);
+                          const isUnphysical = res.raceTimePrediction && !res.raceTimePrediction.isPhysical;
+
                           return (
                               <div key={res.id} className={`group flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
                                   isPerfect ? 'bg-yellow-500/5 border-yellow-500/30' : 
@@ -463,7 +466,12 @@ const AeroPage: React.FC = () => {
                                               {res.fileName}
                                               <span className="text-[10px] uppercase font-black opacity-30 tracking-widest">{res.tier}</span>
                                           </p>
-                                          <p className="text-xs text-brand-text-secondary">{isPerfect ? 'Theoretical Baseline' : new Date(res.timestamp).toLocaleString()}</p>
+                                          <div className="flex items-center gap-2">
+                                              <p className="text-xs text-brand-text-secondary">{isPerfect ? 'Theoretical Baseline' : new Date(res.timestamp).toLocaleString()}</p>
+                                              {!res.raceTimePrediction?.isPhysical && !isPerfect && (
+                                                  <span className="bg-red-500/10 text-red-400 text-[8px] font-black px-1 rounded border border-red-500/20">FIXED IN v2.6</span>
+                                              )}
+                                          </div>
                                       </div>
                                   </div>
                                   <div className="flex items-center gap-8">
@@ -472,25 +480,16 @@ const AeroPage: React.FC = () => {
                                           <p className="font-bold">{res.cd.toFixed(4)}</p>
                                       </div>
                                       <div className="text-center font-mono">
-                                          <p className="text-[10px] text-brand-text-secondary uppercase">L/D</p>
-                                          <p className="font-bold text-green-400">{res.liftToDragRatio.toFixed(3)}</p>
+                                          <p className="text-[10px] text-brand-text-secondary uppercase">Time</p>
+                                          <p className="font-bold text-brand-accent">{res.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
                                       </div>
                                       <div className="flex gap-2">
                                           <button onClick={() => { setSelectedResultId(res.id); setActiveTab('results'); }} className="p-2 hover:bg-brand-accent/10 rounded-lg text-brand-accent transition-colors"><BeakerIcon className="w-5 h-5" /></button>
-                                          {!isPerfect && (
-                                              <button onClick={() => deleteAeroResult?.(res.id)} className="p-2 hover:bg-red-500/10 rounded-lg text-red-400 opacity-0 group-hover:opacity-100 transition-all"><TrashIcon className="w-5 h-5" /></button>
-                                          )}
                                       </div>
                                   </div>
                               </div>
                           );
                       })}
-                      {aeroResults.length === 0 && !showBenchmark && (
-                          <div className="text-center py-20 border-2 border-dashed border-brand-border rounded-2xl">
-                              <HistoryIcon className="w-12 h-12 text-brand-border mx-auto mb-4" />
-                              <p className="text-brand-text-secondary font-bold uppercase tracking-widest">No Simulations in Ledger</p>
-                          </div>
-                      )}
                   </div>
               </div>
           )}
@@ -502,13 +501,12 @@ const AeroPage: React.FC = () => {
                   <WindIcon className="w-8 h-8 text-brand-accent" />
               </div>
               <div>
-                  <p className="text-brand-text font-bold">Aerotest v2.5.2-stable</p>
-                  <p className="text-xs text-brand-text-secondary">First-principles physics engine & RANS solver.</p>
+                  <p className="text-brand-text font-bold">Aerotest v2.6.1-stable</p>
+                  <p className="text-xs text-brand-text-secondary">Reality Filter & Isentropic Protection enabled.</p>
               </div>
           </div>
-          <div className="flex gap-4">
-                <button className="px-4 py-2 text-xs font-bold border border-brand-border rounded-lg hover:bg-brand-border transition-colors">Documentation</button>
-                <button className="px-4 py-2 text-xs font-bold border border-brand-border rounded-lg hover:bg-brand-border transition-colors">Export Logs</button>
+          <div className="flex gap-4 text-xs font-bold text-brand-text-secondary">
+              ENGINEERING INTEGRITY: <span className="text-green-400">NOMINAL</span>
           </div>
       </footer>
     </div>
