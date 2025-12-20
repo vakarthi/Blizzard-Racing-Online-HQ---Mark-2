@@ -3,7 +3,7 @@ import { DesignParameters } from '../types';
 import { F1_IN_SCHOOLS_RULES } from './mockData';
 
 /**
- * Geometric Analysis Engine v2.7.0
+ * Geometric Analysis Engine v2.7.1
  * Extracts physical dimensions and estimates volume/mass from raw STEP data.
  */
 export const analyzeStepFile = async (file: File): Promise<DesignParameters> => {
@@ -49,8 +49,9 @@ export const analyzeStepFile = async (file: File): Promise<DesignParameters> => 
     const faceCount = (fileContent.match(/ADVANCED_FACE/g) || []).length;
     const shellCount = (fileContent.match(/CLOSED_SHELL/g) || []).length;
     
-    // Solidity factor: how much of the bounding box is actually occupied by material
-    const solidityRatio = Math.min(0.65, Math.max(0.18, (faceCount / (pointCount || 1)) * 12));
+    // Solidity factor: Increased sensitivity to geometry complexity
+    // Multiplier increased from 12 to 25 to generate more realistic "bulk" estimates for typical F1S cars
+    const solidityRatio = Math.min(0.70, Math.max(0.20, (faceCount / (pointCount || 1)) * 25));
     
     const boundingBoxVolumeMm3 = length * width * height;
     const estimatedVolumeCm3 = (boundingBoxVolumeMm3 * solidityRatio) / 1000;
@@ -59,7 +60,9 @@ export const analyzeStepFile = async (file: File): Promise<DesignParameters> => 
     // Variance is tied to geometric "entropy" (shell to face ratio)
     const entropy = Math.min(1, shellCount / (faceCount / 100 || 1));
     const actualDensity = DENSITY_BASE + (entropy - 0.5) * 2 * DENSITY_VARIANCE;
-    const derivedMassGrams = parseFloat((estimatedVolumeCm3 * actualDensity).toFixed(2));
+    
+    // Adjusted mass formula to favor slightly heavier estimates to avoid the 50g floor clamping
+    const derivedMassGrams = parseFloat((estimatedVolumeCm3 * actualDensity * 1.1).toFixed(2));
 
     const params: DesignParameters = {
         carName: file.name.replace(/\.(step|stp)$/i, ''),

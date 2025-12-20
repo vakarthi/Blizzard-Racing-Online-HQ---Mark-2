@@ -55,7 +55,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.4 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.5 [${this.settings.carClass} Class | ${isPremium ? 'Pro Accuracy (High Fidelity)' : 'Std Speed (Approximation)'}]` });
         
         // Setup Delay: Accuracy mode takes longer to allocate resources
         await sleep(isPremium ? 2000 : 500);
@@ -65,7 +65,7 @@ class AerotestSolver {
         let classMinWeight = 50.0;
         switch (this.settings.carClass) {
             case 'Entry': classMinWeight = 65.0; break;
-            case 'Development': classMinWeight = 55.0; break; // Lowered slightly to allow for variance
+            case 'Development': classMinWeight = 55.0; break; 
             case 'Professional': classMinWeight = 50.0; break;
         }
         if (this.params.totalWeight < classMinWeight) {
@@ -157,17 +157,16 @@ class AerotestSolver {
         // 1. Slenderness Ratio (Major Factor)
         // L/W ratio. Higher is better (more streamliner).
         const ratio = p.totalLength / Math.max(p.totalWidth, 1);
-        let cd = 0.32 - (ratio * 0.035);
+        let cd = 0.32 - (ratio * 0.05); // Increased sensitivity to aspect ratio
 
         // 2. Mass Penalty (Volume Proxy)
         // Heavier cars imply more volume or density, likely disturbing more air.
-        // Base penalty starts at 50g.
-        const weightPenalty = Math.max(0, (p.totalWeight - 50) * 0.0018);
+        // Base penalty starts at 50g. Increased scaling factor.
+        const weightPenalty = Math.max(0, (p.totalWeight - 50) * 0.003);
         cd += weightPenalty;
 
         // 3. Wing Optimization (Simplified)
         // Rewarding wing span as a proxy for "flow conditioning".
-        // In reality, more frontal area = more drag, but this rewards "building the car".
         const wingFactor = (p.frontWingSpan + p.rearWingSpan) / 200; 
         cd -= (wingFactor * 0.02);
 
@@ -175,22 +174,22 @@ class AerotestSolver {
         if (p.noGoZoneClearance > 2) cd -= 0.008; 
         if (p.haloVisibilityScore > 90) cd -= 0.004;
 
-        // 5. Deterministic Noise
-        // Ensures identical cars get identical results, but "similar" cars get slightly different ones.
+        // 5. Deterministic Noise based on Name
+        // Ensures identical cars get identical results, but "similar" cars get distinct ones.
         const nameSeed = p.carName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const microVar = (nameSeed % 50) / 10000; // +/- 0.005 range
+        // Uses sine wave to allow for negative and positive variations based on name
+        const microVar = (Math.sin(nameSeed) * 0.015); 
         cd += microVar;
 
-        // Hard clamp for realism
-        return Math.max(0.115, Math.min(0.480, cd));
+        // Hard clamp for realism, but wider range allowed
+        return Math.max(0.120, Math.min(0.550, cd));
     }
 }
 
 /**
  * Monte Carlo Physics Simulation
- * Calibrated for realistic F1 in Schools performance:
- * - Finish speeds reaching 90-105 km/h (25-29 m/s)
- * - Race times strictly bounded by physical limits (approx 0.916s floor)
+ * Calibrated for realistic F1 in Schools performance.
+ * Friction lowered to allow drag to be the differentiator.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -200,12 +199,13 @@ const _runMonteCarloSim = async (
 ): Promise<ProbabilisticRaceTimePrediction> => {
     onProgress({ stage: 'Performance', progress: 85, log: 'Executing Statistical Synthesis...' });
     
-    const ITERATIONS = 2000; // Increased for smoother distribution
+    const ITERATIONS = 2000;
     const AIR_DENSITY = 1.225;
     const TRACK_DISTANCE = 20;
     const START_SAMPLING_POINT = 5.0; 
     const DT = 0.001;
-    const FRONTAL_AREA = (params.totalWidth / 1000) * (42 / 1000); // Frontal area approx
+    // Increased reference frontal area estimate so Drag Force is larger relative to friction
+    const FRONTAL_AREA = (params.totalWidth / 1000) * (55 / 1000); 
     const BASE_MASS = params.totalWeight / 1000;
     
     // Class Physics Calibration
@@ -219,21 +219,21 @@ const _runMonteCarloSim = async (
             BASE_THRUST = 5.0; 
             REACTION_TIME_BASE = 0.22;
             effectiveFloor = 1.45;
-            baseResistance = 0.60;
+            baseResistance = 0.50;
             break;
         case 'Development':
             // Calibrated for ~1.3s - 1.5s times.
-            // Reduced friction allows Drag (Cd) to play a larger role in the outcome.
-            BASE_THRUST = 4.25; 
+            // Reduced friction significantly (0.22N) so Drag (approx 0.2N-0.3N) matters more.
+            BASE_THRUST = 4.3; 
             REACTION_TIME_BASE = 0.17;
             effectiveFloor = 1.25; 
-            baseResistance = 0.28; 
+            baseResistance = 0.22; 
             break;
         case 'Professional':
             BASE_THRUST = 8.0;
-            REACTION_TIME_BASE = 0.13; // Human + Mechanical Delay
+            REACTION_TIME_BASE = 0.13;
             effectiveFloor = 1.0;
-            baseResistance = 0.55;
+            baseResistance = 0.45;
             break;
     }
 
@@ -249,19 +249,18 @@ const _runMonteCarloSim = async (
 
     for (let i = 0; i < ITERATIONS; i++) {
         // Physical Variances
-        const iterThrust = BASE_THRUST * (1 + randG() * 0.015); // 1.5% Thrust variance
-        const iterCd = cd * (1 + randG() * 0.01); // 1% Drag variance (turbulence)
-        const iterMass = BASE_MASS * (1 + randG() * 0.001); // 0.1% Mass variance
-        const iterResistance = baseResistance * (1 + randG() * 0.05); // 5% Friction variance
+        const iterThrust = BASE_THRUST * (1 + randG() * 0.015);
+        const iterCd = cd * (1 + randG() * 0.01);
+        const iterMass = BASE_MASS * (1 + randG() * 0.001);
+        const iterResistance = baseResistance * (1 + randG() * 0.05);
 
         let time = 0, distance = 0, velocity = 0;
         let startSpeed = 0;
-        // Thrust usually lasts 0.4s to 0.6s depending on cartridge type/temp
+        // Thrust duration variability
         const thrustDuration = 0.55 + (randG() * 0.02); 
 
         // Physics Integration Loop
         while(distance < TRACK_DISTANCE && time < 4.0) {
-            // Impulse model: High initial thrust that tapers off
             let thrust = 0;
             if (time < thrustDuration) {
                 thrust = iterThrust; 
@@ -276,7 +275,6 @@ const _runMonteCarloSim = async (
             const netForce = thrust - drag - iterResistance;
             velocity = velocity + (netForce / iterMass) * DT;
             
-            // Prevent backwards movement if friction > thrust
             if (velocity < 0) velocity = 0;
 
             distance += velocity * DT;
@@ -291,7 +289,6 @@ const _runMonteCarloSim = async (
         
         let calculatedTime = time + reactionTime;
         
-        // Floor clamping
         const finalTime = Math.max(calculatedTime, effectiveFloor);
         
         results.push({ time: finalTime, startSpeed, finishSpeed: velocity });
@@ -326,7 +323,6 @@ const _runMonteCarloSim = async (
         worstAverageSpeed: TRACK_DISTANCE / results[ITERATIONS-1].time,
         trustIndex: 99.8,
         isPhysical: true,
-        // Downsample points for UI performance
         sampledPoints: results.filter((_, i) => i % 5 === 0).map(r => ({ time: r.time, startSpeed: r.startSpeed })),
         stdDevTime: stdDev
     };
