@@ -56,6 +56,13 @@ class AerotestSolver {
         this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.8.4 [${this.settings.carClass} Class | ${this.settings.isPremium ? 'Pro Accuracy' : 'Std Speed'}]` });
         await sleep(500);
 
+        // Enforce Class Weights
+        switch (this.settings.carClass) {
+            case 'Entry': this.params.totalWeight = 65.0; break;
+            case 'Development': this.params.totalWeight = 60.0; break;
+            case 'Professional': this.params.totalWeight = 50.0; break;
+        }
+
         this.onProgress({ stage: 'Meshing', progress: 10, log: 'Reconstructing CAD Volume...' });
         const volume = this.params.totalWeight / MATERIAL_DENSITY_G_CM3;
         await sleep(800);
@@ -125,22 +132,28 @@ const _runMonteCarloSim = async (
     let BASE_THRUST = 8.0;
     let REACTION_TIME_BASE = 0.11;
     let effectiveFloor = 1.0;
+    let baseResistance = 0.55;
 
     switch (carClass) {
         case 'Entry':
             BASE_THRUST = 5.8; // Entry class often uses same CO2 but heavier cars/less efficient wheels, modeled via net thrust reduction
             REACTION_TIME_BASE = 0.22; // Inexperienced reaction times
             effectiveFloor = 1.4; // Safety floor for Entry
+            baseResistance = 0.65;
             break;
         case 'Development':
-            BASE_THRUST = 6.8; 
+            // "Incredibly hard to break 1.4s barrier"
+            // With 60g mass, we lower thrust slightly from standard to keep times > 1.4s naturally
+            BASE_THRUST = 6.0; 
             REACTION_TIME_BASE = 0.17;
-            effectiveFloor = 1.3; // Safety floor for Development
+            effectiveFloor = 1.2; // Theoretical floor
+            baseResistance = 0.60; // Increased friction to penalize toward 1.4s
             break;
         case 'Professional':
             BASE_THRUST = 8.0;
             REACTION_TIME_BASE = 0.11;
             effectiveFloor = 1.0; // Safety floor for Professional
+            baseResistance = 0.55;
             break;
     }
 
@@ -151,8 +164,8 @@ const _runMonteCarloSim = async (
         const iterThrust = BASE_THRUST * (1 + randG() * 0.03); 
         const iterCd = cd * (1 + randG() * 0.02);
         const iterMass = BASE_MASS * (1 + randG() * 0.002);
-        // Realistic friction (rolling + tether line) increased to 0.55N baseline
-        const iterResistance = 0.55 * (1 + randG() * 0.05);
+        // Realistic friction (rolling + tether line)
+        const iterResistance = baseResistance * (1 + randG() * 0.05);
 
         let time = 0, distance = 0, velocity = 0;
         let startSpeed = 0;
