@@ -143,11 +143,11 @@ const _runMonteCarloSim = async (
             break;
         case 'Development':
             // "Incredibly hard to break 1.4s barrier"
-            // With 60g mass, we lower thrust slightly from standard to keep times > 1.4s naturally
-            BASE_THRUST = 6.0; 
+            // With 60g mass, we significantly lower thrust and increase resistance to ensure typical times are > 1.45s
+            BASE_THRUST = 4.0; // Reduced from 6.0 to prevent hitting floor easily
             REACTION_TIME_BASE = 0.17;
-            effectiveFloor = 1.2; // Theoretical floor
-            baseResistance = 0.60; // Increased friction to penalize toward 1.4s
+            effectiveFloor = 1.2; // Theoretical floor remains low, but hard to reach
+            baseResistance = 1.2; // Doubled friction to simulate heavier wheels/axle inefficiencies typical of Dev class
             break;
         case 'Professional':
             BASE_THRUST = 8.0;
