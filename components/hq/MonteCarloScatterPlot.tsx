@@ -11,23 +11,39 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
     const [hoveredPoint, setHoveredPoint] = useState<MonteCarloPoint | null>(null);
     const pred = result.raceTimePrediction;
     
-    if (!pred || !pred.sampledPoints) return null;
+    // Safety check: ensure points exist and array is not empty
+    if (!pred || !pred.sampledPoints || pred.sampledPoints.length === 0) {
+        return (
+            <div className="flex items-center justify-center h-[360px] bg-brand-dark/40 rounded-xl border border-brand-border text-brand-text-secondary text-xs italic">
+                No stochastic data available for this run.
+            </div>
+        );
+    }
 
     const padding = { top: 40, right: 60, bottom: 60, left: 80 };
     const width = 800;
 
     const points = pred.sampledPoints;
     
-    // Calculate precise bounds for the scatter plot
+    // Calculate bounds with fallbacks for zero variance
     const times = points.map(p => p.time);
     const speeds = points.map(p => p.startSpeed);
     
-    const minTime = Math.min(...times) * 0.995;
-    const maxTime = Math.max(...times) * 1.005;
+    let minTime = Math.min(...times) * 0.995;
+    let maxTime = Math.max(...times) * 1.005;
     
-    // Dynamic Speed Bounds: Handles velocities up to and beyond 101 km/h
-    const minSpeed = Math.min(...speeds) * 0.95;
-    const maxSpeed = Math.max(...speeds) * 1.05;
+    if (minTime === maxTime) {
+        minTime = minTime * 0.95;
+        maxTime = maxTime * 1.05 || 1.0; // Fallback if 0
+    }
+    
+    let minSpeed = Math.min(...speeds) * 0.95;
+    let maxSpeed = Math.max(...speeds) * 1.05;
+
+    if (minSpeed === maxSpeed) {
+        minSpeed = minSpeed * 0.95;
+        maxSpeed = maxSpeed * 1.05 || 10.0; // Fallback if 0
+    }
 
     const getX = (t: number) => padding.left + ((t - minTime) / (maxTime - minTime)) * (width - padding.left - padding.right);
     const getY = (s: number) => height - padding.bottom - ((s - minSpeed) / (maxSpeed - minSpeed)) * (height - padding.top - padding.bottom);
@@ -72,7 +88,7 @@ const MonteCarloScatterPlot: React.FC<MonteCarloScatterPlotProps> = ({ result, h
                     );
                 })}
 
-                {/* Y Axis Labels (Start Speed) - Calibrated for high velocities */}
+                {/* Y Axis Labels (Start Speed) */}
                 {[0, 0.5, 1].map(v => {
                     const speed = minSpeed + v * (maxSpeed - minSpeed);
                     const y = getY(speed);

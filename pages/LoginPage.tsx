@@ -1,9 +1,8 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useData } from '../contexts/AppContext';
-import { CarIcon, FingerprintIcon } from '../components/icons';
+import { CarIcon, FingerprintIcon, ShieldAlertIcon } from '../components/icons';
 import { UserRole, User } from '../types';
 import { authenticateWithBiometrics } from '../utils/biometrics';
 
@@ -69,83 +68,92 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-dark flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-brand-dark-secondary rounded-2xl shadow-2xl p-8 animate-fade-in border border-brand-border">
-        <div className="text-center mb-8">
-            <div className="inline-block bg-brand-dark p-3 rounded-full mb-4 border border-brand-border">
-                <CarIcon className="w-8 h-8 text-brand-accent"/>
+    <div className="min-h-screen bg-brand-dark flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <div className="w-full max-w-md glass-panel rounded-3xl p-8 md:p-10 animate-fade-in relative z-10 shadow-2xl">
+        <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center bg-gradient-to-br from-brand-surface to-brand-dark p-4 rounded-2xl mb-6 border border-brand-border/50 shadow-lg">
+                <CarIcon className="w-10 h-10 text-brand-accent"/>
             </div>
-            <h1 className="text-3xl font-bold text-brand-text">Blizzard Racing HQ</h1>
-            <p className="text-brand-text-secondary mt-2">Team HQ Login</p>
+            <h1 className="text-3xl font-display font-bold text-brand-text tracking-tight">Blizzard HQ</h1>
+            <p className="text-brand-text-secondary mt-2 font-medium">Secure Team Access</p>
         </div>
         
-        <form onSubmit={handleLogin}>
-          <div className="space-y-4 mb-6">
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-brand-text-secondary mb-1">Email</label>
+              <label htmlFor="email" className="block text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Email Address</label>
               <input
                 type="email"
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={checkEmailForManager}
-                className="w-full px-4 py-2 border border-brand-border bg-brand-dark rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none"
-                placeholder="user@blizzard.rac"
+                className="w-full px-4 py-3 border border-brand-border/50 bg-brand-dark/50 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-brand-accent/50 focus:outline-none transition-all text-brand-text placeholder-brand-text-secondary/50"
+                placeholder="engineer@blizzard.rac"
                 required
               />
             </div>
 
             {isManagerLogin && (
-                <div className="text-center p-3 bg-brand-dark rounded-lg border border-brand-accent/50 animate-fade-in text-sm">
-                    <p className="font-bold text-brand-accent">Manager Login Detected</p>
-                    <p className="text-brand-text-secondary mt-1">Please enter the manager password.</p>
+                <div className="flex items-center gap-3 p-3 bg-brand-accent/5 rounded-xl border border-brand-accent/20 animate-fade-in text-sm text-brand-accent">
+                    <ShieldAlertIcon className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                        <p className="font-bold">Manager Access Detected</p>
+                        <p className="text-xs opacity-80">Higher privilege authentication required.</p>
+                    </div>
                 </div>
             )}
 
             <div>
-              <label htmlFor="password"  className="block text-sm font-medium text-brand-text-secondary mb-1">Password</label>
+              <label htmlFor="password"  className="block text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-2">Password</label>
               <input
                 type="password"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-brand-border bg-brand-dark rounded-lg focus:ring-2 focus:ring-brand-accent focus:outline-none"
+                className="w-full px-4 py-3 border border-brand-border/50 bg-brand-dark/50 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-brand-accent/50 focus:outline-none transition-all text-brand-text placeholder-brand-text-secondary/50"
                 placeholder="••••••••"
                 required
               />
             </div>
           </div>
           
-          {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
+          {error && <p className="text-red-400 text-sm text-center font-medium bg-red-500/10 p-2 rounded-lg border border-red-500/20">{error}</p>}
           
           <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand-accent text-brand-dark font-bold py-3 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors disabled:bg-brand-text-secondary flex items-center justify-center"
+              className="w-full bg-brand-accent text-brand-dark font-bold py-3.5 px-4 rounded-xl hover:bg-brand-accent-hover hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-glow-accent flex items-center justify-center"
           >
               {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
 
         {biometricUser && (
-            <>
-                <div className="my-4 flex items-center gap-2">
-                    <hr className="flex-grow border-brand-border"/>
-                    <span className="text-xs text-brand-text-secondary">OR</span>
-                    <hr className="flex-grow border-brand-border"/>
+            <div className="mt-6 space-y-4">
+                <div className="flex items-center gap-3 text-brand-text-secondary/50">
+                    <div className="h-px bg-brand-border flex-grow"></div>
+                    <span className="text-xs font-mono">QUICK ACCESS</span>
+                    <div className="h-px bg-brand-border flex-grow"></div>
                 </div>
-                <button onClick={handleBiometricLogin} disabled={loading} className="w-full bg-brand-surface text-brand-text font-bold py-3 px-4 rounded-lg border border-brand-border flex items-center justify-center gap-2 hover:bg-brand-border transition-colors">
-                    <FingerprintIcon className="w-5 h-5"/> Sign in as {biometricUser.name}
+                <button onClick={handleBiometricLogin} disabled={loading} className="w-full bg-brand-surface hover:bg-white/5 text-brand-text font-bold py-3 px-4 rounded-xl border border-brand-border flex items-center justify-center gap-3 transition-all group">
+                    <FingerprintIcon className="w-5 h-5 text-brand-accent group-hover:scale-110 transition-transform"/> 
+                    <span>Authenticate as {biometricUser.name}</span>
                 </button>
-            </>
+            </div>
         )}
 
-        <p className="text-xs text-brand-text-secondary text-center mt-6">
-            For public updates, visit our <a href="#/" className="text-brand-accent hover:underline">Public Portal</a>.
-        </p>
-         <p className="text-xs text-brand-text-secondary text-center mt-2">
-            (Hint: The password for all mock accounts is 'password123')
-        </p>
+        <div className="mt-8 text-center space-y-4">
+            <p className="text-xs text-brand-text-secondary">
+                <a href="#/" className="text-brand-text hover:text-brand-accent transition-colors underline decoration-brand-border underline-offset-4">Return to Public Portal</a>
+            </p>
+             <p className="text-[10px] text-brand-text-secondary/50 font-mono">
+                System ID: BLZ-HQ-V2.8 | Dev Pass: 'password123'
+            </p>
+        </div>
       </div>
     </div>
   );

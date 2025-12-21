@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -51,27 +52,27 @@ const PRESET_THEMES: Record<string, Theme> = {
     "Blizzard Dark": {
         name: "Blizzard Dark",
         colors: {
-            '--color-bg-dark-default': '#0D1117',
-            '--color-bg-dark-secondary': '#161B22',
-            '--color-accent-default': '#00BFFF',
-            '--color-accent-hover': '#38CCFF',
-            '--color-border': '#30363D',
-            '--color-text-default': '#E6EDF3',
-            '--color-text-secondary': '#7D8590',
-            '--color-surface': '#161B22',
+            '--color-bg-dark-default': '#020617', // Slate 950
+            '--color-bg-dark-secondary': '#0F172A', // Slate 900
+            '--color-accent-default': '#0EA5E9', // Sky 500
+            '--color-accent-hover': '#38BDF8', // Sky 400
+            '--color-border': '#1E293B', // Slate 800
+            '--color-text-default': '#F1F5F9', // Slate 100
+            '--color-text-secondary': '#94A3B8', // Slate 400
+            '--color-surface': '#1E293B', // Slate 800
         },
         background: DEFAULT_BACKGROUND,
     },
     "Arctic Light": {
         name: "Arctic Light",
         colors: {
-            '--color-bg-dark-default': '#F0F2F5',
+            '--color-bg-dark-default': '#F8FAFC',
             '--color-bg-dark-secondary': '#FFFFFF',
-            '--color-accent-default': '#1877F2',
-            '--color-accent-hover': '#4090F7',
-            '--color-border': '#DADDE1',
-            '--color-text-default': '#050505',
-            '--color-text-secondary': '#65676B',
+            '--color-accent-default': '#2563EB',
+            '--color-accent-hover': '#3B82F6',
+            '--color-border': '#E2E8F0',
+            '--color-text-default': '#0F172A',
+            '--color-text-secondary': '#64748B',
             '--color-surface': '#FFFFFF',
         },
         background: DEFAULT_BACKGROUND,
@@ -79,14 +80,14 @@ const PRESET_THEMES: Record<string, Theme> = {
     "Blueprint": {
         name: "Blueprint",
         colors: {
-            '--color-bg-dark-default': '#0A192F',
-            '--color-bg-dark-secondary': '#020C1B',
-            '--color-accent-default': '#64FFDA',
-            '--color-accent-hover': '#9BFFE9',
-            '--color-border': '#172A45',
-            '--color-text-default': '#CCD6F6',
-            '--color-text-secondary': '#8892B0',
-            '--color-surface': '#172A45',
+            '--color-bg-dark-default': '#0F172A',
+            '--color-bg-dark-secondary': '#1E293B',
+            '--color-accent-default': '#F472B6',
+            '--color-accent-hover': '#FBCFE8',
+            '--color-border': '#334155',
+            '--color-text-default': '#F8FAFC',
+            '--color-text-secondary': '#94A3B8',
+            '--color-surface': '#334155',
         },
         background: DEFAULT_BACKGROUND,
     },
@@ -95,11 +96,11 @@ const PRESET_THEMES: Record<string, Theme> = {
         colors: {
             '--color-bg-dark-default': '#000000',
             '--color-bg-dark-secondary': '#0A0A0A',
-            '--color-accent-default': '#00FF41',
-            '--color-accent-hover': '#5FFF84',
-            '--color-border': '#003B00',
-            '--color-text-default': '#00FF41',
-            '--color-text-secondary': '#008F11',
+            '--color-accent-default': '#22C55E',
+            '--color-accent-hover': '#4ADE80',
+            '--color-border': '#14532D',
+            '--color-text-default': '#22C55E',
+            '--color-text-secondary': '#166534',
             '--color-surface': '#101010',
         },
         background: DEFAULT_BACKGROUND,

@@ -23,7 +23,11 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
     return results.map((res, idx) => {
       const points: { time: number; speed: number }[] = [];
       const pred = res.raceTimePrediction;
-      if (!pred) return { id: res.id, name: res.fileName, color: colors[idx % colors.length], points: [] };
+      
+      // Fallback if no prediction or if time is 0 (prevents division by zero)
+      if (!pred || pred.averageRaceTime <= 0) {
+          return { id: res.id, name: res.fileName, color: colors[idx % colors.length], points: [] };
+      }
 
       const totalTime = pred.averageRaceTime;
       const finalSpeed = pred.averageFinishLineSpeed;
@@ -33,9 +37,11 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
       const k = 6.5; 
       for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * totalTime;
-          const rawSpeed = finalSpeed * (1 - Math.exp(-k * (t / totalTime)));
+          // Guard against division by zero just in case
+          const ratio = totalTime > 0 ? t / totalTime : 0;
+          const rawSpeed = finalSpeed * (1 - Math.exp(-k * ratio));
           // Add micro-jitter for "simulated data" feel
-          const jitter = (Math.sin(t * 25) * 0.03) * (t / totalTime);
+          const jitter = (Math.sin(t * 25) * 0.03) * ratio;
           points.push({ time: t, speed: Math.max(0, rawSpeed + jitter) });
       }
       
@@ -48,8 +54,12 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
     });
   }, [results]);
 
-  const maxTime = Math.max(...curves.flatMap(c => c.points.map(p => p.time)), 1.5);
-  const maxSpeedRaw = Math.max(...curves.flatMap(c => c.points.map(p => p.speed)), 20);
+  const allTimes = curves.flatMap(c => c.points.map(p => p.time));
+  const maxTime = allTimes.length > 0 ? Math.max(...allTimes, 1.5) : 1.5;
+  
+  const allSpeeds = curves.flatMap(c => c.points.map(p => p.speed));
+  const maxSpeedRaw = allSpeeds.length > 0 ? Math.max(...allSpeeds, 20) : 20;
+  
   const displayFactor = unit === 'kmh' ? 3.6 : 1;
   const maxSpeed = maxSpeedRaw * displayFactor;
 

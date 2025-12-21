@@ -26,8 +26,8 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard label="Drag (Cd)" value={result.cd.toFixed(4)} />
                 <MetricCard label="Efficiency (L/D)" value={result.liftToDragRatio.toFixed(3)} color="text-green-400" />
-                <MetricCard label="Avg Race Time" value={`${pred?.averageRaceTime.toFixed(3)}s`} color="text-brand-accent" />
-                <MetricCard label="Average Velocity" value={`${avgSpeedKmh} km/h`} subValue={`${pred?.averageSpeed.toFixed(2)} m/s`} color="text-yellow-400" />
+                <MetricCard label="Avg Race Time" value={`${pred?.averageRaceTime.toFixed(3) ?? '-.--'}s`} color="text-brand-accent" />
+                <MetricCard label="Average Velocity" value={`${avgSpeedKmh} km/h`} subValue={`${pred?.averageSpeed.toFixed(2) ?? '0.00'} m/s`} color="text-yellow-400" />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -44,7 +44,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="text-center">
                                 <p className="text-xs text-brand-text-secondary mb-1">Exit Velocity</p>
-                                <p className="text-xl font-bold font-mono">{(pred!.averageFinishLineSpeed * 3.6).toFixed(1)} km/h</p>
+                                <p className="text-xl font-bold font-mono">{pred ? (pred.averageFinishLineSpeed * 3.6).toFixed(1) : '0.0'} km/h</p>
                             </div>
                             <div className="text-center border-x border-brand-border">
                                 <p className="text-xs text-brand-text-secondary mb-1">Total Mass</p>
@@ -70,7 +70,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     
                     <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
                         <p className="font-bold text-brand-text mb-2 text-xs uppercase tracking-widest">Engineer Notes:</p>
-                        "Monte Carlo variance reflects $CO_2$ cartridge inconsistency and track conditions. Standard deviation is currently <b>{pred?.stdDevTime?.toFixed(4)}s</b>."
+                        "Monte Carlo variance reflects $CO_2$ cartridge inconsistency and track conditions. Standard deviation is currently <b>{pred?.stdDevTime?.toFixed(4) ?? '0.0000'}s</b>."
                     </div>
                 </div>
             </div>
@@ -97,7 +97,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                 <div className="p-4 bg-brand-accent/10 border border-brand-accent/30 rounded-xl">
                     <h4 className="text-xs font-bold text-brand-accent uppercase mb-2">Reliability Index</h4>
                     <p className="text-brand-text-secondary text-xs leading-relaxed">
-                        Based on the scatter density, this design has a **95% probability** of finishing within **{(pred!.stdDevTime! * 2).toFixed(4)}s** of the predicted average.
+                        Based on the scatter density, this design has a **95% probability** of finishing within **{pred?.stdDevTime ? (pred.stdDevTime * 2).toFixed(4) : '0.000'}s** of the predicted average.
                     </p>
                 </div>
             </div>
@@ -224,7 +224,11 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                             { key: 'averageRaceTime', label: 'Avg Race Time', best: 'min' },
                             { key: 'averageFinishLineSpeed', label: 'Finish Speed', best: 'max' }
                         ].map(m => {
-                            const values = results.map(r => m.key === 'cd' ? r.cd : (m.key === 'carClass' ? r.carClass : (r.raceTimePrediction as any)[m.key]));
+                            const values = results.map(r => {
+                                if (m.key === 'cd') return r.cd;
+                                if (m.key === 'carClass') return r.carClass;
+                                return r.raceTimePrediction ? (r.raceTimePrediction as any)[m.key] : 0;
+                            });
                             
                             // Only calculate best if it's a number
                             let bestVal: any = null;
@@ -528,11 +532,11 @@ const AeroPage: React.FC = () => {
                                   </div>
                                   <div className="text-center">
                                       <p className="text-[9px] text-brand-text-secondary uppercase">Avg Speed</p>
-                                      <p className="font-bold text-brand-accent">{(res.raceTimePrediction!.averageSpeed * 3.6).toFixed(1)} km/h</p>
+                                      <p className="font-bold text-brand-accent">{res.raceTimePrediction ? (res.raceTimePrediction.averageSpeed * 3.6).toFixed(1) : '0.0'} km/h</p>
                                   </div>
                                   <div className="text-center">
                                       <p className="text-[9px] text-brand-text-secondary uppercase">Time</p>
-                                      <p className="font-bold text-yellow-400">{res.raceTimePrediction!.averageRaceTime.toFixed(3)}s</p>
+                                      <p className="font-bold text-yellow-400">{res.raceTimePrediction ? res.raceTimePrediction.averageRaceTime.toFixed(3) : '-.--'}s</p>
                                   </div>
                                   {res.id !== 'benchmark-optimum' && (
                                       <button 
