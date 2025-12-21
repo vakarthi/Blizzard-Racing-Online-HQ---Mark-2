@@ -65,7 +65,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.1 [Physics Core Update]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.2 [Realism Physics Patch]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
@@ -120,6 +120,12 @@ class AerotestSolver {
                 cl *= 1.15; 
             }
             
+            // Re-enforce Class Floor after premium modifiers to ensure realism
+            let hardFloor = 0.115;
+            if (this.settings.carClass === 'Development') hardFloor = 0.250;
+            if (this.settings.carClass === 'Entry') hardFloor = 0.380;
+            cd = Math.max(cd, hardFloor);
+
             // Tighten residuals for premium report
             this.finalResiduals = { continuity: 1.2e-8, xVelocity: 2.1e-8, yVelocity: 1.5e-8, zVelocity: 1.8e-8 };
         }
@@ -185,8 +191,8 @@ class AerotestSolver {
         let classMinCd = 0.115;
         switch (carClass) {
             case 'Professional': classMinCd = 0.115; break; // World-class limit
-            case 'Development': classMinCd = 0.220; break; // Regulations limit aero efficiency
-            case 'Entry': classMinCd = 0.350; break; // Basic block shapes / standard wheels
+            case 'Development': classMinCd = 0.250; break; // Increased floor for realism (was 0.220)
+            case 'Entry': classMinCd = 0.380; break; // Increased floor (was 0.350)
         }
 
         // 4. Clamp to realistic values
@@ -249,7 +255,7 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
 };
 
 /**
- * Monte Carlo Physics Simulation (v2.9.1)
+ * Monte Carlo Physics Simulation (v2.9.2)
  * Stochastic solver for race time probability distribution.
  * Now includes Strict Class Performance Limits.
  */
@@ -278,15 +284,15 @@ const _runMonteCarloSim = async (
     let launchEfficiency = 1.0; // Factor to account for alignment/wheel spin at launch
 
     if (carClass === 'Professional') {
-        rollingFrictionCoeff = 0.011; // Ceramic/Hybrid bearings, precision alignment
-        launchEfficiency = 0.98; // Minimal loss
+        rollingFrictionCoeff = 0.012; // Ceramic/Hybrid bearings, precision alignment
+        launchEfficiency = 0.96; // Optimized launch
     } else if (carClass === 'Development') {
-        rollingFrictionCoeff = 0.028; // Standard steel bearings
-        launchEfficiency = 0.94; // Minor alignment imperfections
+        rollingFrictionCoeff = 0.035; // Standard steel bearings + loose tolerances (was 0.028)
+        launchEfficiency = 0.90; // Slower reaction/alignment (was 0.94)
     } else {
         // Entry Class
-        rollingFrictionCoeff = 0.055; // Plastic wheels/bushings, high friction
-        launchEfficiency = 0.88; // Significant launch energy loss
+        rollingFrictionCoeff = 0.065; // Plastic wheels/bushings (was 0.055)
+        launchEfficiency = 0.85; // Significant launch energy loss
     }
 
     const rotInertia = 1.04; // 4% rotational mass equivalent
@@ -313,9 +319,10 @@ const _runMonteCarloSim = async (
         const simCl = cl * (1 + randG() * 0.04); 
         const simMu = rollingFrictionCoeff * (1 + randG() * 0.08); // 8% bearing variance
         
-        // Cartridge Impulse (4.2Ns mean)
+        // Cartridge Impulse (4.2Ns mean approx)
+        // Reduced peak thrust to align better with real world time scales (roughly 1.0s - 1.5s range)
         const impulseFactor = 1 + (randG() * 0.025); 
-        const peakThrust = 29.5 * impulseFactor; 
+        const peakThrust = 26.5 * impulseFactor; // Was 29.5
         
         let time = 0;
         let distance = 0;
