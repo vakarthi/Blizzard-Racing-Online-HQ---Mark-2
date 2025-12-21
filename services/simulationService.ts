@@ -5,7 +5,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type ProgressCallback = (update: { stage: string; progress: number; log?: string }) => void;
 
-// Updated constants for v2.9.0 Physics Engine (Realism Patch)
+// Updated constants for v2.9.1 Physics Engine (Realism Patch - Class Limits)
 const MATERIAL_DENSITY_G_CM3 = 0.163; // Updated to match regulation block density exactly
 const PHYSICAL_LIMIT_FLOOR = 0.910; // World Record territory
 
@@ -65,7 +65,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.0 [Physics Core Update]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.1 [Physics Core Update]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
@@ -95,7 +95,8 @@ class AerotestSolver {
         await sleep(isPremium ? 2000 : 800);
 
         // --- Physics Calculation ---
-        let cd = this._calculateCd(physicsWeight, geometryScore);
+        // Pass carClass to calculate realistic Cd floors
+        let cd = this._calculateCd(physicsWeight, geometryScore, this.settings.carClass);
         let cl = this._calculateCl(geometryScore);
         
         // Pro Solver Refinement (Accuracy Mode)
@@ -161,7 +162,7 @@ class AerotestSolver {
         };
     }
 
-    private _calculateCd(physicsWeight: number, geometryScore: number) {
+    private _calculateCd(physicsWeight: number, geometryScore: number, carClass: CarClass) {
         // Base Cd for an unoptimized F1 in Schools block
         let cd = 0.68; 
 
@@ -179,8 +180,17 @@ class AerotestSolver {
             cd += (physicsWeight - minWeight) * 0.0008;
         }
 
-        // 3. Clamp to realistic values (0.115 is extremely competitive)
-        return Math.max(0.115, Math.min(0.900, cd));
+        // 3. Class-Based Drag Floors (Physics Limitations)
+        // Development/Entry cars cannot achieve Pro-level drag due to regulations (wheel size, etc)
+        let classMinCd = 0.115;
+        switch (carClass) {
+            case 'Professional': classMinCd = 0.115; break; // World-class limit
+            case 'Development': classMinCd = 0.220; break; // Regulations limit aero efficiency
+            case 'Entry': classMinCd = 0.350; break; // Basic block shapes / standard wheels
+        }
+
+        // 4. Clamp to realistic values
+        return Math.max(classMinCd, Math.min(0.900, cd));
     }
 
     private _calculateCl(geometryScore: number) {
@@ -239,9 +249,9 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
 };
 
 /**
- * Monte Carlo Physics Simulation (v2.9.0)
+ * Monte Carlo Physics Simulation (v2.9.1)
  * Stochastic solver for race time probability distribution.
- * Now includes Aerodynamic Loading on Rolling Resistance.
+ * Now includes Strict Class Performance Limits.
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -262,10 +272,22 @@ const _runMonteCarloSim = async (
     const frontalArea = _calculateDynamicFrontalArea(params);
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // Rolling Resistance (Bearing friction + Wheel deformation)
+    // Class-Based Physics Constraints
+    // Different classes use different bearings and wheel systems.
     let rollingFrictionCoeff = 0.012; 
-    if (carClass === 'Development') rollingFrictionCoeff = 0.015; 
-    if (carClass === 'Entry') rollingFrictionCoeff = 0.022;
+    let launchEfficiency = 1.0; // Factor to account for alignment/wheel spin at launch
+
+    if (carClass === 'Professional') {
+        rollingFrictionCoeff = 0.011; // Ceramic/Hybrid bearings, precision alignment
+        launchEfficiency = 0.98; // Minimal loss
+    } else if (carClass === 'Development') {
+        rollingFrictionCoeff = 0.028; // Standard steel bearings
+        launchEfficiency = 0.94; // Minor alignment imperfections
+    } else {
+        // Entry Class
+        rollingFrictionCoeff = 0.055; // Plastic wheels/bushings, high friction
+        launchEfficiency = 0.88; // Significant launch energy loss
+    }
 
     const rotInertia = 1.04; // 4% rotational mass equivalent
 
@@ -314,6 +336,9 @@ const _runMonteCarloSim = async (
                 thrust = peakThrust * Math.exp(-5.5 * (time - 0.04));
             }
 
+            // Apply launch efficiency to thrust (simulates initial energy loss)
+            const effectiveThrust = thrust * launchEfficiency;
+
             // Aerodynamic Forces
             const drag = kDrag * velocity * velocity * simCd;
             const downforce = kLift * velocity * velocity * simCl; // Downforce increases with speed
@@ -325,7 +350,7 @@ const _runMonteCarloSim = async (
             
             const tether = 0.25 + (0.04 * velocity); // Tether friction increases with speed
 
-            const netForce = thrust - (drag + rolling + tether);
+            const netForce = effectiveThrust - (drag + rolling + tether);
             const accel = netForce / effectiveMass;
 
             velocity += accel * TIME_STEP;
