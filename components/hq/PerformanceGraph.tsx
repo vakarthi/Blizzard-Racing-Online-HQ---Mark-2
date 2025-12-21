@@ -59,7 +59,7 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
 
   return (
     <div className="relative bg-brand-dark rounded-xl border border-brand-border p-2 w-full overflow-hidden group">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible select-none max-h-[300px] lg:max-h-full">
         {/* Grid Lines */}
         {[0, 0.25, 0.5, 0.75, 1].map(pct => {
           const y = height - padding.bottom - pct * (height - padding.top - padding.bottom);
@@ -118,7 +118,7 @@ const PerformanceGraph: React.FC<PerformanceGraphProps> = ({ results, height = 3
           );
         })}
 
-        {/* Legend */}
+        {/* Legend - Responsive adjustment needed for small screens? Usually SVG scales down text too. */}
         <g transform={`translate(${width - padding.right + 10}, ${padding.top})`}>
           {curves.map((curve, i) => (
             <g key={curve.id} transform={`translate(0, ${i * 25})`}>

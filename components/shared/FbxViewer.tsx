@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
@@ -111,7 +112,7 @@ const FbxViewer: React.FC<FbxViewerProps> = ({ fbxDataUrl, isBlurred }) => {
   }, [fbxDataUrl]);
 
   return (
-    <div className="relative w-full h-[50vh] bg-brand-dark/50 rounded-lg overflow-hidden border border-brand-border">
+    <div className="relative w-full h-[300px] md:h-[50vh] bg-brand-dark/50 rounded-lg overflow-hidden border border-brand-border">
       <div 
         ref={mountRef} 
         className={`w-full h-full transition-all duration-500 ease-in-out ${isBlurred ? 'blur-xl' : 'blur-0'}`}

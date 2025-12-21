@@ -3,59 +3,75 @@ import React, { useMemo, useState } from 'react';
 import { AeroResult } from '../../types';
 
 interface SpeedTimeGraphProps {
-  result: AeroResult | AeroResult[];
+  result?: AeroResult | AeroResult[];
+  customProfiles?: { name: string; color: string; points: { time: number; speed: number }[] }[];
   height?: number;
   showTitle?: boolean;
 }
 
-const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, showTitle = true }) => {
+const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, customProfiles, height = 280, showTitle = true }) => {
   const [unit, setUnit] = useState<'ms' | 'kmh'>('kmh');
   const [hoveredPoint, setHoveredPoint] = useState<{ time: number; speed: number; x: number; y: number; carName: string; color: string } | null>(null);
 
-  const results = Array.isArray(result) ? result : [result];
+  const results = result ? (Array.isArray(result) ? result : [result]) : [];
   const padding = { top: 40, right: 40, bottom: 40, left: 60 };
   const width = 800;
   const steps = 60;
 
   const curves = useMemo(() => {
     const colors = ['#00BFFF', '#A78BFA', '#4ADE80', '#FBBF24', '#F472B6'];
-    
-    return results.map((res, idx) => {
-      const points: { time: number; speed: number }[] = [];
+    const generatedCurves = [];
+
+    // Process Standard Results
+    results.forEach((res, idx) => {
       const pred = res.raceTimePrediction;
       
-      // Fallback if no prediction or if time is 0 (prevents division by zero)
+      // Fallback if no prediction or if time is 0
       if (!pred || pred.averageRaceTime <= 0) {
-          return { id: res.id, name: res.fileName, color: colors[idx % colors.length], points: [] };
+          generatedCurves.push({ id: res.id, name: res.fileName, color: colors[idx % colors.length], points: [] });
+          return;
       }
 
+      const points: { time: number; speed: number }[] = [];
       const totalTime = pred.averageRaceTime;
       const finalSpeed = pred.averageFinishLineSpeed;
 
-      // Physics-based curve: initial high acceleration decaying as drag increases
+      // Physics-based curve approximation for saved results
       // v(t) = v_max * (1 - e^(-k*t))
       const k = 6.5; 
       for (let i = 0; i <= steps; i++) {
           const t = (i / steps) * totalTime;
-          // Guard against division by zero just in case
           const ratio = totalTime > 0 ? t / totalTime : 0;
           const rawSpeed = finalSpeed * (1 - Math.exp(-k * ratio));
-          // Add micro-jitter for "simulated data" feel
           const jitter = (Math.sin(t * 25) * 0.03) * ratio;
           points.push({ time: t, speed: Math.max(0, rawSpeed + jitter) });
       }
       
-      return {
+      generatedCurves.push({
         id: res.id,
         name: res.fileName,
         color: colors[idx % colors.length],
         points
-      };
+      });
     });
-  }, [results]);
+
+    // Process Custom Profiles
+    if (customProfiles) {
+        customProfiles.forEach((profile, idx) => {
+            generatedCurves.push({
+                id: `custom-${idx}`,
+                name: profile.name,
+                color: profile.color,
+                points: profile.points
+            });
+        });
+    }
+
+    return generatedCurves;
+  }, [results, customProfiles]);
 
   const allTimes = curves.flatMap(c => c.points.map(p => p.time));
-  const maxTime = allTimes.length > 0 ? Math.max(...allTimes, 1.5) : 1.5;
+  const maxTime = allTimes.length > 0 ? Math.max(...allTimes, 1.2) : 1.2; // Min 1.2s for scale
   
   const allSpeeds = curves.flatMap(c => c.points.map(p => p.speed));
   const maxSpeedRaw = allSpeeds.length > 0 ? Math.max(...allSpeeds, 20) : 20;
@@ -70,12 +86,12 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
     <div className="relative bg-brand-dark/40 rounded-xl border border-brand-border p-4 w-full overflow-hidden shadow-inner group">
       <div className="flex justify-between items-center mb-6">
         {showTitle && (
-            <h4 className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] flex items-center gap-2">
+            <h4 className="text-[10px] font-black text-brand-accent uppercase tracking-[0.2em] flex items-center gap-2 truncate">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m19 9-7 7-7-7"/></svg>
-                Velocity Profile Analysis
+                Velocity Profile
             </h4>
         )}
-        <div className="flex bg-brand-dark rounded-md border border-brand-border p-0.5 ml-auto">
+        <div className="flex bg-brand-dark rounded-md border border-brand-border p-0.5 ml-auto flex-shrink-0">
             <button 
                 onClick={() => setUnit('ms')} 
                 className={`px-3 py-1 text-[10px] font-bold rounded transition-colors ${unit === 'ms' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}
@@ -91,7 +107,7 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
         </div>
       </div>
       
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible select-none max-h-[280px]">
         {/* Grid lines */}
         {[0, 0.5, 1].map(pct => {
           const y = height - padding.bottom - pct * (height - padding.top - padding.bottom);
@@ -127,13 +143,13 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
                     strokeLinejoin="round"
                     className="drop-shadow-[0_0_8px_rgba(0,191,255,0.3)] transition-all duration-300 group-hover:opacity-40 hover:!opacity-100 hover:!stroke-width-[4px]"
                 />
-                {/* Interaction zones */}
-                {curve.points.map((p, i) => (
+                {/* Interaction zones - optimized: fewer rects for high density custom curves */}
+                {curve.points.filter((_, i) => curve.points.length < 100 || i % Math.ceil(curve.points.length / 50) === 0).map((p, i) => (
                     <rect
                         key={i}
-                        x={getX(p.time) - (width/steps/2)}
+                        x={getX(p.time) - (width/50/2)}
                         y={padding.top}
-                        width={width/steps}
+                        width={width/50}
                         height={height - padding.top - padding.bottom}
                         fill="transparent"
                         onMouseEnter={() => setHoveredPoint({ time: p.time, speed: p.speed, x: getX(p.time), y: getY(p.speed), carName: curve.name, color: curve.color })}
@@ -167,12 +183,12 @@ const SpeedTimeGraph: React.FC<SpeedTimeGraphProps> = ({ result, height = 280, s
         )}
       </svg>
       
-      {results.length > 1 && (
+      {curves.length > 1 && (
           <div className="mt-4 flex flex-wrap gap-4 justify-center">
               {curves.map(c => (
                   <div key={c.id} className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }}></span>
-                      <span className="text-[10px] font-bold text-brand-text-secondary uppercase">{c.name}</span>
+                      <span className="text-[10px] font-bold text-brand-text-secondary uppercase truncate max-w-[100px]">{c.name}</span>
                   </div>
               ))}
           </div>

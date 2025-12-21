@@ -1,5 +1,4 @@
 
-
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
   DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask
@@ -110,6 +109,28 @@ const saveState = (newState: AppStore) => {
     console.error("Failed to save state to localStorage:", e);
   }
 };
+
+// --- GLOBAL POLLING SYNC ---
+// Ensures that every 10 seconds, the app checks the persistent store for updates.
+// This guarantees that "everyone globally" (all active tabs/windows) stays in sync 
+// even if the storage event mechanism misses an update or if external tools modify data.
+setInterval(() => {
+    try {
+        const remoteStateStr = localStorage.getItem(STORAGE_KEY);
+        if (remoteStateStr) {
+            // Only parse and update if the string content is actually different
+            // to avoid unnecessary object reference changes and re-renders.
+            if (remoteStateStr !== JSON.stringify(store)) {
+                const newState = JSON.parse(remoteStateStr);
+                store = newState;
+                subscribers.forEach(callback => callback(store));
+                // console.debug("Global sync: State refreshed from storage.");
+            }
+        }
+    } catch (e) {
+        console.warn("Global sync polling failed:", e);
+    }
+}, 10000);
 
 export const stateSyncService = {
   getStore: (): AppStore => store,

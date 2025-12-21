@@ -38,12 +38,24 @@ const CountdownWidget: React.FC = () => {
 
     return (
         <div className="text-center p-6 bg-brand-dark-secondary rounded-xl text-brand-text shadow-lg border border-brand-border">
-            <h3 className="text-lg font-semibold text-brand-accent mb-2">Mission Control: {isPast ? "Competition In Progress" : "Competition Countdown"}</h3>
-            <div className="flex justify-center space-x-4 text-4xl font-bold">
-                <div>{days}<span className="block text-sm font-normal text-brand-text-secondary">Days</span></div>
-                <div>{hours}<span className="block text-sm font-normal text-brand-text-secondary">Hours</span></div>
-                <div>{minutes}<span className="block text-sm font-normal text-brand-text-secondary">Minutes</span></div>
-                <div>{seconds}<span className="block text-sm font-normal text-brand-text-secondary">Seconds</span></div>
+            <h3 className="text-lg font-semibold text-brand-accent mb-4">Mission Control: {isPast ? "Competition In Progress" : "Competition Countdown"}</h3>
+            <div className="flex justify-center gap-4 md:gap-8">
+                <div className="flex flex-col items-center">
+                    <span className="text-2xl md:text-4xl font-bold">{days}</span>
+                    <span className="text-[10px] md:text-xs text-brand-text-secondary uppercase tracking-wider">Days</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-2xl md:text-4xl font-bold">{hours}</span>
+                    <span className="text-[10px] md:text-xs text-brand-text-secondary uppercase tracking-wider">Hours</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-2xl md:text-4xl font-bold">{minutes}</span>
+                    <span className="text-[10px] md:text-xs text-brand-text-secondary uppercase tracking-wider">Mins</span>
+                </div>
+                <div className="flex flex-col items-center">
+                    <span className="text-2xl md:text-4xl font-bold">{seconds}</span>
+                    <span className="text-[10px] md:text-xs text-brand-text-secondary uppercase tracking-wider">Secs</span>
+                </div>
             </div>
         </div>
     );
@@ -54,16 +66,16 @@ const CompetitionProgressWidget: React.FC = () => {
     const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'];
 
     return (
-        <DashboardWidget title="Competition Progress" icon={<TrophyIcon />} className="lg:col-span-2">
+        <DashboardWidget title="Competition Progress" icon={<TrophyIcon className="w-5 h-5"/>} className="lg:col-span-2">
             <div className="space-y-4">
                 {competitionProgress.map((item, index) => (
                     <div key={item.category}>
                         <div className="flex justify-between items-baseline mb-1">
-                            <span className="text-sm font-semibold text-brand-text">{item.category}</span>
-                            <span className="text-sm font-bold text-brand-text-secondary">{item.progress}%</span>
+                            <span className="text-xs md:text-sm font-semibold text-brand-text truncate pr-2">{item.category}</span>
+                            <span className="text-xs md:text-sm font-bold text-brand-text-secondary">{item.progress}%</span>
                         </div>
-                        <div className="w-full bg-brand-dark rounded-full h-2.5">
-                            <div className={`${colors[index % colors.length]} h-2.5 rounded-full`} style={{ width: `${item.progress}%` }}></div>
+                        <div className="w-full bg-brand-dark rounded-full h-2">
+                            <div className={`${colors[index % colors.length]} h-2 rounded-full`} style={{ width: `${item.progress}%` }}></div>
                         </div>
                     </div>
                 ))}
@@ -82,7 +94,7 @@ const RecentActivityWidget: React.FC = () => {
             title: n.title,
             author: getTeamMember(n.authorId)?.name || 'Team',
             date: new Date(n.createdAt),
-            link: '/socials', // This should ideally link to a specific post
+            link: '/hq/socials', 
         }));
         
         const discussionActivity = discussionThreads.map(t => ({
@@ -91,7 +103,7 @@ const RecentActivityWidget: React.FC = () => {
             title: `New thread: ${t.title}`,
             author: getTeamMember(t.createdBy)?.name || 'Team',
             date: new Date(t.createdAt),
-            link: '/comms',
+            link: '/hq/comms',
         }));
         
         return [...newsActivity, ...discussionActivity]
@@ -100,19 +112,20 @@ const RecentActivityWidget: React.FC = () => {
     }, [news, discussionThreads, getTeamMember]);
 
     return (
-        <DashboardWidget title="Recent Activity" icon={<NewspaperIcon />} className="lg:col-span-2">
+        <DashboardWidget title="Recent Activity" icon={<NewspaperIcon className="w-5 h-5"/>} className="lg:col-span-2">
             <ul className="space-y-3">
                 {combinedActivity.map(activity => (
                     <li key={`${activity.type}-${activity.id}`}>
                         <Link to={activity.link} className="block p-3 rounded-lg bg-brand-dark hover:bg-brand-border transition-colors">
-                            <div className="flex justify-between items-center text-sm">
-                                <p className="font-semibold text-brand-text truncate pr-4">{activity.title}</p>
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${activity.type === 'news' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{activity.type}</span>
+                            <div className="flex justify-between items-start md:items-center text-sm gap-2">
+                                <p className="font-semibold text-brand-text truncate flex-grow">{activity.title}</p>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${activity.type === 'news' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{activity.type}</span>
                             </div>
-                            <p className="text-xs text-brand-text-secondary mt-1">{activity.author} &bull; {activity.date.toLocaleDateString()}</p>
+                            <p className="text-[10px] md:text-xs text-brand-text-secondary mt-1">{activity.author} &bull; {activity.date.toLocaleDateString()}</p>
                         </Link>
                     </li>
                 ))}
+                {combinedActivity.length === 0 && <p className="text-sm text-brand-text-secondary text-center py-4">No recent activity.</p>}
             </ul>
         </DashboardWidget>
     );
@@ -128,11 +141,11 @@ const TeamOverviewWidget: React.FC = () => {
     }, [users]);
 
     return (
-        <DashboardWidget title="Team Overview" icon={<UsersIcon />}>
+        <DashboardWidget title="Team Overview" icon={<UsersIcon className="w-5 h-5"/>}>
             <ul className="space-y-2">
                 {Object.entries(roleCounts).map(([role, count]) => (
                     <li key={role} className="flex justify-between items-center text-sm p-2 bg-brand-dark rounded">
-                        <span className="font-semibold text-brand-text-secondary">{role}</span>
+                        <span className="font-semibold text-brand-text-secondary truncate pr-2">{role}</span>
                         <span className="font-bold text-brand-text text-lg">{count}</span>
                     </li>
                 ))}
@@ -145,42 +158,41 @@ const DashboardPage: React.FC = () => {
   const { tasks, aeroResults, sponsors } = useData();
   const topAero = useMemo(() => {
     if (aeroResults.length === 0) return null;
-    // Find the result with the highest liftToDragRatio
     return aeroResults.reduce((best, current) => 
         current.liftToDragRatio > best.liftToDragRatio ? current : best
     );
   }, [aeroResults]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
         <CountdownWidget />
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <CompetitionProgressWidget />
             
-            <DashboardWidget title="Top Aero Design" icon={<WindIcon />}>
+            <DashboardWidget title="Top Aero Design" icon={<WindIcon className="w-5 h-5"/>}>
                 {topAero ? (
                      <div className="space-y-2">
-                        <p className="font-semibold text-brand-accent">{topAero.parameters.carName}</p>
+                        <p className="font-semibold text-brand-accent truncate">{topAero.parameters.carName}</p>
                         <div className="flex justify-between text-sm bg-brand-dark p-2 rounded">
-                            <span>Drag (Cd):</span> <span className="font-bold">{topAero.cd}</span>
+                            <span className="text-brand-text-secondary">Drag (Cd):</span> <span className="font-bold">{topAero.cd}</span>
                         </div>
                         <div className="flex justify-between text-sm bg-brand-dark p-2 rounded">
-                            <span>Lift (Cl):</span> <span className="font-bold text-green-400">{topAero.cl}</span>
+                            <span className="text-brand-text-secondary">Lift (Cl):</span> <span className="font-bold text-green-400">{topAero.cl}</span>
                         </div>
                         <div className="flex justify-between text-sm bg-brand-dark p-2 rounded">
-                            <span>L/D Ratio:</span> <span className="font-bold text-green-400">{topAero.liftToDragRatio}</span>
+                            <span className="text-brand-text-secondary">L/D Ratio:</span> <span className="font-bold text-green-400">{topAero.liftToDragRatio}</span>
                         </div>
                      </div>
                 ) : (
-                    <p className="text-brand-text-secondary">No simulations run yet.</p>
+                    <p className="text-brand-text-secondary text-sm">No simulations run yet.</p>
                 )}
             </DashboardWidget>
 
-            <DashboardWidget title="Sponsorship" icon={<TrophyIcon />}>
-                <div className="text-center">
+            <DashboardWidget title="Sponsorship" icon={<TrophyIcon className="w-5 h-5"/>}>
+                <div className="text-center py-2">
                     <p className="text-4xl font-bold text-green-400">{sponsors.filter(s => s.status === 'secured').length}</p>
-                    <p className="text-brand-text-secondary">Secured Partners</p>
-                    <p className="text-lg font-semibold text-yellow-400 mt-2">{sponsors.filter(s => s.status === 'pending').length} pending</p>
+                    <p className="text-brand-text-secondary text-xs uppercase tracking-wider">Secured Partners</p>
+                    <p className="text-sm font-semibold text-yellow-400 mt-2">{sponsors.filter(s => s.status === 'pending').length} pending</p>
                 </div>
             </DashboardWidget>
 
@@ -188,14 +200,15 @@ const DashboardPage: React.FC = () => {
 
             <TeamOverviewWidget />
 
-            <DashboardWidget title="Project Deadlines" icon={<ClipboardListIcon />}>
+            <DashboardWidget title="Project Deadlines" icon={<ClipboardListIcon className="w-5 h-5"/>}>
                 <ul className="space-y-3">
                     {tasks.filter(t => t.status !== TaskStatus.Done).slice(0, 4).map(task => (
                         <li key={task.id} className="flex justify-between items-center text-sm">
-                            <span className="text-brand-text-secondary truncate pr-2">{task.title}</span>
-                            <span className="font-semibold text-brand-text flex-shrink-0">{new Date(task.dueDate).toLocaleDateString()}</span>
+                            <span className="text-brand-text-secondary truncate pr-2 flex-grow">{task.title}</span>
+                            <span className="font-semibold text-brand-text flex-shrink-0 text-xs">{new Date(task.dueDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}</span>
                         </li>
                     ))}
+                    {tasks.filter(t => t.status !== TaskStatus.Done).length === 0 && <p className="text-sm text-brand-text-secondary text-center">No pending deadlines.</p>}
                 </ul>
             </DashboardWidget>
         </div>
