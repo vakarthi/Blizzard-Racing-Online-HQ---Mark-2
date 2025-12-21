@@ -72,7 +72,6 @@ const EditTaskModal: React.FC<{ isOpen: boolean; onClose: () => void; task: Task
 
 const UserManagement: React.FC = () => {
     const { users, setUsers, addUser } = useData();
-    // Fix: Corrected invalid UserRole.Engineer to UserRole.DesignEngineer
     const [newUser, setNewUser] = useState({ name: '', email: '', role: UserRole.DesignEngineer });
 
     const handleRoleChange = (userId: string, newRole: UserRole) => {
@@ -90,7 +89,6 @@ const UserManagement: React.FC = () => {
         if(!newUser.name || !newUser.email) return;
         const success = addUser(newUser);
         if (success) {
-            // Fix: Corrected invalid UserRole.Engineer to UserRole.DesignEngineer
             setNewUser({ name: '', email: '', role: UserRole.DesignEngineer });
         }
     }
@@ -646,28 +644,29 @@ const ContentManagement: React.FC = () => {
 
 const CompetitionManagement: React.FC = () => {
     const { competitionProgress, updateCompetitionProgress } = useData();
-    const [progress, setProgress] = useState<CompetitionProgressItem[]>(competitionProgress);
 
     const handleProgressChange = (index: number, value: number) => {
-        const newProgress = [...progress];
-        newProgress[index].progress = value;
-        setProgress(newProgress);
-    };
-
-    const handleSave = () => {
-        updateCompetitionProgress(progress);
-        alert("Competition progress saved!");
+        const newProgress = [...competitionProgress];
+        newProgress[index] = { ...newProgress[index], progress: value };
+        updateCompetitionProgress(newProgress);
     };
 
     return (
         <div className="space-y-6">
             <div>
                 <h3 className="text-xl font-bold text-brand-text mb-4">Competition Progress Tracker</h3>
-                <p className="text-sm text-brand-text-secondary mb-4">Adjust the sliders to update the team's progress on the main dashboard.</p>
+                <p className="text-sm text-brand-text-secondary mb-4">
+                    Adjust the sliders to update the team's progress globally in real-time.
+                </p>
                 <div className="space-y-4">
-                    {progress.map((item, index) => (
+                    {competitionProgress.map((item, index) => (
                         <div key={item.category}>
-                            <label className="block text-sm font-semibold text-brand-text-secondary mb-1">{item.category}: {item.progress}%</label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-semibold text-brand-text-secondary">
+                                    {item.category}
+                                </label>
+                                <span className="font-mono font-bold text-brand-accent">{item.progress}%</span>
+                            </div>
                             <input
                                 type="range"
                                 min="0"
@@ -679,9 +678,6 @@ const CompetitionManagement: React.FC = () => {
                         </div>
                     ))}
                 </div>
-                <button onClick={handleSave} className="mt-6 bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover">
-                    Save Progress
-                </button>
             </div>
         </div>
     );
