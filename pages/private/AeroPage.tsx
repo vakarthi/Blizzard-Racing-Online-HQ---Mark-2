@@ -17,14 +17,27 @@ const MetricCard: React.FC<{ label: string; value: string | number; subValue?: s
     </div>
 );
 
-// ... (DetailedAnalysisContent remains unchanged)
 const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) => {
     const [activeSubTab, setActiveSubTab] = useState('summary');
     const pred = result.raceTimePrediction;
     const avgSpeedKmh = pred ? (pred.averageSpeed * 3.6).toFixed(1) : '0.0';
+    const geoMeta = result.parameters.geometryMeta;
 
     const renderSummary = () => (
         <div className="space-y-6 animate-fade-in">
+            {geoMeta && geoMeta.correctionApplied && (
+                <div className="p-3 bg-brand-accent/10 border border-brand-accent/30 rounded-xl flex items-start gap-3">
+                    <div className="bg-brand-accent text-brand-dark p-1.5 rounded-full mt-0.5">
+                        <WindIcon className="w-4 h-4"/>
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-brand-text">Geometry Pre-Processor Active</h4>
+                        <p className="text-xs text-brand-text-secondary mt-1">{geoMeta.rotationLog}</p>
+                        <p className="text-[10px] text-brand-accent mt-1 font-mono">{geoMeta.featureIdentification}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard label="Drag (Cd)" value={result.cd.toFixed(4)} />
                 <MetricCard label="Efficiency (L/D)" value={result.liftToDragRatio.toFixed(3)} color="text-green-400" />
@@ -142,6 +155,15 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     </div>
                 </div>
             </div>
+            {geoMeta && (
+                <div className="bg-brand-dark-secondary p-4 rounded-xl border border-brand-border">
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">CAD Topology Data</h4>
+                    <div className="text-xs font-mono space-y-1 text-brand-text-secondary">
+                        <p>Orientation: <span className={geoMeta.correctionApplied ? "text-yellow-400" : "text-green-400"}>{geoMeta.originalOrientation}</span></p>
+                        <p>Feature Scan: {geoMeta.featureIdentification}</p>
+                    </div>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
                     <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Efficiency Mapping</h4>
@@ -183,7 +205,6 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     );
 };
 
-// ... (ComparisonTab, TheoryTab remain unchanged)
 const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = ({ results, onClear }) => {
     if (results.length < 2) {
         return (
@@ -452,7 +473,8 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             const area = 0.0032; // Approx frontal area m^2
             const rho = 1.225;
             
-            const peakThrust = 29.5; // Updated thrust model
+            // Reduced to 26.5N to match realism settings
+            const peakThrust = 26.5; 
             
             while (x < 20 && t < 3.0) {
                 // Thrust Model
@@ -569,12 +591,12 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                         <div className="grid grid-cols-2 gap-4 text-center">
                             <div>
                                 <p className="text-[10px] text-brand-text-secondary uppercase">Predicted Time</p>
-                                <p className="text-2xl font-mono font-bold text-brand-text">{results?.time.toFixed(3)}s</p>
-                                {referenceTime && <p className={`text-xs font-bold ${deltaMs <= 0 ? 'text-green-400' : 'text-red-400'}`}>{deltaMs > 0 ? '+' : ''}{deltaMs.toFixed(3)}s vs Ref</p>}
+                                <p className="text-2xl font-mono font-bold text-brand-text">{results?.time?.toFixed(3) ?? '-.--'}s</p>
+                                {referenceTime && results && <p className={`text-xs font-bold ${deltaMs <= 0 ? 'text-green-400' : 'text-red-400'}`}>{deltaMs > 0 ? '+' : ''}{deltaMs.toFixed(3)}s vs Ref</p>}
                             </div>
                             <div>
                                 <p className="text-[10px] text-brand-text-secondary uppercase">Top Speed</p>
-                                <p className="text-2xl font-mono font-bold text-brand-text">{(results!.speed * 3.6).toFixed(1)} <span className="text-sm">km/h</span></p>
+                                <p className="text-2xl font-mono font-bold text-brand-text">{results ? (results.speed * 3.6).toFixed(1) : '0.0'} <span className="text-sm">km/h</span></p>
                             </div>
                         </div>
                     </div>
@@ -604,7 +626,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                     <div className="mt-6 p-4 bg-brand-dark rounded-xl border border-brand-border flex gap-4 text-xs text-brand-text-secondary">
                         <InfoIcon className="w-5 h-5 flex-shrink-0 text-brand-accent"/>
                         <p>
-                            This solver uses a synchronous Euler integration method (dt=0.002s) with the updated v2.9 thrust curve (29.5N Peak). 
+                            This solver uses a synchronous Euler integration method (dt=0.002s) with the updated v2.9 thrust curve (26.5N Peak). 
                             It assumes a standard frontal area of 0.0032m². Use the comparison list to benchmark against your previous best designs.
                         </p>
                     </div>

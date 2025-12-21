@@ -47,6 +47,12 @@ export interface DesignParameters {
   haloVisibilityScore: number; // NEW: D4.3.2
   noGoZoneClearance: number;  // NEW: D4.2
   visibilityScore: number;     // NEW: D6.2
+  geometryMeta?: {
+      originalOrientation: string;
+      correctionApplied: boolean;
+      featureIdentification: string;
+      rotationLog?: string;
+  };
 }
 
 export interface ScrutineeringItem {
@@ -239,6 +245,7 @@ export interface DiscussionPost {
   authorId: string;
   content: string;
   createdAt: string;
+  authorName?: string; // Optional for display convenience if needed
 }
 
 export interface DiscussionThread {
@@ -330,6 +337,7 @@ export interface ContentVersion {
 export interface LoginRecord {
   userId: string;
   timestamp: string;
+  // additional metadata like ip or device could go here
 }
 
 export interface Inquiry {

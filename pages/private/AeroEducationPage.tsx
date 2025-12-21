@@ -1,458 +1,414 @@
 
-import React from 'react';
-import { BeakerIcon, GraduationCapIcon, WindIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, BarChartIcon, CommandIcon, AlertTriangleIcon, FileTextIcon, InfoIcon, EyeIcon, LayersIcon, DownloadIcon } from '../../components/icons';
+import React, { useState } from 'react';
+import { BeakerIcon, GraduationCapIcon, WindIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, BarChartIcon, CommandIcon, AlertTriangleIcon, FileTextIcon, InfoIcon, EyeIcon, LayersIcon, DownloadIcon, MenuIcon } from '../../components/icons';
+
+const ModuleHeader: React.FC<{ title: string; subtitle: string; icon: React.ReactNode }> = ({ title, subtitle, icon }) => (
+    <div className="flex items-center justify-between border-b border-brand-border pb-4 mb-6">
+        <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
+            {icon}
+            {title}
+        </h2>
+        <span className="hidden md:block text-xs font-mono text-brand-text-secondary uppercase">{subtitle}</span>
+    </div>
+);
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <div className="mb-8">
+        <h3 className="text-lg font-bold text-brand-accent mb-4">{title}</h3>
+        {children}
+    </div>
+);
+
+const ConceptCard: React.FC<{ title: string; formula?: string; description: string; tags?: string[] }> = ({ title, formula, description, tags }) => (
+    <div className="bg-brand-dark p-5 rounded-xl border border-brand-border hover:border-brand-accent/30 transition-all h-full">
+        <h4 className="text-base font-bold text-brand-text mb-2">{title}</h4>
+        {formula && (
+            <div className="bg-brand-dark-secondary p-2 rounded border border-brand-border text-center mb-3 font-mono text-xs text-brand-accent">
+                {formula}
+            </div>
+        )}
+        <p className="text-sm text-brand-text-secondary leading-relaxed mb-4">
+            {description}
+        </p>
+        {tags && (
+            <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                    <span key={tag} className="text-[10px] font-bold px-2 py-1 bg-brand-surface rounded-full text-brand-text-secondary uppercase">
+                        {tag}
+                    </span>
+                ))}
+            </div>
+        )}
+    </div>
+);
+
+const PhysicsModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="Fundamentals of Fluid Mechanics" subtitle="Module PHY-101" icon={<WindIcon className="w-6 h-6 text-brand-accent" />} />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ConceptCard 
+                title="The Continuity Equation"
+                formula="A₁v₁ = A₂v₂"
+                description="Mass is conserved. If air enters a smaller cross-section (like between the wheel and sidepod), it MUST speed up. This acceleration drops pressure."
+                tags={['Conservation', 'Velocity']}
+            />
+            <ConceptCard 
+                title="Bernoulli's Principle"
+                formula="P + ½ρv² = Constant"
+                description="The core of downforce. As velocity (v) increases, static pressure (P) decreases. We shape wings to accelerate air underneath them, creating suction."
+                tags={['Pressure', 'Downforce']}
+            />
+            <ConceptCard 
+                title="Reynolds Number (Re)"
+                formula="Re = (ρvL) / μ"
+                description="The ratio of inertial forces to viscous forces. F1 in Schools cars operate at relatively low Re (~200,000), meaning air feels 'stickier' than it does to a full-size F1 car. Laminar flow is harder to maintain."
+                tags={['Scale', 'Viscosity']}
+            />
+        </div>
+
+        <Section title="The Four Horsemen of Drag">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <h4 className="font-bold text-brand-text">1. Pressure (Form) Drag</h4>
+                    </div>
+                    <p className="text-sm text-brand-text-secondary mb-3">Caused by the shape of the object. A flat plate facing the wind has huge pressure drag (high pressure front, vacuum back). A teardrop has very low form drag.</p>
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="text-xs text-brand-accent font-bold">Mitigation:</span> <span className="text-xs text-brand-text-secondary">Streamline bodywork, taper rear sections (Boattailing).</span>
+                    </div>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <h4 className="font-bold text-brand-text">2. Skin Friction Drag</h4>
+                    </div>
+                    <p className="text-sm text-brand-text-secondary mb-3">Caused by air "sticking" to the surface (viscosity) in the boundary layer. Proportional to total surface area.</p>
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="text-xs text-brand-accent font-bold">Mitigation:</span> <span className="text-xs text-brand-text-secondary">Reduce total surface area (wetted area), smooth surface finish.</span>
+                    </div>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <h4 className="font-bold text-brand-text">3. Induced Drag</h4>
+                    </div>
+                    <p className="text-sm text-brand-text-secondary mb-3">The penalty for creating lift/downforce. High pressure leaks to low pressure at wingtips, creating vortices that consume energy.</p>
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="text-xs text-brand-accent font-bold">Mitigation:</span> <span className="text-xs text-brand-text-secondary">Use wing endplates to seal pressure differences.</span>
+                    </div>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <h4 className="font-bold text-brand-text">4. Interference Drag</h4>
+                    </div>
+                    <p className="text-sm text-brand-text-secondary mb-3">Occurs where surfaces meet (e.g., wing strut meets chassis). The boundary layers collide and thicken, creating extra turbulence.</p>
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="text-xs text-brand-accent font-bold">Mitigation:</span> <span className="text-xs text-brand-text-secondary">Fillet (round) all internal corners and junctions.</span>
+                    </div>
+                </div>
+            </div>
+        </Section>
+
+        <Section title="Advanced Concepts">
+            <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border space-y-6">
+                <div>
+                    <h4 className="font-bold text-brand-text mb-2">The Boundary Layer</h4>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed">
+                        Air doesn't slip over a surface; the molecules touching the car have 0 velocity. The layer from 0 velocity to free-stream velocity is the Boundary Layer.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="bg-brand-dark p-4 rounded-lg border-l-4 border-blue-400">
+                            <span className="font-bold text-blue-400 block mb-1">Laminar Flow</span>
+                            <span className="text-xs text-brand-text-secondary">Smooth, parallel layers. Very low friction, but fragile. Separates easily. Ideal for front wings and nose cones.</span>
+                        </div>
+                        <div className="bg-brand-dark p-4 rounded-lg border-l-4 border-red-400">
+                            <span className="font-bold text-red-400 block mb-1">Turbulent Flow</span>
+                            <span className="text-xs text-brand-text-secondary">Chaotic, mixing layers. Higher friction, but sticks to the surface better (resists separation). Sometimes we trip flow to turbulent on purpose to prevent stalling.</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="border-t border-brand-border pt-6">
+                    <h4 className="font-bold text-brand-text mb-2">The Coanda Effect</h4>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed">
+                        A fluid jet tends to stay attached to a convex surface. We use this on the sidepods to "bend" airflow around the body and direct it towards the rear wheels or into the low-pressure wake of the canister housing.
+                    </p>
+                </div>
+            </div>
+        </Section>
+    </div>
+);
+
+const CFDModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="Inside the Solver" subtitle="Module CFD-201" icon={<BeakerIcon className="w-6 h-6 text-brand-accent" />} />
+
+        <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border mb-8">
+            <h3 className="text-lg font-bold text-brand-text mb-4">Navier-Stokes Equations</h3>
+            <p className="text-sm text-brand-text-secondary mb-4">
+                These are the governing equations of fluid motion. They represent the conservation of mass, momentum, and energy. Since they have no general analytical solution, we must solve them numerically by breaking the space into grid cells.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="font-mono font-bold text-brand-accent">∇·u = 0</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase mt-1">Conservation of Mass</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="font-mono font-bold text-brand-accent">ρ(Du/Dt) = -∇p + μ∇²u + f</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase mt-1">Conservation of Momentum</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="font-mono font-bold text-brand-accent">ρ(De/Dt) = ...</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase mt-1">Conservation of Energy</div>
+                </div>
+            </div>
+        </div>
+
+        <Section title="1. Discretization (The Mesh)">
+            <p className="text-sm text-brand-text-secondary mb-4">
+                The quality of the result depends entirely on the mesh. Bad mesh = Garbage In, Garbage Out.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-brand-dark p-5 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-2">Polyhedral vs. Tetrahedral</h4>
+                    <ul className="text-sm space-y-2 text-brand-text-secondary">
+                        <li><b>Tetrahedral (Pyramids):</b> Easy to generate for complex shapes, but inaccurate for swirling flow. Requires 3x more cells for same accuracy.</li>
+                        <li><b>Polyhedral (Honeycombs):</b> Harder to generate, but extremely accurate. Each cell has many neighbors, capturing gradients better. <span className="text-green-400 font-bold">Aerotest uses this.</span></li>
+                    </ul>
+                </div>
+                <div className="bg-brand-dark p-5 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-2">Inflation Layers (Prism Layers)</h4>
+                    <p className="text-sm text-brand-text-secondary">
+                        Flat, thin cells stacked on the car's surface. Crucial for capturing the Boundary Layer. Without these, skin friction calculations are wrong.
+                    </p>
+                </div>
+            </div>
+        </Section>
+
+        <Section title="2. Turbulence Modeling (RANS)">
+            <p className="text-sm text-brand-text-secondary mb-4">
+                Directly simulating every swirl (DNS) would take a supercomputer 100 years. Instead, we use RANS (Reynolds-Averaged Navier-Stokes) to model the <i>average</i> effect of turbulence.
+            </p>
+            <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                <h4 className="font-bold text-brand-accent mb-3">Why k-ω SST?</h4>
+                <p className="text-sm text-brand-text-secondary leading-relaxed mb-4">
+                    Aerotest defaults to the <b>Shear Stress Transport (SST)</b> model. It combines the best of two worlds:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="block font-bold text-brand-text text-sm">k-ω model</span>
+                        <span className="text-xs text-brand-text-secondary">Excellent near walls (boundary layers).</span>
+                    </div>
+                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                        <span className="block font-bold text-brand-text text-sm">k-ε model</span>
+                        <span className="text-xs text-brand-text-secondary">Excellent in the free stream (far from car).</span>
+                    </div>
+                </div>
+                <p className="text-sm text-brand-text-secondary mt-4">
+                    SST switches between them automatically based on distance from the wall.
+                </p>
+            </div>
+        </Section>
+
+        <Section title="3. Convergence & Y+">
+            <div className="space-y-4">
+                <div className="flex gap-4 items-start">
+                    <div className="p-2 bg-brand-surface rounded text-brand-accent"><BarChartIcon className="w-5 h-5" /></div>
+                    <div>
+                        <h4 className="font-bold text-brand-text text-sm">Residuals</h4>
+                        <p className="text-xs text-brand-text-secondary mt-1">
+                            These measure the error in the equations. We look for residuals to drop below 1e-4 or 1e-5. If they oscillate, the flow is unsteady (flapping wake).
+                        </p>
+                    </div>
+                </div>
+                <div className="flex gap-4 items-start">
+                    <div className="p-2 bg-brand-surface rounded text-brand-accent"><LayersIcon className="w-5 h-5" /></div>
+                    <div>
+                        <h4 className="font-bold text-brand-text text-sm">Y+ Value</h4>
+                        <p className="text-xs text-brand-text-secondary mt-1">
+                            A dimensionless distance from the wall to the first mesh node. For k-ω SST, we need a Y+ &lt; 1. This ensures the first cell is inside the viscous sublayer of the boundary layer.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </Section>
+    </div>
+);
+
+const F1SModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="F1 in Schools Specifics" subtitle="Module F1S-301" icon={<GraduationCapIcon className="w-6 h-6 text-brand-accent" />} />
+
+        <div className="bg-yellow-500/10 border border-yellow-500/20 p-6 rounded-xl mb-8">
+            <h3 className="text-lg font-bold text-yellow-400 mb-2 flex items-center gap-2"><AlertTriangleIcon className="w-5 h-5"/> Unique Constraints</h3>
+            <p className="text-sm text-brand-text-secondary">
+                F1 in Schools cars are not just scaled-down F1 cars. They have unique physics problems: The CO2 jet, the tether line, and exposed wheels on a flat track.
+            </p>
+        </div>
+
+        <Section title="The Wheel Wake Problem">
+            <div className="flex flex-col md:flex-row gap-6 items-center">
+                <div className="md:w-2/3">
+                    <p className="text-sm text-brand-text-secondary leading-relaxed mb-4">
+                        Wheels account for <b>35-45% of total drag</b>. They are rotating cylinders that churn air into a chaotic "mushroom" shape wake.
+                    </p>
+                    <ul className="space-y-3 text-sm text-brand-text-secondary">
+                        <li className="flex gap-2 items-start">
+                            <span className="text-red-400 font-bold">Problem:</span>
+                            <span>The wake from the front wheels hits the sidepods and rear wings, rendering them useless.</span>
+                        </li>
+                        <li className="flex gap-2 items-start">
+                            <span className="text-green-400 font-bold">Solution:</span>
+                            <span><b>Outwash:</b> Use front wings to push air OUTSIDE the front wheels. <br/><b>Inwash:</b> Use front wings to channel air INSIDE the wheels (closer to body).</span>
+                        </li>
+                    </ul>
+                </div>
+                <div className="md:w-1/3 bg-brand-dark p-4 rounded-xl border border-brand-border text-center">
+                    <div className="w-24 h-40 mx-auto border-2 border-dashed border-brand-text-secondary rounded-lg relative mb-2">
+                        <div className="absolute -left-4 top-4 w-4 h-12 bg-brand-surface border border-brand-border"></div>
+                        <div className="absolute -right-4 top-4 w-4 h-12 bg-brand-surface border border-brand-border"></div>
+                        <div className="absolute inset-x-0 bottom-0 top-20 bg-brand-accent/20 mx-auto w-10"></div>
+                        {/* Streamlines */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-10 bg-blue-400"></div>
+                        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-20 h-0.5 bg-blue-400"></div>
+                    </div>
+                    <p className="text-xs font-mono text-brand-text-secondary">Outwash Topology</p>
+                </div>
+            </div>
+        </Section>
+
+        <Section title="The CO2 Cartridge Effect">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-3">Base Drag & The Void</h4>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed">
+                        The rear of the car is a flat vertical face (where the cartridge goes). This creates a massive low-pressure void behind the car, sucking it backwards.
+                    </p>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-3">The Jet Pump Effect</h4>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed">
+                        As high-speed gas shoots out of the cartridge, it entrains (pulls) nearby air with it. If designed correctly, you can use this to suck air out of the rear wheel wakes, reducing their drag.
+                    </p>
+                </div>
+            </div>
+        </Section>
+
+        <Section title="Launch & Friction Physics">
+            <div className="bg-brand-dark p-5 rounded-xl border border-brand-border space-y-4">
+                <p className="text-sm text-brand-text-secondary">
+                    <b>Total Force = Thrust - Drag - Friction</b>
+                </p>
+                <ul className="text-xs space-y-2 text-brand-text-secondary">
+                    <li><b>Rolling Resistance ($F_r$):</b> $F_r = \mu N$. Where $N$ is the Normal force (Weight + Aerodynamic Downforce). Too much downforce slows you down!</li>
+                    <li><b>Tether Line Friction:</b> The car is guided by a nylon line. If the car lifts or dives (pitch), the eyelets rub against the line, creating friction. <b>Aero Balance must be neutral.</b></li>
+                </ul>
+            </div>
+        </Section>
+    </div>
+);
+
+const ReferenceModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="Glossary & Reference" subtitle="Module REF-401" icon={<InfoIcon className="w-6 h-6 text-brand-accent" />} />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+                { term: "AoA (Angle of Attack)", def: "The angle between a wing's chord line and the oncoming airflow." },
+                { term: "Boundary Layer", def: "The layer of fluid in the immediate vicinity of a bounding surface where the effects of viscosity are significant." },
+                { term: "Camber", def: "The asymmetry between the two acting surfaces of an airfoil." },
+                { term: "Chord", def: "The straight line connecting the leading and trailing edges of an airfoil." },
+                { term: "CoP (Center of Pressure)", def: "The point where the total sum of a pressure field acts on a body." },
+                { term: "Diffuser", def: "A shaped section of the car underbody which improves the transition between high-velocity airflow underneath the car and the slower free-stream airflow." },
+                { term: "Flow Separation", def: "When the boundary layer detaches from the surface of the object, creating a wake of turbulent eddies." },
+                { term: "Laminar Flow", def: "Streamlined flow in which the fluid moves in parallel layers with no disruption." },
+                { term: "Mach Number", def: "Ratio of flow velocity to the speed of sound. (Negligible in F1S, max speed ~20m/s is Mach 0.06)." },
+                { term: "Mesh / Grid", def: "The discrete cells into which the domain is divided for CFD calculation." },
+                { term: "Pressure Gradient", def: "The rate of pressure change in a certain direction. Adverse gradients cause separation." },
+                { term: "Stall", def: "A sudden reduction in lift (and increase in drag) caused by flow separation." },
+                { term: "Turbulence", def: "Flow characterized by chaotic changes in pressure and flow velocity." },
+                { term: "Venturi Effect", def: "The reduction in fluid pressure that results when a fluid flows through a constricted section (or under a car)." },
+                { term: "Vortex", def: "A spinning flow of fluid. Can be used to energize boundary layers or seal edges." },
+                { term: "Y+", def: "A non-dimensional distance from the wall to the first mesh node, used to check mesh suitability for turbulence models." },
+            ].map(item => (
+                <div key={item.term} className="bg-brand-dark-secondary p-4 rounded-lg border border-brand-border hover:bg-brand-dark transition-colors">
+                    <h5 className="font-bold text-brand-accent text-sm mb-1">{item.term}</h5>
+                    <p className="text-xs text-brand-text-secondary">{item.def}</p>
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 const AeroEducationPage: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<'physics' | 'cfd' | 'f1s' | 'reference'>('physics');
+
     return (
-        <div className="animate-fade-in max-w-5xl mx-auto space-y-12 pb-20">
-            <header className="text-center space-y-4">
-                <div className="inline-block p-3 bg-brand-accent/20 rounded-full border border-brand-accent/30 shadow-glow-accent">
-                    <GraduationCapIcon className="w-10 h-10 text-brand-accent" />
+        <div className="animate-fade-in max-w-6xl mx-auto pb-20 flex flex-col h-full">
+            <header className="mb-8">
+                <div className="flex items-center gap-4 mb-2">
+                    <div className="p-3 bg-brand-accent/20 rounded-xl border border-brand-accent/30 shadow-glow-accent">
+                        <GraduationCapIcon className="w-8 h-8 text-brand-accent" />
+                    </div>
+                    <div>
+                        <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Academy</h1>
+                        <p className="text-brand-text-secondary">Advanced Aerodynamics & Simulation Knowledge Base</p>
+                    </div>
                 </div>
-                <h1 className="text-4xl font-bold text-brand-text">Aerotest Academy</h1>
-                <p className="text-brand-text-secondary text-lg max-w-2xl mx-auto">
-                    Mastering the physics, strategy, and narrative of our proprietary simulation engine.
-                </p>
             </header>
 
-            {/* NEW SECTION: AERODYNAMICS 101 */}
-            <section className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border space-y-8">
-                <div className="flex items-center justify-between border-b border-brand-border pb-4">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <BookOpenIcon className="w-6 h-6 text-brand-accent" />
-                        Aerodynamics 101: The Physics of Speed
-                    </h2>
-                    <span className="text-xs font-mono text-brand-text-secondary uppercase">Theory Module</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {/* DRAG */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
-                                <WindIcon className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-lg font-bold text-brand-text">Drag ($F_d$)</h3>
-                        </div>
-                        <p className="text-sm text-brand-text-secondary leading-relaxed">
-                            The aerodynamic force resisting forward motion. In F1 in Schools, minimizing drag is the primary way to reduce race time.
-                        </p>
-                        <div className="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-3">
-                            <p className="font-mono text-xs text-center p-2 bg-brand-dark-secondary rounded border border-brand-border">
-                                $F_d = \frac{1}{2} \rho v^2 C_d A$
-                            </p>
-                            <ul className="text-xs space-y-2 text-brand-text-secondary">
-                                <li><strong className="text-brand-text">$\rho$ (Density):</strong> Fixed (Air).</li>
-                                <li><strong className="text-brand-text">$v$ (Velocity):</strong> The speed of the car. Drag increases with the square of speed!</li>
-                                <li><strong className="text-brand-text">$A$ (Frontal Area):</strong> The visible area from the front. Keep it small.</li>
-                                <li><strong className="text-brand-text">$C_d$ (Coefficient):</strong> Shape efficiency. Streamlining reduces this.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    {/* DOWNFORCE */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
-                                <DownloadIcon className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-lg font-bold text-brand-text">Downforce ($-C_l$)</h3>
-                        </div>
-                        <p className="text-sm text-brand-text-secondary leading-relaxed">
-                            Vertical force pushing the car into the track. Essential for cornering grip, but often comes at the cost of increased drag (Induced Drag).
-                        </p>
-                        <div className="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-3">
-                            <h4 className="text-xs font-bold text-brand-accent uppercase">Bernoulli's Principle</h4>
-                            <p className="text-xs text-brand-text-secondary">
-                                Faster moving air has lower pressure.
-                            </p>
-                            <div className="h-1 bg-brand-border rounded-full overflow-hidden flex">
-                                <div className="w-1/2 bg-blue-500/50"></div>
-                                <div className="w-1/2 bg-red-500/50"></div>
-                            </div>
-                            <p className="text-[10px] text-brand-text-secondary italic">
-                                By speeding up air *under* the car (Venturi effect) or over curved wings, we create low pressure that sucks the car to the track.
+            <div className="flex flex-col lg:flex-row gap-8">
+                {/* Sidebar Navigation */}
+                <nav className="lg:w-64 flex-shrink-0">
+                    <div className="sticky top-24 space-y-2">
+                        <button onClick={() => setActiveTab('physics')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'physics' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <WindIcon className="w-5 h-5" /> Fundamentals
+                        </button>
+                        <button onClick={() => setActiveTab('cfd')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'cfd' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <BeakerIcon className="w-5 h-5" /> CFD Internals
+                        </button>
+                        <button onClick={() => setActiveTab('f1s')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'f1s' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <TrophyIcon className="w-5 h-5" /> F1S Specifics
+                        </button>
+                        <button onClick={() => setActiveTab('reference')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'reference' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <InfoIcon className="w-5 h-5" /> Glossary
+                        </button>
+                        
+                        <div className="mt-8 p-4 bg-brand-dark-secondary rounded-xl border border-brand-border">
+                            <h4 className="text-xs font-bold text-brand-text uppercase mb-2">Pro Tip</h4>
+                            <p className="text-xs text-brand-text-secondary leading-relaxed">
+                                Use concepts from the <b>Fundamentals</b> and <b>F1S Specifics</b> modules to justify your design decisions in your Engineering Portfolio. Judges look for <span className="text-brand-accent">"Iterative Design based on Data."</span>
                             </p>
                         </div>
                     </div>
+                </nav>
 
-                    {/* CFD SIMULATION */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-                                <BeakerIcon className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-lg font-bold text-brand-text">How Aerotest Simulates It</h3>
-                        </div>
-                        <p className="text-sm text-brand-text-secondary leading-relaxed">
-                            We can't see air, so we use math. Aerotest divides the air around the car into millions of tiny cubes called the "Mesh".
-                        </p>
-                        <div className="bg-brand-dark p-4 rounded-xl border border-brand-border space-y-3">
-                            <ul className="space-y-3 text-xs">
-                                <li className="flex gap-2">
-                                    <span className="font-bold text-brand-accent">1.</span>
-                                    <span className="text-brand-text-secondary">The solver calculates Conservation of Mass & Momentum (Navier-Stokes) for every single cube.</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold text-brand-accent">2.</span>
-                                    <span className="text-brand-text-secondary">It repeats this thousands of times ("Iterations") until the values stop changing ("Convergence").</span>
-                                </li>
-                                <li className="flex gap-2">
-                                    <span className="font-bold text-brand-accent">3.</span>
-                                    <span className="text-brand-text-secondary">It sums up the pressure on every surface of your car to give the final Drag ($C_d$) and Lift ($C_l$) numbers.</span>
-                                </li>
-                            </ul>
-                        </div>
+                {/* Content Area */}
+                <main className="flex-1 min-w-0">
+                    <div className="bg-brand-surface/5 p-1 rounded-2xl"> {/* Subtle container */}
+                        {activeTab === 'physics' && <PhysicsModule />}
+                        {activeTab === 'cfd' && <CFDModule />}
+                        {activeTab === 'f1s' && <F1SModule />}
+                        {activeTab === 'reference' && <ReferenceModule />}
                     </div>
-                </div>
-            </section>
-
-            {/* REAL-WORLD CASE STUDY */}
-            <section className="bg-red-500/5 border border-red-500/20 p-8 rounded-2xl space-y-6">
-                <div className="flex items-center gap-3">
-                    <AlertTriangleIcon className="w-8 h-8 text-red-400" />
-                    <h2 className="text-2xl font-bold text-brand-text">The "Penalty" Paradox: Regional Case Study</h2>
-                </div>
-                <p className="text-brand-text-secondary text-sm">
-                    In our last Regional Final, Blizzard Racing (Team D05) produced a car with elite race pace (215/220 points). However, we finished <span className="text-brand-text font-bold">2nd instead of 1st</span> due to 65 points in technical penalties.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                        <h4 className="text-brand-accent font-bold text-xs uppercase mb-2">The Failures We Missed:</h4>
-                        <ul className="space-y-2 text-xs text-brand-text-secondary">
-                            <li className="flex justify-between"><span>D4.3.2 Halo Visibility</span> <span className="text-red-400 font-bold">-5pts</span></li>
-                            <li className="flex justify-between"><span>D7.6.3 Front Wing Thickness</span> <span className="text-red-400 font-bold">-5pts</span></li>
-                            <li className="flex justify-between"><span>D4.2 No-Go-Zone Intrusion</span> <span className="text-red-400 font-bold">-25pts</span></li>
-                            <li className="flex justify-between"><span>D6.2 Car Visibility</span> <span className="text-red-400 font-bold">-25pts</span></li>
-                        </ul>
-                    </div>
-                    <div className="bg-brand-dark p-4 rounded-xl border border-brand-border flex items-center justify-center text-center">
-                        <div>
-                            <p className="text-3xl font-bold text-red-400">-65 PTS</p>
-                            <p className="text-xs text-brand-text-secondary uppercase">Scrutineering Deficit</p>
-                            <p className="mt-2 text-[10px] text-brand-text-secondary italic">Aerotest v2.5 has been updated to specifically flag these exact infringements.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* PORTFOLIO STRATEGY SECTION */}
-            <section className="space-y-6">
-                <div className="flex items-center justify-between border-b border-brand-border pb-4">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <FileTextIcon className="w-6 h-6 text-brand-accent" />
-                        The Portfolio Playbook
-                    </h2>
-                    <span className="text-xs font-mono text-brand-text-secondary uppercase">For Marketing & Engineering Portfolios</span>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
-                        <h3 className="text-lg font-bold text-brand-text mb-4">The Narrative Arc</h3>
-                        <p className="text-sm text-brand-text-secondary mb-6">
-                            Judges don't just want to see a fast car; they want to see the <i>process</i>. Structure your engineering portfolio section using the <b>"Iterative Loop"</b> narrative.
-                        </p>
-                        <div className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="w-6 h-6 rounded-full bg-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-xs">1</div>
-                                <div>
-                                    <h4 className="font-bold text-sm text-brand-text">Hypothesis</h4>
-                                    <p className="text-xs text-brand-text-secondary">"We believed reducing the sidepod inlet area would lower pressure drag without stalling rear airflow."</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-6 h-6 rounded-full bg-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-xs">2</div>
-                                <div>
-                                    <h4 className="font-bold text-sm text-brand-text">Simulation (CFD)</h4>
-                                    <p className="text-xs text-brand-text-secondary">"Using Aerotest's RANS solver, we ran 50 variations of the inlet geometry. We visualized pressure maps to identify flow separation."</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="w-6 h-6 rounded-full bg-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-xs">3</div>
-                                <div>
-                                    <h4 className="font-bold text-sm text-brand-text">Validation</h4>
-                                    <p className="text-xs text-brand-text-secondary">"The optimal design showed a 4% reduction in Cd. We validated this by checking the Monte Carlo stability cloud."</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
-                            <h3 className="text-lg font-bold text-brand-text mb-4">Buzzword Decoder</h3>
-                            <p className="text-sm text-brand-text-secondary mb-4">Use these technical terms to boost credibility, but ensure you can explain them.</p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                    <p className="text-xs font-bold text-brand-accent mb-1">Stochastic Analysis</p>
-                                    <p className="text-[10px] text-brand-text-secondary">Testing randomness. "We didn't just test the perfect run; we tested 5,000 messy runs to ensure consistency."</p>
-                                </div>
-                                <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                    <p className="text-xs font-bold text-brand-accent mb-1">Convergence</p>
-                                    <p className="text-[10px] text-brand-text-secondary">Mathematical stability. "Our simulations achieved residuals below 1e-5, ensuring the result wasn't a calculation error."</p>
-                                </div>
-                                <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                    <p className="text-xs font-bold text-brand-accent mb-1">Boundary Layer</p>
-                                    <p className="text-[10px] text-brand-text-secondary">Air sticking to surface. "We aimed to keep the boundary layer attached to the rear wing to prevent stall."</p>
-                                </div>
-                                <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                    <p className="text-xs font-bold text-brand-accent mb-1">L/D Ratio</p>
-                                    <p className="text-[10px] text-brand-text-secondary">Efficiency metric. "Lift divided by Drag. A higher number means we get grip without losing speed."</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* VISUAL DECODER */}
-            <section className="space-y-6">
-                <div className="flex items-center justify-between border-b border-brand-border pb-4">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <EyeIcon className="w-6 h-6 text-brand-accent" />
-                        Visual Data Decoder
-                    </h2>
-                    <span className="text-xs font-mono text-brand-text-secondary uppercase">How to read CFD images</span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="group relative bg-brand-dark-secondary rounded-xl overflow-hidden border border-brand-border">
-                        <div className="h-32 bg-gradient-to-br from-red-500/20 to-brand-dark flex items-center justify-center">
-                            <span className="text-4xl font-bold text-red-500">RED</span>
-                        </div>
-                        <div className="p-5">
-                            <h4 className="font-bold text-brand-text mb-2">High Pressure</h4>
-                            <p className="text-xs text-brand-text-secondary mb-3">Air acts like a hammer hitting a wall.</p>
-                            <ul className="text-xs space-y-1">
-                                <li className="flex gap-2"><span className="text-red-400">●</span> <b>Nose/Front Wings:</b> Bad. Creates Drag.</li>
-                                <li className="flex gap-2"><span className="text-green-400">●</span> <b>Top of Wings:</b> Good. Pushes car down (Downforce).</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="group relative bg-brand-dark-secondary rounded-xl overflow-hidden border border-brand-border">
-                        <div className="h-32 bg-gradient-to-br from-blue-500/20 to-brand-dark flex items-center justify-center">
-                            <span className="text-4xl font-bold text-blue-500">BLUE</span>
-                        </div>
-                        <div className="p-5">
-                            <h4 className="font-bold text-brand-text mb-2">Low Pressure (Suction)</h4>
-                            <p className="text-xs text-brand-text-secondary mb-3">Air moves fast, pulling surfaces with it.</p>
-                            <ul className="text-xs space-y-1">
-                                <li className="flex gap-2"><span className="text-red-400">●</span> <b>Rear of Car:</b> Bad. Creates "Wake" drag.</li>
-                                <li className="flex gap-2"><span className="text-green-400">●</span> <b>Under Wings:</b> Good. Sucks car to track (Downforce).</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="group relative bg-brand-dark-secondary rounded-xl overflow-hidden border border-brand-border">
-                        <div className="h-32 bg-gradient-to-br from-green-500/20 to-brand-dark flex items-center justify-center">
-                            <span className="text-4xl font-bold text-green-500">LINES</span>
-                        </div>
-                        <div className="p-5">
-                            <h4 className="font-bold text-brand-text mb-2">Streamlines</h4>
-                            <p className="text-xs text-brand-text-secondary mb-3">The path a particle of air takes.</p>
-                            <ul className="text-xs space-y-1">
-                                <li className="flex gap-2"><span className="text-green-400">●</span> <b>Straight/Smooth:</b> Laminar flow. Low drag.</li>
-                                <li className="flex gap-2"><span className="text-red-400">●</span> <b>Swirling/Chaotic:</b> Turbulent flow. High drag.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Why Aerotest? Section */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center border-t border-brand-border pt-8">
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <SparklesIcon className="w-6 h-6 text-yellow-400" />
-                        Why We Use Aerotest
-                    </h2>
-                    <p className="text-brand-text-secondary leading-relaxed">
-                        Conventional commercial CFD tools are designed for general-purpose engineering. They are slow, expensive, and often require expert knowledge to configure correctly for a 20-meter sprint.
-                    </p>
-                    <div className="bg-brand-dark-secondary p-4 rounded-xl border border-brand-border">
-                        <ul className="space-y-3">
-                            <li className="flex gap-3 text-sm">
-                                <span className="text-brand-accent font-bold">01.</span>
-                                <div>
-                                    <p className="font-bold text-brand-text uppercase text-xs">Iterative Speed</p>
-                                    <p className="text-brand-text-secondary">Simulations take minutes, not hours, allowing for 10x more design iterations per week.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-3 text-sm">
-                                <span className="text-brand-accent font-bold">02.</span>
-                                <div>
-                                    <p className="font-bold text-brand-text uppercase text-xs">Material Intelligence</p>
-                                    <p className="text-brand-text-secondary">Solver v2.6.1 is hard-coded with our block density of <span className="text-brand-text font-bold">0.163 ± 0.012 g/cm³</span> for accurate inertia modeling.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-3 text-sm">
-                                <span className="text-brand-accent font-bold">03.</span>
-                                <div>
-                                    <p className="font-bold text-brand-text uppercase text-xs">Contextual AI</p>
-                                    <p className="text-brand-text-secondary">Our built-in AI Correction (v2.1-GNN) is trained specifically on F1 in Schools track data.</p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/5 rounded-full -mr-16 -mt-16 group-hover:bg-brand-accent/10 transition-colors"></div>
-                    <h3 className="text-lg font-bold text-brand-accent mb-4">The Strategic Advantage</h3>
-                    <p className="text-brand-text-secondary text-sm italic">
-                        "In F1 in Schools, you don't win with the prettiest CAD. You win with the design that has the most validated wind-tunnel data. Aerotest gives us that data at scale."
-                    </p>
-                    <div className="mt-6 flex justify-center">
-                        <WindIcon className="w-24 h-24 text-brand-border animate-pulse" />
-                    </div>
-                </div>
-            </section>
-
-            {/* How it Works Section */}
-            <section className="space-y-6">
-                <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                    <BeakerIcon className="w-6 h-6 text-brand-accent" />
-                    How the Physics Works
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="p-5 bg-brand-dark-secondary rounded-xl border border-brand-border hover:border-brand-accent/30 transition-all">
-                        <div className="text-brand-accent font-mono text-xs font-bold mb-2 tracking-tighter">STAGE 1: MESHING</div>
-                        <h4 className="font-bold text-brand-text mb-2">Adaptive Refinement</h4>
-                        <p className="text-xs text-brand-text-secondary leading-relaxed">
-                            We use a hybrid polyhedral-hexcore mesher. It creates smaller "cells" around the front and rear wings where airflow is most complex, ensuring we capture the exact pressure gradients.
-                        </p>
-                    </div>
-                    <div className="p-5 bg-brand-dark-secondary rounded-xl border border-brand-border hover:border-brand-accent/30 transition-all">
-                        <div className="text-brand-accent font-mono text-xs font-bold mb-2 tracking-tighter">STAGE 2: THE SOLVER</div>
-                        <h4 className="font-bold text-brand-text mb-2">RANS vs DES</h4>
-                        <p className="text-xs text-brand-text-secondary leading-relaxed">
-                            Standard mode uses RANS (k-ω SST) for bulk flow. Accuracy mode switches to DES (Detached Eddy Simulation), which resolves the "eddies" behind the car that cause lift-off instability at the finish line.
-                        </p>
-                    </div>
-                    <div className="p-5 bg-brand-dark-secondary rounded-xl border border-brand-border hover:border-brand-accent/30 transition-all">
-                        <div className="text-brand-accent font-mono text-xs font-bold mb-2 tracking-tighter">STAGE 3: THE LIMIT</div>
-                        <h4 className="font-bold text-brand-text mb-2">The Isentropic Boundary</h4>
-                        <p className="text-xs text-brand-text-secondary leading-relaxed">
-                            Our Ω-OPTIMUM model represents the "perfect car." It calculates the minimum possible drag if friction was zero and the air was perfectly compressible—our ultimate design target.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* TECHNICAL DEEP DIVE (GLOSSARY) */}
-            <section className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <InfoIcon className="w-6 h-6 text-brand-accent" />
-                        Deep Dive: Aerodynamic Lexicon
-                    </h2>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <h4 className="font-bold text-brand-text mb-3">Stability Concepts</h4>
-                        <ul className="space-y-4">
-                            <li className="bg-brand-dark p-3 rounded-lg border border-brand-border">
-                                <p className="font-bold text-sm text-brand-accent">CoP vs CoM</p>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    <b>Center of Pressure (CoP)</b> must be behind the <b>Center of Mass (CoM)</b>. Think of a dart; the weight is at the front, feathers at the back. If CoP is in front, the car spins.
-                                </p>
-                            </li>
-                            <li className="bg-brand-dark p-3 rounded-lg border border-brand-border">
-                                <p className="font-bold text-sm text-brand-accent">Reynolds Number</p>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    A dimensionless number describing how air behaves at different scales. F1 in Schools cars operate at a lower Reynolds number than real cars, meaning air feels "stickier" to them.
-                                </p>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-brand-text mb-3">Flow Concepts</h4>
-                        <ul className="space-y-4">
-                            <li className="bg-brand-dark p-3 rounded-lg border border-brand-border">
-                                <p className="font-bold text-sm text-brand-accent">Flow Separation</p>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    When air can't follow a curve (e.g., back of a wheel) and detaches. This creates a vacuum (low pressure) that sucks the car backwards, causing massive drag.
-                                </p>
-                            </li>
-                            <li className="bg-brand-dark p-3 rounded-lg border border-brand-border">
-                                <p className="font-bold text-sm text-brand-accent">Ground Effect</p>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    Air accelerating between the bottom of the car and the track. Fast air = low pressure (Bernoulli's principle), sucking the car to the ground for free downforce.
-                                </p>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            {/* Practical Guide Section */}
-            <section className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border space-y-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
-                        <BookOpenIcon className="w-6 h-6 text-brand-accent" />
-                        Technical Lead Guide
-                    </h2>
-                    <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">OPERATIONAL V2.6.1</span>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div className="space-y-4">
-                        <h4 className="font-bold text-brand-text">Workflow Steps:</h4>
-                        <ol className="space-y-4">
-                            <li className="flex gap-4">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center font-bold text-brand-accent border border-brand-border flex-shrink-0">1</div>
-                                <div className="text-sm">
-                                    <p className="font-bold text-brand-text">Export as .STEP</p>
-                                    <p className="text-brand-text-secondary">Export your Fusion360/Onshape assembly as a high-precision STEP file. Avoid STL as it loses surface curvature data.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-4">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center font-bold text-brand-accent border border-brand-border flex-shrink-0">2</div>
-                                <div className="text-sm">
-                                    <p className="font-bold text-brand-text">Density Calibration</p>
-                                    <p className="text-brand-text-secondary">Ensure your CAD volume translates to a legal weight. The solver assumes a core density of 0.163 g/cm³.</p>
-                                </div>
-                            </li>
-                            <li className="flex gap-4">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark flex items-center justify-center font-bold text-brand-accent border border-brand-border flex-shrink-0">3</div>
-                                <div className="text-sm">
-                                    <p className="font-bold text-brand-text">Check Regulatory Compliance</p>
-                                    <p className="text-brand-text-secondary">Before simulating, use the Toolbox Checklist. Don't waste compute time on an illegal car.</p>
-                                </div>
-                            </li>
-                        </ol>
-                    </div>
-                    <div className="space-y-4">
-                         <h4 className="font-bold text-brand-text">Key Metrics Decoder:</h4>
-                         <div className="space-y-3">
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border flex justify-between items-center">
-                                <span className="font-mono text-xs text-brand-text-secondary">Cd (Coefficient of Drag)</span>
-                                <span className="text-sm font-bold text-red-400">Lower is Faster</span>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border flex justify-between items-center">
-                                <span className="font-mono text-xs text-brand-text-secondary">Cl (Coefficient of Lift)</span>
-                                <span className="text-sm font-bold text-blue-400">Stability Control</span>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border flex justify-between items-center">
-                                <span className="font-mono text-xs text-brand-text-secondary">L/D Ratio</span>
-                                <span className="text-sm font-bold text-green-400">Aero Efficiency</span>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border flex justify-between items-center">
-                                <span className="font-mono text-xs text-brand-text-secondary">Ω-Delta</span>
-                                <span className="text-sm font-bold text-yellow-400">Distance to Perfect</span>
-                            </div>
-                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <footer className="text-center p-8 bg-brand-accent/5 rounded-2xl border border-brand-accent/20">
-                <p className="text-brand-text-secondary text-sm">
-                    Questions about simulation results? Contact <span className="text-brand-text font-bold">Pranav</span> in the Design/Aero Sub-team.
-                </p>
-            </footer>
+                </main>
+            </div>
         </div>
     );
 };
+
+// Helper for the icon in nav that isn't imported in this scope but available
+const TrophyIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+        <path d="M4 22h16" />
+        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+);
 
 export default AeroEducationPage;

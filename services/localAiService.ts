@@ -1,3 +1,4 @@
+
 import { DataContextType } from '../contexts/AppContext';
 import { TaskStatus, SponsorTier } from '../types';
 
@@ -14,7 +15,21 @@ const KNOWLEDGE_BASE: Record<string, string> = {
     'chassis': 'The chassis is the base frame of a vehicle. In our F1 in Schools car, it\'s the main body to which all other parts, like wheels and wings, are attached.',
     'drag': 'Drag, or air resistance, is the aerodynamic force that opposes the car\'s motion through the air. Our goal is to minimize drag to achieve the highest possible speed on the straight.',
     'lift': 'Lift is the aerodynamic force perpendicular to the direction of motion. While airplanes use it to fly, we invert it to create "downforce" that presses our car onto the track.',
-    'cfd': 'CFD stands for Computational Fluid Dynamics. It\'s a tool we use to simulate airflow over our car designs on a computer, allowing us to test and refine aerodynamic performance without building a physical model.'
+    'cfd': 'CFD stands for Computational Fluid Dynamics. It is a numerical method used to solve the Navier-Stokes equations, simulating fluid flow (air) around our car geometry.',
+    'boundary layer': 'The boundary layer is the thin layer of fluid in the immediate vicinity of a surface where the effects of viscosity are significant. It can be laminar (smooth) or turbulent (chaotic).',
+    'laminar flow': 'Laminar flow occurs when a fluid flows in parallel layers, with no disruption between the layers. It has low friction but is prone to separation.',
+    'turbulent flow': 'Turbulent flow is characterized by chaotic changes in pressure and flow velocity. It has higher skin friction but is more resistant to flow separation.',
+    'separation': 'Flow separation occurs when the boundary layer detaches from the surface of a body, usually due to an adverse pressure gradient. This creates a wake of low pressure and high drag.',
+    'mesh': 'A mesh (or grid) is the discretization of the air volume around the car into small cells (tetrahedral, polyhedral, or hexahedral) to solve the CFD equations.',
+    'convergence': 'Convergence in CFD means that the residuals (errors) of the equations have decreased to a stable, low value (typically < 1e-4), indicating the solution is physically valid.',
+    'residuals': 'Residuals represent the imbalance in the conservation equations (mass, momentum) for each cell. We monitor them to judge if a simulation has finished.',
+    'y+': 'Y+ (Y-plus) is a non-dimensional wall distance. It helps determine if the mesh near the wall is fine enough to resolve the boundary layer correctly. For k-omega SST, we aim for Y+ < 1.',
+    'rans': 'RANS stands for Reynolds-Averaged Navier-Stokes. It is a turbulence modeling approach that averages the flow equations over time, making simulations computationally feasible.',
+    'coanda effect': 'The Coanda effect is the tendency of a fluid jet to stay attached to a convex surface. We use it to guide airflow around sidepods.',
+    'venturi effect': 'The Venturi effect is the reduction in fluid pressure that results when a fluid flows through a constricted section (or under the car), creating suction (downforce).',
+    'reynolds number': 'The Reynolds number (Re) is a dimensionless quantity that helps predict flow patterns. It represents the ratio of inertial forces to viscous forces.',
+    'outwash': 'Outwash refers to directing airflow outwards, away from the car centerline, typically to push dirty air away from the rear wheels or floor.',
+    'inwash': 'Inwash refers to directing airflow inwards, towards the car centerline.'
 };
 
 // --- Responder Interface and List ---
@@ -39,7 +54,7 @@ const RESPONDERS: Responder[] = [
 
     // --- Knowledge Base ---
     {
-        regex: /(what is|what's|define) (aerodynamics|downforce|chassis|drag|lift|cfd)/i,
+        regex: /(what is|what's|define|explain) (aerodynamics|downforce|chassis|drag|lift|cfd|boundary layer|laminar flow|turbulent flow|separation|mesh|convergence|residuals|y\+|rans|coanda effect|venturi effect|reynolds number|outwash|inwash)/i,
         handler: (match) => {
             const term = match[2].toLowerCase();
             return KNOWLEDGE_BASE[term] || `I don't have a definition for "${term}" right now.`;
@@ -243,5 +258,5 @@ export const queryLocalAI = (query: string, data: DataContextType): string => {
     }
 
     // --- Fallback Response ---
-    return "I'm sorry, I can't answer that. You can ask me about protocols ('protocol for pre-race check'), to define terms ('what is downforce?'), ask about data ('who is our top sponsor?'), or ask about team members ('who is Shrivatsa?').";
+    return "I'm sorry, I can't answer that. You can ask me about protocols ('protocol for pre-race check'), to define terms ('what is boundary layer?'), ask about data ('who is our top sponsor?'), or ask about team members ('who is Shrivatsa?').";
 };
