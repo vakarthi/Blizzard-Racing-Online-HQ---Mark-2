@@ -30,7 +30,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '', name: 'Dashboard', icon: <HomeIcon className="w-5 h-5" /> },
-  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-5 h-5" />, roles: [UserRole.Manager, UserRole.DesignEngineer] },
+  { path: 'aero', name: 'Aero Testing', icon: <WindIcon className="w-5 h-5" />, roles: [UserRole.Manager, UserRole.DesignEngineer, UserRole.ManufacturingEngineer] },
   { path: 'aero-academy', name: 'Aerotest Academy', icon: <GraduationCapIcon className="w-5 h-5" />, roles: [UserRole.Manager, UserRole.DesignEngineer, UserRole.ManufacturingEngineer] },
   { path: 'projects', name: 'Projects', icon: <ClipboardListIcon className="w-5 h-5" /> },
   { path: 'comms', name: 'Comms Hub', icon: <MessagesSquareIcon className="w-5 h-5" /> },

@@ -329,7 +329,7 @@ const ReferenceModule: React.FC = () => (
                 { term: "Pressure Gradient", def: "The rate of pressure change in a certain direction. Adverse gradients cause separation." },
                 { term: "Stall", def: "A sudden reduction in lift (and increase in drag) caused by flow separation." },
                 { term: "Turbulence", def: "Flow characterized by chaotic changes in pressure and flow velocity." },
-                { term: "Venturi Effect", def: "The reduction in fluid pressure that results when a fluid flows through a constricted section (or under a car)." },
+                { term: "Venturi Effect", def: "The reduction in fluid pressure that results when a fluid flows through a constricted section (or under the car)." },
                 { term: "Vortex", def: "A spinning flow of fluid. Can be used to energize boundary layers or seal edges." },
                 { term: "Y+", def: "A non-dimensional distance from the wall to the first mesh node, used to check mesh suitability for turbulence models." },
             ].map(item => (
