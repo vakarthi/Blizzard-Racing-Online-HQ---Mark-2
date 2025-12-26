@@ -5,7 +5,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type ProgressCallback = (update: { stage: string; progress: number; log?: string }) => void;
 
-// Updated constants for v2.9.6 Physics Engine (Calibrated to Real-World Benchmarks)
+// Updated constants for v2.9.7 Physics Engine (Calibrated to Real-World Benchmarks)
 // Benchmark: "Avalanche" car ~1.326s track time.
 const MATERIAL_DENSITY_G_CM3 = 0.163; // Regulation block density
 const PHYSICAL_LIMIT_FLOOR = 0.910; // The theoretical limit for F1 in Schools cars
@@ -66,7 +66,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.6 [Calibrated Physics]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.7 [Calibrated Physics]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
@@ -168,14 +168,13 @@ class AerotestSolver {
 
     private _calculateCd(physicsWeight: number, geometryScore: number, carClass: CarClass) {
         // 1. Base Cd Calibration
-        // Reduced base Cd to 0.55 to better align with typical student car performance range (1.1s - 1.5s)
-        let cd = 0.55; 
+        // Reduced base Cd to 0.50 to provide a fair baseline for 1.3s cars.
+        let cd = 0.50; 
 
         // 2. Geometry Optimization Curve
         // Maps a score of 0-100 to a drag reduction.
-        // A score of 100 (perfect) reduces Cd by ~0.42, landing around 0.13 base.
         const optimizationFactor = geometryScore / 100;
-        const reduction = 0.42 * Math.pow(optimizationFactor, 0.7);
+        const reduction = 0.38 * Math.pow(optimizationFactor, 0.7);
         cd -= reduction;
 
         // 3. Component Drag (Physical Parts)
@@ -193,7 +192,7 @@ class AerotestSolver {
 
         // Absolute physics floor/ceiling for this scale
         // Cap max Cd to prevent "3 second" outliers
-        return Math.min(0.55, Math.max(0.115, cd));
+        return Math.min(0.55, Math.max(0.120, cd));
     }
 
     private _calculateCl(geometryScore: number) {
@@ -244,7 +243,7 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
 };
 
 /**
- * Monte Carlo Physics Simulation (v2.9.6)
+ * Monte Carlo Physics Simulation (v2.9.7)
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -303,9 +302,10 @@ const _runMonteCarloSim = async (
         const simMu = rollingFrictionCoeff * (1 + randG() * 0.05); 
         
         // Cartridge Impulse (Standard 8g CO2 Canister)
-        // Tuned: Increased peak and sustained impulse to match real 4-5 Ns cartridges
+        // Tuned v2.9.7: Reduced peak to 24.5N and sharpened decay (-6.5) to match ~4.2 Ns impulse.
+        // This prevents the "Supersonic" bug where cars hit 200km/h+.
         const impulseFactor = 1 + (randG() * 0.025); 
-        const peakThrust = 28.5 * impulseFactor; // Peak Newtons (Boosted from 26.5)
+        const peakThrust = 24.5 * impulseFactor; 
         
         let time = 0;
         let distance = 0;
@@ -320,9 +320,9 @@ const _runMonteCarloSim = async (
             let thrust = 0;
             if (time < 0.04) {
                 thrust = peakThrust * (time / 0.04);
-            } else if (time < 0.70) { // Extended sustained thrust window
-                // Slower decay (-4.2 instead of -5.5) to better represent expanding gas
-                thrust = peakThrust * Math.exp(-4.2 * (time - 0.04));
+            } else if (time < 0.65) { // Active thrust window
+                // Sharper decay to represent rapid gas exhaustion
+                thrust = peakThrust * Math.exp(-6.5 * (time - 0.04));
             }
 
             const effectiveThrust = thrust * launchEfficiency;
@@ -333,9 +333,8 @@ const _runMonteCarloSim = async (
             const normalForce = weightForce + downforce;
             const rolling = normalForce * simMu;
             
-            // Reduced Tether Drag
-            // 0.10 static + linear component. Original 0.25 was too high for "clean" runs.
-            const tether = 0.10 + (0.015 * velocity); 
+            // Tether Drag (Increased slightly to represent high-speed friction)
+            const tether = 0.15 + (0.02 * velocity); 
 
             const netForce = effectiveThrust - (drag + rolling + tether);
             const accel = netForce / effectiveMass;
