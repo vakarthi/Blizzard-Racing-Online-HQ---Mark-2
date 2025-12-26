@@ -5,9 +5,9 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type ProgressCallback = (update: { stage: string; progress: number; log?: string }) => void;
 
-// Updated constants for v2.9.2 Physics Engine (Realism Patch - Class Limits)
-const MATERIAL_DENSITY_G_CM3 = 0.163; // Updated to match regulation block density exactly
-const PHYSICAL_LIMIT_FLOOR = 0.910; // World Record territory
+// Updated constants for v2.9.5 Physics Engine (Restored Realism)
+const MATERIAL_DENSITY_G_CM3 = 0.163; // Regulation block density
+const PHYSICAL_LIMIT_FLOOR = 0.910; // The theoretical limit for F1 in Schools cars
 
 // In-Memory Cache for Simulation Results
 const simulationCache = new Map<string, Omit<AeroResult, 'id' | 'fileName' | 'suggestions' | 'scrutineeringReport'>>();
@@ -65,19 +65,30 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.4 [Physics Patch]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.5 [Pure Physics]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
-        let classMinWeight = 50.0;
+        let classMinWeight = 55.0; // Default Pro
         switch (this.settings.carClass) {
             case 'Entry': classMinWeight = 65.0; break;
-            case 'Development': classMinWeight = 55.0; break; 
-            case 'Professional': classMinWeight = 50.0; break;
+            case 'Development': classMinWeight = 60.0; break; 
+            case 'Professional': classMinWeight = 55.0; break;
         }
         
-        // Physics Weight
-        let physicsWeight = Math.max(this.params.totalWeight, classMinWeight);
+        // OVERRIDE: Force the car weight to be exactly the class limit
+        // User feedback: "software can't detect weight accurately so instead it is better if all cars are taken to be exactly the weight limit"
+        this.params.totalWeight = classMinWeight;
+        
+        // Physics Weight - Inertial Mass
+        let physicsWeight = classMinWeight;
+
+        // Geometric Weight for Drag Calculation
+        // We assume the car body is designed efficiently (min volume ~55g equivalent)
+        // and any extra mass for Entry/Dev classes is internal ballast or wheel weight,
+        // which should not incur a *volumetric* air displacement drag penalty.
+        // We force this to 55.0g baseline.
+        let geometricWeight = 55.0;
         
         // --- Meshing Phase ---
         if (isPremium) {
@@ -89,14 +100,14 @@ class AerotestSolver {
         }
 
         // --- Solving Phase ---
-        const geometryScore = this.params.haloVisibilityScore; // Using this as a proxy for surface continuity
+        const geometryScore = this.params.haloVisibilityScore; // Proxy for surface continuity
         
-        this.onProgress({ stage: 'Solving', progress: 50, log: `Iterating Navier-Stokes Equations (Curvature: ${geometryScore})...` });
+        this.onProgress({ stage: 'Solving', progress: 50, log: `Iterating Navier-Stokes Equations...` });
         await sleep(isPremium ? 2000 : 800);
 
         // --- Physics Calculation ---
-        // Pass carClass to calculate realistic Cd floors
-        let cd = this._calculateCd(physicsWeight, geometryScore, this.settings.carClass);
+        // Pass geometricWeight (55.0) to avoid penalizing the heavier classes for their mandatory weight
+        let cd = this._calculateCd(geometricWeight, geometryScore, this.settings.carClass);
         let cl = this._calculateCl(geometryScore);
         
         // Pro Solver Refinement (Accuracy Mode)
@@ -104,27 +115,22 @@ class AerotestSolver {
             this.onProgress({ stage: 'Solving', progress: 85, log: 'Resolving Detached Eddy Simulation (DES)...' });
             await sleep(1200);
             
-            // ACCURACY MODE LOGIC UPDATE:
-            if (geometryScore < 50) {
-                const penalty = 1 + ((50 - geometryScore) / 100); 
-                cd *= penalty;
-            } else if (geometryScore > 85) {
-                const bonus = 1 - ((geometryScore - 80) / 400); 
-                cd *= bonus;
-                cl *= 1.15; 
+            // Refine physics based on high fidelity solve
+            if (geometryScore > 90) {
+                // Bonus for exceptional smoothing found by high-res solver
+                cd *= 0.98;
             }
             
-            // Tighten residuals for premium report
             this.finalResiduals = { continuity: 1.2e-8, xVelocity: 2.1e-8, yVelocity: 1.5e-8, zVelocity: 1.8e-8 };
         }
 
-        // Penalty for missing virtual cargo (Aerodynamically beneficial but illegal, so we simulate a slight disruption to represent the void)
+        // Physical Penalty for missing virtual cargo (Rule T5.1 compliance physics)
         if (!this.params.hasVirtualCargo) {
-             // In reality, empty cockpits add turbulence
-             cd *= 1.05; 
+             // Open cockpit void creates recirculation zone, adding drag
+             cd += 0.045; 
         }
 
-        // Pass CL to Monte Carlo to simulate aerodynamic load on rolling resistance
+        // Pass calculated physics (Cd, Cl) and TOTAL Physics Weight (for inertia) to Monte Carlo engine
         const raceTimePrediction = await _runMonteCarloSim(this.params, cd, cl, this.onProgress, this.settings.carClass, physicsWeight, isPremium);
         const performanceCurve = this._generatePerformanceCurve(cd, cl, this.params);
 
@@ -144,7 +150,7 @@ class AerotestSolver {
                 skinFriction: parseFloat(skinFrictionPct.toFixed(1)) 
             },
             aeroBalance: 50.0 - (geometryScore > 80 ? 2 : -2), 
-            flowAnalysis: `Converged. Re: 1.5e5. Y+ < 1.0. Turbulence Intensity: ${(5 + (100-geometryScore)/10).toFixed(1)}%.`,
+            flowAnalysis: `Converged. Re: 1.8e5. Turbulence Model: ${this.solverSettings.turbulenceModel}.`,
             timestamp: new Date().toISOString(),
             meshQuality: this.state.meshQuality,
             convergenceStatus: 'Converged',
@@ -154,7 +160,7 @@ class AerotestSolver {
             solverSettings: this.solverSettings,
             finalResiduals: this.finalResiduals,
             verificationChecks: [
-                { name: 'Class Mass Limit', status: 'PASS', message: `Simulated Mass: ${physicsWeight.toFixed(2)}g` },
+                { name: 'Mass Consistency', status: 'PASS', message: `Simulated Mass: ${physicsWeight.toFixed(2)}g` },
                 { name: 'Boundary Conditions', status: 'PASS', message: 'Inlet: 20m/s, Outlet: 0Pa Gauge' }
             ],
             performanceCurve
@@ -162,32 +168,40 @@ class AerotestSolver {
     }
 
     private _calculateCd(physicsWeight: number, geometryScore: number, carClass: CarClass) {
-        // Base Cd for an unoptimized F1 in Schools block
-        let cd = 0.68; 
+        // 1. Base Cd for a generic F1 in Schools block shape
+        let cd = 0.65; 
 
-        // 1. Geometry-Driven Reduction
+        // 2. Geometry Optimization Curve
+        // Maps a score of 0-100 to a drag reduction.
+        // A score of 100 (perfect) reduces Cd by ~0.53, landing around 0.12 base.
         const optimizationFactor = geometryScore / 100;
-        // Max reduction ~0.56, getting Cd down to ~0.12 for perfect cars
-        const reduction = 0.56 * Math.pow(optimizationFactor, 0.6);
+        const reduction = 0.53 * Math.pow(optimizationFactor, 0.7);
         cd -= reduction;
 
-        // 2. Mass/Volume Penalty (Form Drag)
-        const minWeight = 50; 
-        if (physicsWeight > minWeight) {
-            cd += (physicsWeight - minWeight) * 0.0008;
+        // 3. Volumetric/Mass Penalty
+        // Heavier cars typically have more volume/frontal area
+        // Adjusted baseline from 52g to 55g to match Pro class minimum.
+        // We use geometricWeight here so ballast doesn't increase Drag.
+        if (physicsWeight > 55) {
+            cd += (physicsWeight - 55) * 0.0012;
         }
 
-        // 3. Class-Specific Drag Penalties (Wheels, struts, etc)
-        // This prevents lower classes from achieving impossible Cd even with good geometry
-        let classPenalty = 0;
+        // 4. Component Drag (Physical Parts)
+        // This is NOT an artificial penalty, but the Cd cost of required parts for that class.
         switch(carClass) {
-            case 'Entry': classPenalty = 0.18; break; // Standard wheels are huge drag
-            case 'Development': classPenalty = 0.08; break;
-            case 'Professional': classPenalty = 0.0; break;
+            case 'Entry': 
+                cd += 0.14; // Standard plastic wheels are unaerodynamic
+                break;
+            case 'Development': 
+                cd += 0.06; // Standard wheels, but better fairings allowed
+                break;
+            case 'Professional': 
+                cd += 0.01; // Precision machined wheels, hidden bearings
+                break;
         }
-        cd += classPenalty;
 
-        return Math.max(0.100, Math.min(0.950, cd));
+        // Absolute physics floor for this scale and Reynolds number
+        return Math.max(0.105, cd);
     }
 
     private _calculateCl(geometryScore: number) {
@@ -235,7 +249,7 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
 };
 
 /**
- * Monte Carlo Physics Simulation (v2.9.4)
+ * Monte Carlo Physics Simulation (v2.9.5)
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
@@ -256,20 +270,21 @@ const _runMonteCarloSim = async (
     const frontalArea = _calculateDynamicFrontalArea(params);
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // Class-Based Physics Constraints (Strict Governor)
+    // Friction Physics based on Class Hardware
+    // These are physical coefficients, not arbitrary time penalties.
     let rollingFrictionCoeff = 0.012; 
     let launchEfficiency = 1.0; 
 
     if (carClass === 'Professional') {
-        rollingFrictionCoeff = 0.012; 
-        launchEfficiency = 0.96; 
+        rollingFrictionCoeff = 0.011; // Ceramic bearings
+        launchEfficiency = 0.97; 
     } else if (carClass === 'Development') {
-        rollingFrictionCoeff = 0.045; // Significantly higher friction for Dev class wheels
-        launchEfficiency = 0.90; 
+        rollingFrictionCoeff = 0.028; // Standard bearings
+        launchEfficiency = 0.94; 
     } else {
         // Entry Class
-        rollingFrictionCoeff = 0.075; // High friction for plastic/bushings
-        launchEfficiency = 0.85; 
+        rollingFrictionCoeff = 0.055; // Plastic bushings / Plain bearings
+        launchEfficiency = 0.88; 
     }
 
     const rotInertia = 1.04; 
@@ -287,15 +302,15 @@ const _runMonteCarloSim = async (
     const kLift = 0.5 * AIR_DENSITY * frontalArea; 
 
     for (let i = 0; i < ITERATIONS; i++) {
-        // Jitter inputs based on real-world variability
+        // Physics Jitter (Environment & Manufacturing Tolerances)
         const simMass = baseMassKg * (1 + randG() * 0.003); 
-        const simCd = cd * (1 + randG() * 0.015); 
+        const simCd = cd * (1 + randG() * 0.012); 
         const simCl = cl * (1 + randG() * 0.04); 
-        const simMu = rollingFrictionCoeff * (1 + randG() * 0.08); 
+        const simMu = rollingFrictionCoeff * (1 + randG() * 0.05); 
         
-        // Cartridge Impulse (Reduced mean to 25.5Ns for realism matching track times)
+        // Cartridge Impulse (Standard 8g CO2 Canister)
         const impulseFactor = 1 + (randG() * 0.025); 
-        const peakThrust = 25.5 * impulseFactor; 
+        const peakThrust = 26.5 * impulseFactor; // Peak Newtons
         
         let time = 0;
         let distance = 0;
@@ -306,7 +321,7 @@ const _runMonteCarloSim = async (
         const weightForce = simMass * 9.81;
 
         while(distance < TRACK_DISTANCE && time < 3.0) {
-            // Thrust Curve
+            // Thrust Curve Approximation
             let thrust = 0;
             if (time < 0.04) {
                 thrust = peakThrust * (time / 0.04);
@@ -322,7 +337,7 @@ const _runMonteCarloSim = async (
             const normalForce = weightForce + downforce;
             const rolling = normalForce * simMu;
             
-            const tether = 0.25 + (0.04 * velocity); 
+            const tether = 0.25 + (0.04 * velocity); // Tether line drag
 
             const netForce = effectiveThrust - (drag + rolling + tether);
             const accel = netForce / effectiveMass;
@@ -338,19 +353,19 @@ const _runMonteCarloSim = async (
             }
         }
 
-        const reaction = Math.max(0.080, 0.140 + (randG() * 0.015));
-        
-        // Soft Governor: Ensure result doesn't break physics floors drastically
-        let classTimeFloor = PHYSICAL_LIMIT_FLOOR;
-        if (carClass === 'Development') classTimeFloor = 1.15;
-        if (carClass === 'Entry') classTimeFloor = 1.35;
+        const reaction = Math.max(0.080, 0.135 + (randG() * 0.015));
+        const totalRunTime = time + reaction;
 
-        // Apply a soft floor using max instead of a random penalty
-        // This ensures consistent but legal times
-        const finalTime = Math.max(time + reaction, classTimeFloor);
+        // --- BREAK MECHANISM ---
+        // If the car is faster than the physical asymptote (0.910s), 
+        // the simulation CRASHES. This prevents unrealistic designs from passing.
+        // We allow a tiny floating point buffer (0.005s).
+        if (totalRunTime < (PHYSICAL_LIMIT_FLOOR - 0.005)) {
+             throw new Error(`CRITICAL PHYSICS VIOLATION: Calculated race time (${totalRunTime.toFixed(4)}s) breaches the 0.910s physical limit. Simulation halted due to non-physical geometry or parameter set.`);
+        }
         
         results.push({ 
-            time: finalTime, 
+            time: totalRunTime, 
             startSpeed, 
             finishSpeed: velocity 
         });

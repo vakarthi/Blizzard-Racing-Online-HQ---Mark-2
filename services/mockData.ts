@@ -158,7 +158,7 @@ export const F1_IN_SCHOOLS_RULES: readonly {
 }[] = [
     { id: 'T3.4', description: 'Total Length', min: 170, max: 210, unit: 'mm', key: 'totalLength' },
     { id: 'T3.5', description: 'Total Width (at axles)', max: 85, unit: 'mm', key: 'totalWidth' },
-    { id: 'T3.6', description: 'Total Weight (Min)', min: 50.0, unit: 'g', key: 'totalWeight' },
+    { id: 'T3.6', description: 'Total Weight (Min)', min: 55.0, unit: 'g', key: 'totalWeight' },
     { id: 'T7.6.1', description: 'Front Wing Span', min: 75, unit: 'mm', key: 'frontWingSpan' },
     { id: 'T7.6.2', description: 'Front Wing Chord', min: 15, max: 25, unit: 'mm', key: 'frontWingChord' },
     { id: 'D7.6.3', description: 'Front Wing Thickness', min: 3.5, max: 12.0, unit: 'mm', key: 'frontWingThickness' },
@@ -178,7 +178,7 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         carName: 'The Perfect Challenger',
         totalLength: 210,
         totalWidth: 65,
-        totalWeight: 50.0,
+        totalWeight: 55.0,
         frontWingSpan: 75,
         frontWingChord: 15,
         frontWingThickness: 6.5,
