@@ -405,17 +405,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Analyzing Geometry...', progress: 1, latestLog: `Analyzing file: ${file.name}` } : t) }));
         const parameters = await analyzeStepFile(file);
         
-        // --- SCRUTINEERING GATE ---
-        // Perform pre-flight compliance check
-        updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Scrutineering Compliance...', progress: 15, latestLog: `Checking regulations...` } : t) }));
+        // Calculate compliance for report, but allow simulation to proceed regardless of failures.
         const scrutineeringReport = performScrutineering(parameters);
-        const criticalFailures = scrutineeringReport.filter(r => r.status === 'FAIL');
-
-        if (criticalFailures.length > 3) {
-             const issues = criticalFailures.map(f => `${f.description} (${f.value})`).join(', ');
-             throw new Error(`Scrutineering Rejection: ${criticalFailures.length} critical failures detected. Simulation aborted. Issues: ${issues}`);
-        }
-        // --------------------------
 
         const onProgress = (update: { stage: string; progress: number; log?: string }) => {
             const progressScale = isAuditRun ? 0.9 : 1.0;
