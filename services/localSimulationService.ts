@@ -5,12 +5,12 @@ import { F1_IN_SCHOOLS_RULES } from './mockData';
 // --- Scrutineering Logic ---
 
 export const performScrutineering = (params: DesignParameters): ScrutineeringItem[] => {
-    return F1_IN_SCHOOLS_RULES.map(rule => {
+    // Basic Rule Checks
+    const report: ScrutineeringItem[] = F1_IN_SCHOOLS_RULES.map(rule => {
         const value = params[rule.key as keyof DesignParameters];
-        let status: 'PASS' | 'FAIL' = 'PASS';
+        let status: 'PASS' | 'FAIL' | 'WARN' = 'PASS';
         let notes = 'Within specified limits.';
 
-        // Fix: Add type check to ensure value is a number before comparison.
         if (typeof value === 'number') {
           if (rule.min !== undefined && value < rule.min) {
               status = 'FAIL';
@@ -44,6 +44,27 @@ export const performScrutineering = (params: DesignParameters): ScrutineeringIte
             notes: notes,
         };
     });
+
+    // Explicit Virtual Cargo Check (Rule T5.1)
+    if (!params.hasVirtualCargo) {
+        report.push({
+            ruleId: 'T5.1',
+            description: 'Virtual Cargo (Helmet)',
+            status: 'FAIL',
+            value: 'Missing',
+            notes: 'CRITICAL: No spherical helmet geometry detected in the cockpit area. This is a mandatory component. (-20pts)'
+        });
+    } else {
+        report.push({
+            ruleId: 'T5.1',
+            description: 'Virtual Cargo (Helmet)',
+            status: 'PASS',
+            value: 'Detected',
+            notes: 'Virtual cargo geometry identified successfully.'
+        });
+    }
+
+    return report;
 };
 
 // --- Aero Suggestions Logic ---
@@ -56,6 +77,10 @@ export const generateAeroSuggestions = (result: AeroResult): string => {
 
     if (failedRules && failedRules.length > 0) {
         suggestions.push(`**URGENT: Legal Compliance Issues.** Your design has ${failedRules.length} scrutineering failures. Performance doesn't matter if the car is disqualified or penalized 65+ points like in our Regional run.`);
+    }
+
+    if (!parameters.hasVirtualCargo) {
+        suggestions.push("**Missing Helmet:** You must add a Virtual Cargo (helmet) to your CAD model. Its absence implies an illegal entry and artificially lowers drag in simulation.");
     }
 
     if (liftToDragRatio < 3.5) {

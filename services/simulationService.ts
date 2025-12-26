@@ -5,7 +5,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 type ProgressCallback = (update: { stage: string; progress: number; log?: string }) => void;
 
-// Updated constants for v2.9.1 Physics Engine (Realism Patch - Class Limits)
+// Updated constants for v2.9.2 Physics Engine (Realism Patch - Class Limits)
 const MATERIAL_DENSITY_G_CM3 = 0.163; // Updated to match regulation block density exactly
 const PHYSICAL_LIMIT_FLOOR = 0.910; // World Record territory
 
@@ -65,7 +65,7 @@ class AerotestSolver {
         const startTime = Date.now();
         const isPremium = this.settings.isPremium;
 
-        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.2 [Realism Physics Patch]` });
+        this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v2.9.4 [Physics Patch]` });
         await sleep(isPremium ? 800 : 250);
 
         // Enforce Class Weights
@@ -105,29 +105,23 @@ class AerotestSolver {
             await sleep(1200);
             
             // ACCURACY MODE LOGIC UPDATE:
-            // RANS (Standard) typically underestimates drag on bluff bodies (wake) and overestimates on streamlined bodies.
             if (geometryScore < 50) {
-                // Poor geometry: RANS misses the full wake extent. DES captures it.
-                // Result: Drag INCREASES in accuracy mode.
                 const penalty = 1 + ((50 - geometryScore) / 100); 
                 cd *= penalty;
             } else if (geometryScore > 85) {
-                // Excellent geometry: RANS over-predicts turbulence. DES resolves laminar flow better.
-                // Result: Drag DECREASES in accuracy mode (reward for good design).
                 const bonus = 1 - ((geometryScore - 80) / 400); 
                 cd *= bonus;
-                // High score implies better downforce management too
                 cl *= 1.15; 
             }
             
-            // Re-enforce Class Floor after premium modifiers to ensure realism
-            let hardFloor = 0.115;
-            if (this.settings.carClass === 'Development') hardFloor = 0.250;
-            if (this.settings.carClass === 'Entry') hardFloor = 0.380;
-            cd = Math.max(cd, hardFloor);
-
             // Tighten residuals for premium report
             this.finalResiduals = { continuity: 1.2e-8, xVelocity: 2.1e-8, yVelocity: 1.5e-8, zVelocity: 1.8e-8 };
+        }
+
+        // Penalty for missing virtual cargo (Aerodynamically beneficial but illegal, so we simulate a slight disruption to represent the void)
+        if (!this.params.hasVirtualCargo) {
+             // In reality, empty cockpits add turbulence
+             cd *= 1.05; 
         }
 
         // Pass CL to Monte Carlo to simulate aerodynamic load on rolling resistance
@@ -135,7 +129,6 @@ class AerotestSolver {
         const performanceCurve = this._generatePerformanceCurve(cd, cl, this.params);
 
         // Calculate Drag Breakdown based on geometry score
-        // Streamlined cars (high score) have higher skin friction ratio vs pressure drag
         const skinFrictionPct = Math.min(85, Math.max(15, 20 + (geometryScore * 0.6)));
         const pressurePct = 100 - skinFrictionPct;
 
@@ -150,7 +143,7 @@ class AerotestSolver {
                 pressure: parseFloat(pressurePct.toFixed(1)), 
                 skinFriction: parseFloat(skinFrictionPct.toFixed(1)) 
             },
-            aeroBalance: 50.0 - (geometryScore > 80 ? 2 : -2), // Slight shift based on aero quality
+            aeroBalance: 50.0 - (geometryScore > 80 ? 2 : -2), 
             flowAnalysis: `Converged. Re: 1.5e5. Y+ < 1.0. Turbulence Intensity: ${(5 + (100-geometryScore)/10).toFixed(1)}%.`,
             timestamp: new Date().toISOString(),
             meshQuality: this.state.meshQuality,
@@ -173,45 +166,35 @@ class AerotestSolver {
         let cd = 0.68; 
 
         // 1. Geometry-Driven Reduction
-        // Non-linear reduction. Harder to get to very low Cd.
         const optimizationFactor = geometryScore / 100;
         // Max reduction ~0.56, getting Cd down to ~0.12 for perfect cars
         const reduction = 0.56 * Math.pow(optimizationFactor, 0.6);
         cd -= reduction;
 
         // 2. Mass/Volume Penalty (Form Drag)
-        // Heavier cars typically have larger frontal area/volume
         const minWeight = 50; 
         if (physicsWeight > minWeight) {
             cd += (physicsWeight - minWeight) * 0.0008;
         }
 
-        // 3. Class-Based Drag Floors (Physics Limitations)
-        // Development/Entry cars cannot achieve Pro-level drag due to regulations (wheel size, etc)
-        let classMinCd = 0.115;
-        switch (carClass) {
-            case 'Professional': classMinCd = 0.115; break; // World-class limit
-            case 'Development': classMinCd = 0.250; break; // Increased floor for realism (was 0.220)
-            case 'Entry': classMinCd = 0.380; break; // Increased floor (was 0.350)
+        // 3. Class-Specific Drag Penalties (Wheels, struts, etc)
+        // This prevents lower classes from achieving impossible Cd even with good geometry
+        let classPenalty = 0;
+        switch(carClass) {
+            case 'Entry': classPenalty = 0.18; break; // Standard wheels are huge drag
+            case 'Development': classPenalty = 0.08; break;
+            case 'Professional': classPenalty = 0.0; break;
         }
+        cd += classPenalty;
 
-        // 4. Clamp to realistic values
-        return Math.max(classMinCd, Math.min(0.900, cd));
+        return Math.max(0.100, Math.min(0.950, cd));
     }
 
     private _calculateCl(geometryScore: number) {
         // Continuous Downforce Model
-        // F1 in Schools cars want Downforce (Negative Lift) for stability, 
-        // though strictly for straight line speed, 0 lift is best to minimize rolling resistance.
-        // However, good designs usually have wings that create downforce.
-        
         if (geometryScore < 40) {
-            // Poor design probably generates actual Lift (bad)
-            return 0.02; 
+            return 0.02; // Poor design generates Lift
         }
-        
-        // Good designs generate Downforce (Magnitude)
-        // Scale from 0.05 to 0.35 based on score
         const normalizedScore = (geometryScore - 40) / 60; // 0 to 1
         return 0.05 + (0.30 * Math.pow(normalizedScore, 2));
     }
@@ -222,10 +205,9 @@ class AerotestSolver {
         const airDensity = 1.225;
 
         for (let speed = 5; speed <= 30; speed += 1) {
-             // Reynolds number scaling
              const reynoldsFactor = 1 - (speed * 0.0015);
              const dynamicCd = baseCd * reynoldsFactor;
-             const dynamicCl = baseCl * (1 + (speed * 0.001)); // Wings more effective at speed
+             const dynamicCl = baseCl * (1 + (speed * 0.001)); 
              
              const dragForce = 0.5 * airDensity * (speed * speed) * dynamicCd * frontalArea;
              const liftForce = 0.5 * airDensity * (speed * speed) * dynamicCl * frontalArea;
@@ -246,8 +228,6 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
     const widthM = (params.totalWidth || 65) / 1000;
     const heightM = ((params.rearWingHeight || 35) + 15) / 1000; 
     const boundingBox = widthM * heightM;
-    
-    // Fill factor depends on "blockiness" (inverse of haloVisibility/complexity)
     const complexity = params.haloVisibilityScore || 50;
     const fillFactor = 0.70 - (complexity * 0.0035); 
     
@@ -255,14 +235,12 @@ const _calculateDynamicFrontalArea = (params: DesignParameters): number => {
 };
 
 /**
- * Monte Carlo Physics Simulation (v2.9.2)
- * Stochastic solver for race time probability distribution.
- * Now includes Strict Class Performance Limits.
+ * Monte Carlo Physics Simulation (v2.9.4)
  */
 const _runMonteCarloSim = async (
     params: DesignParameters,
     cd: number,
-    cl: number, // Lift Coefficient input
+    cl: number, 
     onProgress: ProgressCallback,
     carClass: CarClass,
     effectiveWeightGrams: number,
@@ -270,7 +248,7 @@ const _runMonteCarloSim = async (
 ): Promise<ProbabilisticRaceTimePrediction> => {
     onProgress({ stage: 'Performance', progress: 95, log: 'Running Stochastic Trajectory Analysis...' });
     
-    const ITERATIONS = isPremium ? 50000 : 5000; // Increased sample size
+    const ITERATIONS = isPremium ? 50000 : 5000; 
     const AIR_DENSITY = 1.225;
     const TRACK_DISTANCE = 20; 
     const TIME_STEP = isPremium ? 0.0002 : 0.001; 
@@ -278,28 +256,26 @@ const _runMonteCarloSim = async (
     const frontalArea = _calculateDynamicFrontalArea(params);
     const baseMassKg = effectiveWeightGrams / 1000;
     
-    // Class-Based Physics Constraints
-    // Different classes use different bearings and wheel systems.
+    // Class-Based Physics Constraints (Strict Governor)
     let rollingFrictionCoeff = 0.012; 
-    let launchEfficiency = 1.0; // Factor to account for alignment/wheel spin at launch
+    let launchEfficiency = 1.0; 
 
     if (carClass === 'Professional') {
-        rollingFrictionCoeff = 0.012; // Ceramic/Hybrid bearings, precision alignment
-        launchEfficiency = 0.96; // Optimized launch
+        rollingFrictionCoeff = 0.012; 
+        launchEfficiency = 0.96; 
     } else if (carClass === 'Development') {
-        rollingFrictionCoeff = 0.035; // Standard steel bearings + loose tolerances (was 0.028)
-        launchEfficiency = 0.90; // Slower reaction/alignment (was 0.94)
+        rollingFrictionCoeff = 0.045; // Significantly higher friction for Dev class wheels
+        launchEfficiency = 0.90; 
     } else {
         // Entry Class
-        rollingFrictionCoeff = 0.065; // Plastic wheels/bushings (was 0.055)
-        launchEfficiency = 0.85; // Significant launch energy loss
+        rollingFrictionCoeff = 0.075; // High friction for plastic/bushings
+        launchEfficiency = 0.85; 
     }
 
-    const rotInertia = 1.04; // 4% rotational mass equivalent
+    const rotInertia = 1.04; 
 
     const results: (MonteCarloPoint & { finishSpeed: number })[] = [];
     
-    // Box-Muller Gaussian Generator
     const randG = () => {
         let u = 0, v = 0;
         while(u === 0) u = Math.random(); 
@@ -307,22 +283,19 @@ const _runMonteCarloSim = async (
         return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
     }
 
-    // Optimization: Pre-calculate constants
     const kDrag = 0.5 * AIR_DENSITY * frontalArea;
-    const kLift = 0.5 * AIR_DENSITY * frontalArea; // Lift force factor
+    const kLift = 0.5 * AIR_DENSITY * frontalArea; 
 
     for (let i = 0; i < ITERATIONS; i++) {
         // Jitter inputs based on real-world variability
-        const simMass = baseMassKg * (1 + randG() * 0.003); // 0.3% mass error
-        const simCd = cd * (1 + randG() * 0.015); // 1.5% aero instability
-        // Lift variance is higher due to pitch sensitivity
+        const simMass = baseMassKg * (1 + randG() * 0.003); 
+        const simCd = cd * (1 + randG() * 0.015); 
         const simCl = cl * (1 + randG() * 0.04); 
-        const simMu = rollingFrictionCoeff * (1 + randG() * 0.08); // 8% bearing variance
+        const simMu = rollingFrictionCoeff * (1 + randG() * 0.08); 
         
-        // Cartridge Impulse (4.2Ns mean approx)
-        // Reduced peak thrust to align better with real world time scales (roughly 1.0s - 1.5s range)
+        // Cartridge Impulse (Reduced mean to 25.5Ns for realism matching track times)
         const impulseFactor = 1 + (randG() * 0.025); 
-        const peakThrust = 26.5 * impulseFactor; // Was 29.5
+        const peakThrust = 25.5 * impulseFactor; 
         
         let time = 0;
         let distance = 0;
@@ -332,10 +305,8 @@ const _runMonteCarloSim = async (
         const effectiveMass = simMass * rotInertia;
         const weightForce = simMass * 9.81;
 
-        // Integration Loop
         while(distance < TRACK_DISTANCE && time < 3.0) {
-            // Thrust Curve: 8g Cartridge
-            // Spike to peak at 0.04s, decay to zero by 0.6s
+            // Thrust Curve
             let thrust = 0;
             if (time < 0.04) {
                 thrust = peakThrust * (time / 0.04);
@@ -343,19 +314,15 @@ const _runMonteCarloSim = async (
                 thrust = peakThrust * Math.exp(-5.5 * (time - 0.04));
             }
 
-            // Apply launch efficiency to thrust (simulates initial energy loss)
             const effectiveThrust = thrust * launchEfficiency;
 
-            // Aerodynamic Forces
             const drag = kDrag * velocity * velocity * simCd;
-            const downforce = kLift * velocity * velocity * simCl; // Downforce increases with speed
+            const downforce = kLift * velocity * velocity * simCl; 
             
-            // Rolling Resistance = Normal Force * Mu
-            // Normal Force = Static Weight + Aerodynamic Downforce
             const normalForce = weightForce + downforce;
             const rolling = normalForce * simMu;
             
-            const tether = 0.25 + (0.04 * velocity); // Tether friction increases with speed
+            const tether = 0.25 + (0.04 * velocity); 
 
             const netForce = effectiveThrust - (drag + rolling + tether);
             const accel = netForce / effectiveMass;
@@ -366,17 +333,21 @@ const _runMonteCarloSim = async (
             distance += velocity * TIME_STEP;
             time += TIME_STEP;
 
-            // Capture 5m split (approx launch/start speed)
             if (distance >= 5.0 && startSpeed === 0) {
                 startSpeed = velocity;
             }
         }
 
-        // Reaction Time (Human + System)
-        // Mean 0.140s (Fast student), StdDev 0.015s
         const reaction = Math.max(0.080, 0.140 + (randG() * 0.015));
         
-        const finalTime = Math.max(time + reaction, PHYSICAL_LIMIT_FLOOR);
+        // Soft Governor: Ensure result doesn't break physics floors drastically
+        let classTimeFloor = PHYSICAL_LIMIT_FLOOR;
+        if (carClass === 'Development') classTimeFloor = 1.15;
+        if (carClass === 'Entry') classTimeFloor = 1.35;
+
+        // Apply a soft floor using max instead of a random penalty
+        // This ensures consistent but legal times
+        const finalTime = Math.max(time + reaction, classTimeFloor);
         
         results.push({ 
             time: finalTime, 
@@ -387,14 +358,13 @@ const _runMonteCarloSim = async (
 
     results.sort((a, b) => a.time - b.time);
     
-    // Statistical Aggregation
     const avgTime = results.reduce((s, r) => s + r.time, 0) / ITERATIONS;
     const avgSpeed = TRACK_DISTANCE / avgTime;
     const variance = results.reduce((s, r) => s + Math.pow(r.time - avgTime, 2), 0) / ITERATIONS;
     const stdDev = Math.sqrt(variance);
 
-    const bestIndex = Math.floor(ITERATIONS * 0.005); // Top 0.5%
-    const worstIndex = Math.floor(ITERATIONS * 0.995); // Bottom 0.5%
+    const bestIndex = Math.floor(ITERATIONS * 0.005); 
+    const worstIndex = Math.floor(ITERATIONS * 0.995); 
 
     return {
         bestRaceTime: results[bestIndex].time,
@@ -412,7 +382,6 @@ const _runMonteCarloSim = async (
         worstAverageSpeed: TRACK_DISTANCE / results[worstIndex].time,
         trustIndex: isPremium ? 99.8 : 95.0,
         isPhysical: true,
-        // Downsample for UI
         sampledPoints: results.filter((_, i) => i % (Math.floor(ITERATIONS / 500)) === 0).map(r => ({ time: r.time, startSpeed: r.startSpeed })),
         stdDevTime: stdDev,
         launchVariance: 0.015,

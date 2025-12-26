@@ -47,6 +47,7 @@ export interface DesignParameters {
   haloVisibilityScore: number; // NEW: D4.3.2
   noGoZoneClearance: number;  // NEW: D4.2
   visibilityScore: number;     // NEW: D6.2
+  hasVirtualCargo: boolean;    // NEW: T5.1 Helmet Check
   geometryMeta?: {
       originalOrientation: string;
       correctionApplied: boolean;
@@ -58,7 +59,7 @@ export interface DesignParameters {
 export interface ScrutineeringItem {
   ruleId: string;
   description: string;
-  status: 'PASS' | 'FAIL';
+  status: 'PASS' | 'FAIL' | 'WARN';
   notes: string;
   value: string;
 }

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode, useState, useCallback, useMemo } from 'react';
 import { useSyncedStore } from '../hooks/useSyncedStore';
 import { AppStore } from '../services/stateSyncService';
@@ -404,6 +405,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Analyzing Geometry...', progress: 1, latestLog: `Analyzing file: ${file.name}` } : t) }));
         const parameters = await analyzeStepFile(file);
         
+        // --- SCRUTINEERING GATE ---
+        // Perform pre-flight compliance check
+        updateStore(s => ({ ...s, backgroundTasks: s.backgroundTasks.map(t => t.id === taskId ? { ...t, stage: 'Scrutineering Compliance...', progress: 15, latestLog: `Checking regulations...` } : t) }));
+        const scrutineeringReport = performScrutineering(parameters);
+        const criticalFailures = scrutineeringReport.filter(r => r.status === 'FAIL');
+
+        if (criticalFailures.length > 3) {
+             const issues = criticalFailures.map(f => `${f.description} (${f.value})`).join(', ');
+             throw new Error(`Scrutineering Rejection: ${criticalFailures.length} critical failures detected. Simulation aborted. Issues: ${issues}`);
+        }
+        // --------------------------
+
         const onProgress = (update: { stage: string; progress: number; log?: string }) => {
             const progressScale = isAuditRun ? 0.9 : 1.0;
             updateStore(s => ({
@@ -427,7 +440,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         
         const tempResultForAnalysis: AeroResult = { ...simResultData, id: 'temp', fileName: file.name, parameters };
         const suggestions = generateAeroSuggestions(tempResultForAnalysis);
-        const scrutineeringReport = performScrutineering(parameters);
+        // scrutineeringReport is already calculated above
         const finalResultData: Omit<AeroResult, 'id'> = { ...simResultData, fileName: file.name, suggestions, scrutineeringReport };
 
         if (isAuditRun) {

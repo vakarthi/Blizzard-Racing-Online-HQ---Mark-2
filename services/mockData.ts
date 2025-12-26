@@ -154,7 +154,7 @@ export const F1_IN_SCHOOLS_RULES: readonly {
     min?: number;
     max?: number;
     unit: string;
-    key: keyof Omit<DesignParameters, 'carName'>;
+    key: keyof Omit<DesignParameters, 'carName' | 'hasVirtualCargo'>;
 }[] = [
     { id: 'T3.4', description: 'Total Length', min: 170, max: 210, unit: 'mm', key: 'totalLength' },
     { id: 'T3.5', description: 'Total Width (at axles)', max: 85, unit: 'mm', key: 'totalWidth' },
@@ -187,6 +187,7 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         haloVisibilityScore: 100,
         noGoZoneClearance: 10.0,
         visibilityScore: 100,
+        hasVirtualCargo: true
     },
     solverSettings: {
         solver: 'Coupled Implicit',
