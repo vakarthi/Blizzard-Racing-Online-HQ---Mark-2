@@ -78,8 +78,8 @@ class AerotestSolver {
         this.onProgress({ stage: 'Initializing', progress: 1, log: `Solver v5.1.0 [Empirical Calibrated]` });
         await sleep(isPremium ? 800 : 200);
 
-        // Physics Mass: Use input mass, but clamp to class min for "legal" runs if significantly under
-        // However, for Mark 5, we respect the physics. If they made a 10g car, it flies (but fails rules).
+        // Physics Mass: Use input mass directly.
+        // If they made a 10g car, it flies (but fails rules).
         const physicsWeight = this.params.totalWeight;
 
         // --- Meshing Phase ---
@@ -164,8 +164,9 @@ class AerotestSolver {
         let baseCd = 0.15; // Minimum possible (bullet)
 
         // Add Geometry Penalties
-        baseCd += (widthFactor - 1) * 0.1;
-        baseCd += (heightFactor - 1) * 0.05;
+        // If the car is wider than standard 60mm, add drag heavily.
+        baseCd += (Math.max(1, widthFactor) - 1) * 0.15;
+        baseCd += (Math.max(1, heightFactor) - 1) * 0.08;
 
         // 2. Wheel Drag (Major)
         // Wheels are terrible. 
@@ -187,7 +188,7 @@ class AerotestSolver {
         
         // Clamp to realistic "Bad Car" vs "Good Car" range
         // Good Car: ~0.18 - 0.25
-        // Bad Car: ~0.40 - 0.60
+        // Bad Car: ~0.40 - 0.60+
         return Math.min(0.85, Math.max(0.12, totalCd));
     }
 
