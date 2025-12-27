@@ -413,3 +413,5 @@ export interface PunkRecordsState {
     complexityScore: number; // 100 = Chaos, 0 = The Omega Function. Affects simulation TIME.
     accuracyRating: number; // 50% = Guess, 100% = Truth. Affects simulation QUALITY.
 }
+
+export type SyncStatus = 'OFFLINE' | 'CONNECTING' | 'SYNCED' | 'ERROR' | 'CONFLICT';

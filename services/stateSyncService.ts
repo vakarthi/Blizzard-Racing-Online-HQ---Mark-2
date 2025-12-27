@@ -1,7 +1,7 @@
 
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
-  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState, Session
+  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState, Session, SyncStatus
 } from '../types';
 import {
   MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS,
@@ -24,22 +24,33 @@ export interface AppStore {
   loginHistory: LoginRecord[];
   inquiries: Inquiry[];
   backgroundTasks: BackgroundTask[];
+  activeSessions: Session[];
   announcement: string | null;
   competitionDate: string | null;
   teamLogoUrl: string;
   simulationRunCount: number;
   punkRecords: PunkRecordsState; 
-  syncId?: string; // Track the connected cloud blob ID
-  activeSessions: Session[]; // Track connected devices
+  _version: number;
+  _lastUpdatedBy: { userId: string, userName: string } | null;
 }
 
-const STORAGE_KEY = 'brh-synced-store';
-const SYNC_API_URL = 'https://jsonblob.com/api/jsonBlob';
+const STORAGE_KEY = 'brh-local-store';
+// The Sync ID is now a hardcoded constant for the entire application.
+const syncId: string = 'PONEGLYPH-BLIZZARD-HQ-MARK2';
 
-// Generate a random session ID for this tab/window
-export const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+let store: AppStore;
+let syncStatus: SyncStatus = 'OFFLINE';
+let syncLog: string[] = [];
+let pollingInterval: number | null = null;
+let isPushing = false; // A lock to prevent concurrent pushes
 
-const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
+const subscribers = new Set<(store: AppStore) => void>();
+const statusSubscribers = new Set<(status: SyncStatus) => void>();
+const logSubscribers = new Set<(log: string[]) => void>();
+
+const API_BASE = 'https://jsonblob.com/api/jsonBlob';
+
+const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZHRoPSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
 const getInitialState = (): AppStore => {
     const defaultState: AppStore = {
@@ -61,6 +72,7 @@ const getInitialState = (): AppStore => {
         loginHistory: [],
         inquiries: [],
         backgroundTasks: [],
+        activeSessions: [],
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
         competitionDate: '2024-12-01T09:00:00',
         teamLogoUrl: DEFAULT_LOGO,
@@ -74,186 +86,175 @@ const getInitialState = (): AppStore => {
             complexityScore: 100, 
             accuracyRating: 60.0 
         },
-        activeSessions: []
+        _version: 0,
+        _lastUpdatedBy: null,
     };
 
     try {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState) {
-            const loadedState = JSON.parse(serializedState);
-            return { ...defaultState, ...loadedState };
+            return { ...defaultState, ...JSON.parse(serializedState) };
         }
     } catch (e) {
         console.error("Could not load state from localStorage, initializing with default.", e);
     }
-
     return defaultState;
 };
 
-let store: AppStore = getInitialState();
-const subscribers = new Set<(store: AppStore) => void>();
-let isSyncing = false;
-let lastServerStateStr = "";
+// --- Service Setup ---
+store = getInitialState();
 
-// --- CLOUD SYNC LOGIC ---
+const notifySubscribers = () => subscribers.forEach(cb => cb(store));
+const notifyStatusSubscribers = () => statusSubscribers.forEach(cb => cb(syncStatus));
+const notifyLogSubscribers = () => logSubscribers.forEach(cb => cb(syncLog));
 
-// 1. Initialize Sync (Check URL or create new blob)
-const initializeCloudSync = async () => {
-    // Check URL params for sync_id
-    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-    let syncId = urlParams.get('sync_id') || store.syncId;
+const addLog = (message: string) => {
+    syncLog = [`[${new Date().toLocaleTimeString()}] ${message}`, ...syncLog].slice(0, 20);
+    notifyLogSubscribers();
+}
 
-    if (syncId) {
-        if (syncId !== store.syncId) {
-            console.log("Found Sync ID in URL, connecting...", syncId);
-            store = { ...store, syncId };
-            saveState(store);
-            subscribers.forEach(callback => callback(store)); // Notify UI of new ID
-        }
-    } else {
-        // Create a new blob if none exists
-        try {
-            const response = await fetch(SYNC_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(store)
-            });
-            if (response.ok) {
-                const location = response.headers.get('Location');
-                if (location) {
-                    syncId = location.split('/').pop();
-                    console.log("Created new Cloud Sync Blob:", syncId);
-                    store = { ...store, syncId: syncId! };
-                    saveState(store);
-                    subscribers.forEach(callback => callback(store)); // Notify UI of new ID
-                }
-            }
-        } catch (e) {
-            console.warn("Offline mode: Could not create cloud sync blob.", e);
-        }
+const setStatus = (newStatus: SyncStatus) => {
+    if(syncStatus !== newStatus) {
+        syncStatus = newStatus;
+        addLog(`Status changed to ${newStatus}`);
+        notifyStatusSubscribers();
     }
-    
-    if (store.syncId) {
-        startPolling();
-    }
-};
+}
 
-// 2. Poll for updates
-const startPolling = () => {
-    setInterval(async () => {
-        if (!store.syncId || isSyncing) return;
-
-        try {
-            const response = await fetch(`${SYNC_API_URL}/${store.syncId}`);
-            if (response.ok) {
-                const serverState = await response.json();
-                const serverStateStr = JSON.stringify(serverState);
-                
-                // Only update if server has different data and we aren't currently writing
-                if (serverStateStr !== lastServerStateStr && serverStateStr !== JSON.stringify(store)) {
-                    // console.log("Received update from cloud.");
-                    lastServerStateStr = serverStateStr;
-                    store = { ...store, ...serverState }; // Merge/Overwrite
-                    saveState(store);
-                    subscribers.forEach(callback => callback(store));
-                }
-            }
-        } catch (e) {
-            // Silent fail on polling errors
-        }
-    }, 2000); // Poll every 2 seconds for near-realtime feel
-};
-
-// 3. Push updates
-const pushToCloud = async (newState: AppStore) => {
-    if (!newState.syncId) return;
-    
-    isSyncing = true;
-    try {
-        await fetch(`${SYNC_API_URL}/${newState.syncId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newState)
-        });
-        lastServerStateStr = JSON.stringify(newState);
-    } catch (e) {
-        console.warn("Failed to push to cloud:", e);
-    } finally {
-        isSyncing = false;
-    }
-};
-
-// 4. Session Heartbeat
-export const updateSessionHeartbeat = (user: User | null) => {
-    const now = new Date().toISOString();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    const mySession: Session = {
-        id: SESSION_ID,
-        userId: user ? user.id : 'guest',
-        userName: user ? user.name : 'Guest Unit',
-        userAgent: navigator.userAgent,
-        lastActive: now,
-        deviceType: isMobile ? 'mobile' : 'desktop'
-    };
-
-    // Use updateStore to ensure it syncs
-    stateSyncService.updateStore((currentStore) => {
-        // Filter out stale sessions (> 2 minutes old)
-        const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        const otherSessions = (currentStore.activeSessions || []).filter(s => 
-            s.id !== SESSION_ID && s.lastActive > activeThreshold
-        );
-        
-        return {
-            ...currentStore,
-            activeSessions: [...otherSessions, mySession]
-        };
-    });
-};
-
-
-// --- STORAGE & EVENT LISTENERS ---
-
-window.addEventListener('storage', (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) {
-        try {
-            const serializedState = localStorage.getItem(STORAGE_KEY);
-            if (!serializedState) return;
-
-            const newState: AppStore = JSON.parse(serializedState);
-            store = newState;
-            subscribers.forEach(callback => callback(store));
-        } catch (e) {
-            console.error("Failed to parse state from storage event:", e);
-        }
-    }
-});
-
-const saveState = (newState: AppStore) => {
+const saveLocalState = (newState: AppStore) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-  } catch (e) {
-    console.error("Failed to save state to localStorage:", e);
-  }
+  } catch (e) { console.error("Failed to save state to localStorage:", e); }
 };
 
-// Initialize Cloud Sync on module load
-initializeCloudSync();
+// --- Core Sync Logic ---
+
+const _fetchRemoteState = async (): Promise<AppStore | null> => {
+    if (!syncId) return null;
+    try {
+        const res = await fetch(`${API_BASE}/${syncId}`);
+        if (!res.ok) throw new Error(`Network response was not ok: ${res.statusText}`);
+        return await res.json();
+    } catch (e) {
+        console.error("Fetch failed:", e);
+        setStatus('ERROR');
+        return null;
+    }
+};
+
+const _pushStateToCloud = async (stateToPush: AppStore) => {
+    if (!syncId || isPushing) return;
+    isPushing = true;
+    
+    try {
+        const remoteState = await _fetchRemoteState();
+        if (remoteState && remoteState._version > stateToPush._version - 1) {
+            addLog(`Conflict detected. Remote version (${remoteState._version}) > Local version (${stateToPush._version - 1}). Overwriting local.`);
+            store = remoteState;
+            saveLocalState(store);
+            notifySubscribers();
+            setStatus('CONFLICT');
+            setTimeout(() => setStatus('SYNCED'), 2000);
+            isPushing = false;
+            return;
+        }
+
+        const res = await fetch(`${API_BASE}/${syncId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-jsonblob': syncId },
+            body: JSON.stringify(stateToPush),
+        });
+
+        if (!res.ok) throw new Error(`Network response was not ok: ${res.statusText}`);
+        addLog(`Successfully pushed version ${stateToPush._version}.`);
+        setStatus('SYNCED');
+
+    } catch (e) {
+        console.error("Push failed:", e);
+        setStatus('ERROR');
+    } finally {
+        isPushing = false;
+    }
+};
+
+const pollForChanges = async () => {
+    const remoteState = await _fetchRemoteState();
+    if (remoteState && remoteState._version > store._version) {
+        addLog(`Pulled remote version ${remoteState._version}. Overwriting local version ${store._version}.`);
+        store = remoteState;
+        saveLocalState(store);
+        notifySubscribers();
+        setStatus('SYNCED');
+    }
+};
+
+const startSyncing = async () => {
+    if (pollingInterval) clearInterval(pollingInterval);
+    setStatus('CONNECTING');
+    
+    const remoteState = await _fetchRemoteState();
+    if (remoteState) {
+        if (remoteState._version > store._version) {
+            store = remoteState;
+        } else if (remoteState._version < store._version) {
+            await _pushStateToCloud(store);
+        }
+        setStatus('SYNCED');
+    } else {
+        await _pushStateToCloud(store);
+    }
+    
+    saveLocalState(store);
+    notifySubscribers();
+
+    pollingInterval = window.setInterval(pollForChanges, 10000);
+};
+
+
+// --- Service Interface ---
 
 export const stateSyncService = {
   getStore: (): AppStore => store,
+  getSyncStatus: () => syncStatus,
+  getSyncLog: () => syncLog,
+  getSyncId: () => syncId,
 
   subscribe: (callback: (store: AppStore) => void): () => void => {
     subscribers.add(callback);
     return () => subscribers.delete(callback);
   },
-
-  updateStore: (updater: (currentStore: AppStore) => AppStore) => {
-    const newState = updater(store);
-    store = newState; 
-    saveState(newState);
-    pushToCloud(newState); // Trigger cloud push
-    subscribers.forEach(callback => callback(store)); 
+  
+  subscribeToStatus: (callback: (status: SyncStatus) => void): () => void => {
+      statusSubscribers.add(callback);
+      callback(syncStatus);
+      return () => statusSubscribers.delete(callback);
   },
+  
+  subscribeToLog: (callback: (log: string[]) => void): () => void => {
+      logSubscribers.add(callback);
+      callback(syncLog);
+      return () => logSubscribers.delete(callback);
+  },
+
+  updateStore: (updater: (currentStore: AppStore) => AppStore, updatedBy?: {userId: string, userName: string}) => {
+    const newState = updater(store);
+    
+    newState._version = (store._version || 0) + 1;
+    if (updatedBy) {
+        newState._lastUpdatedBy = updatedBy;
+    }
+
+    store = newState; 
+    saveLocalState(newState);
+    notifySubscribers(); 
+    
+    _pushStateToCloud(newState);
+  },
+  
+  initialize: () => {
+      startSyncing();
+  }
 };
+
+// Always initialize sync on load.
+stateSyncService.initialize();

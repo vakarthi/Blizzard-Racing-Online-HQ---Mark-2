@@ -81,7 +81,7 @@ const SupercomputerHUD = () => (
 
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
-  const { announcement, teamLogoUrl } = useAppState();
+  const { announcement, teamLogoUrl, syncStatus } = useAppState();
   const { punkRecords } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
@@ -98,20 +98,20 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   });
 
   useEffect(() => {
-      if (gear5Mode) {
-          document.body.classList.add('gear-5-mode');
-      } else {
-          document.body.classList.remove('gear-5-mode');
-      }
-  }, [gear5Mode]);
-
-  useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));
   }, []);
 
   useCommandK(() => setPaletteOpen(p => !p));
 
   const filteredNavItems = navItems.filter(item => !item.roles || (user && item.roles.includes(user.role)));
+  
+  const statusColors: Record<typeof syncStatus, string> = {
+      OFFLINE: 'bg-gray-500',
+      CONNECTING: 'bg-yellow-500 animate-pulse',
+      SYNCED: 'bg-green-500',
+      ERROR: 'bg-red-500 animate-pulse',
+      CONFLICT: 'bg-orange-500 animate-pulse',
+  };
 
   const SidebarContent = () => (
     <>
@@ -231,6 +231,12 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                 </button>
                 {/* PUNK RECORDS STATUS BAR */}
                 <div className="hidden md:flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${statusColors[syncStatus]}`}></div>
+                        <span className="text-[10px] font-black text-brand-text-secondary uppercase tracking-widest font-egghead">
+                            PUNK RECORDS: {syncStatus}
+                        </span>
+                    </div>
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black text-brand-accent uppercase tracking-widest font-egghead flex items-center gap-1">
@@ -244,17 +250,6 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                                 className="h-full bg-brand-accent shadow-[0_0_10px_var(--color-accent-default)] transition-all duration-1000 ease-linear"
                                 style={{ width: `${punkRecords?.syncRate}%` }}
                             ></div>
-                        </div>
-                    </div>
-                    {/* Visualizer for Formula Synthesis */}
-                    <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-brand-text-secondary uppercase">Logic Optimization</span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-mono text-pink-400">{punkRecords?.formulasSynthesized.toLocaleString()} Vars</span>
-                            <span className="text-[9px] font-mono text-white/40">→</span>
-                            <span className={`text-[10px] font-mono ${punkRecords?.complexityScore < 20 ? 'text-green-400' : 'text-yellow-400'}`}>
-                                CMPX: {punkRecords?.complexityScore.toFixed(0)}
-                            </span>
                         </div>
                     </div>
                     {gear5Mode && <div className="text-[10px] font-mono text-purple-400 animate-bounce">NI-KA</div>}
@@ -289,7 +284,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                 {children}
             </div>
         </div>
-        <Icicle />
+        <Icicle gear5Mode={gear5Mode} />
       </main>
       <NotificationManager />
     </div>
