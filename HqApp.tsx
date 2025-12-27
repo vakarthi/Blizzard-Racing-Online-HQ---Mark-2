@@ -1,4 +1,3 @@
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState } from './contexts/AppContext';
@@ -45,9 +44,8 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
 
-  // Auto-logout after 5 minutes of inactivity.
-  const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
-  useInactivityTimeout(logout, INACTIVITY_TIMEOUT_MS);
+  // Auto-logout handled by hook (Bedtime protocol)
+  useInactivityTimeout(logout);
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));

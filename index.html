@@ -8,7 +8,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Share+Tech+Mono&family=Permanent+Marker&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -20,6 +20,7 @@
               display: ['Cinzel', 'serif'],
               mono: ['JetBrains Mono', 'monospace'],
               'sci-fi': ['"Share Tech Mono"', 'monospace'],
+              'manga': ['"Permanent Marker"', 'cursive'],
             },
             colors: {
               'brand-dark': {
@@ -42,8 +43,10 @@
               'slide-in-up': 'slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
               'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'scanline': 'scanline 8s linear infinite',
-              'liberation': 'drumbeat 0.5s ease-in-out infinite',
-              'swirl': 'swirl 3s linear infinite',
+              'rubber-heartbeat': 'rubberHeartbeat 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite',
+              'haki-flash': 'hakiFlash 0.1s ease-in-out infinite alternate',
+              'smoke-spin': 'spin 4s linear infinite',
+              'float-cloud': 'float 6s ease-in-out infinite',
             },
             keyframes: {
               fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
@@ -52,13 +55,21 @@
                 '0%': { transform: 'translateY(-10%)' },
                 '100%': { transform: 'translateY(calc(100vh + 10%))' } 
               },
-              drumbeat: {
-                '0%, 100%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.02)' }
+              rubberHeartbeat: {
+                '0%': { transform: 'scale(1)' },
+                '15%': { transform: 'scale(1.4) skewX(-5deg)' }, /* The violent expansion */
+                '30%': { transform: 'scale(0.9) skewX(5deg)' },  /* The recoil */
+                '45%': { transform: 'scale(1.1)' },
+                '60%': { transform: 'scale(1)' },
+                '100%': { transform: 'scale(1)' }
               },
-              swirl: {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
+              hakiFlash: {
+                '0%': { opacity: 0.3 },
+                '100%': { opacity: 1 }
+              },
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' }
               }
             },
             boxShadow: {
@@ -87,17 +98,38 @@
         --bg-overlay-opacity: 0.5;
       }
 
-      /* Gear 5 Mode Variables (activated via class) */
+      /* Gear 5 Mode Variables - NIKA AWAKENING (White/Purple) */
       .gear-5-mode {
-        --color-bg-dark-default: #FFFFFF;
-        --color-bg-dark-secondary: #F3F4F6;
-        --color-accent-default: #A855F7; /* Purple (Nika Haze) */
-        --color-accent-hover: #9333EA;
-        --color-border: #E5E7EB;
-        --color-text-default: #111827;
-        --color-text-secondary: #4B5563;
-        --color-surface: #FFFFFF;
-        animation: drumbeat 2s ease-in-out infinite; /* Subtle heartbeat */
+        --color-bg-dark-default: #FFFFFF; /* Pure White */
+        --color-bg-dark-secondary: #F3F4F6; /* Slate 100 */
+        --color-accent-default: #9333EA; /* Purple 600 */
+        --color-accent-hover: #A855F7; /* Purple 500 */
+        --color-border: #E5E7EB; /* Slate 200 */
+        --color-text-default: #111827; /* Slate 900 */
+        --color-text-secondary: #4B5563; /* Slate 600 */
+        --color-surface: #F9FAFB; /* Slate 50 */
+      }
+
+      .gear-5-mode * {
+        /* font-family: 'Permanent Marker', cursive !important; */ /* Too hard to read, use for headers only */
+      }
+      
+      .gear-5-mode h1, .gear-5-mode h2, .gear-5-mode h3 {
+         font-family: 'Permanent Marker', cursive !important;
+         letter-spacing: 0.05em;
+      }
+
+      .gear-5-mode .glass-panel, 
+      .gear-5-mode aside, 
+      .gear-5-mode header {
+         border: 2px solid var(--color-accent-default);
+         box-shadow: 0 0 0px var(--color-accent-default);
+      }
+      
+      /* Clouds Background for Gear 5 */
+      .gear-5-mode #app-background {
+         background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239333ea' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+         background-color: #FFFFFF;
       }
 
       body {

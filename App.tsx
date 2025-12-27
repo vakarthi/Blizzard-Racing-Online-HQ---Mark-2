@@ -15,7 +15,13 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <HashRouter>
-        <Suspense fallback={<div className="w-full h-screen flex items-center justify-center bg-brand-dark"><LoadingSpinner /></div>}>
+        <Suspense fallback={
+            <div className="w-full h-screen flex items-center justify-center bg-[#0F0518] relative overflow-hidden">
+                {/* Subtle Haki background gradient */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-[#0F0518] to-[#0F0518]"></div>
+                <LoadingSpinner />
+            </div>
+        }>
           <Routes>
             <Route path="/login" element={user ? <Navigate to="/hq" /> : <LoginPage />} />
             <Route

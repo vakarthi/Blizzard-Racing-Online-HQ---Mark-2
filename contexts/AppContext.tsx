@@ -132,6 +132,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [store, updateStore] = useSyncedStore();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
+  // Track user activity for bounty purposes
+  const lastActivityRef = useRef<number>(Date.now());
+
+  // --- ACTIVITY TRACKING (For Bounties) ---
+  useEffect(() => {
+      const handleUserActivity = () => {
+          // Throttle updates slightly to avoid thrashing
+          const now = Date.now();
+          if (now - lastActivityRef.current > 1000) {
+              lastActivityRef.current = now;
+          }
+      };
+
+      const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+      events.forEach(event => window.addEventListener(event, handleUserActivity, { passive: true }));
+
+      return () => {
+          events.forEach(event => window.removeEventListener(event, handleUserActivity));
+      };
+  }, []);
+
   // --- THE CENTRAL LOBE (Evolutionary Combinatorial Compiler) ---
   useEffect(() => {
       if (!currentUser) return;
@@ -209,15 +230,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!currentUser) return;
 
       const bountyInterval = setInterval(() => {
-          updateStore(state => {
-              // Increase current user's bounty by 100 berries every minute they are online
-              const updatedUsers = state.users.map(u => 
-                  u.id === currentUser.id 
-                  ? { ...u, bounty: (u.bounty || 0) + 100 }
-                  : u
-              );
-              return { ...state, users: updatedUsers };
-          });
+          // CHECK: Only increase bounty if user moved mouse in last 40 seconds
+          const timeSinceLastActive = Date.now() - lastActivityRef.current;
+          const isActive = timeSinceLastActive < 40000; // 40 seconds
+
+          if (isActive) {
+              updateStore(state => {
+                  // Increase current user's bounty by 100 berries every minute they are "actively" online
+                  const updatedUsers = state.users.map(u => 
+                      u.id === currentUser.id 
+                      ? { ...u, bounty: (u.bounty || 0) + 100 }
+                      : u
+                  );
+                  return { ...state, users: updatedUsers };
+              });
+          } else {
+              // Optional: Debug log or subtle UI indication they are "AFK" could go here
+              // console.log("User AFK: Bounty Paused");
+          }
       }, 60000); // Run every 60 seconds
 
       return () => clearInterval(bountyInterval);

@@ -1,5 +1,5 @@
-import React, { ErrorInfo, ReactNode } from 'react';
-import { AlertTriangleIcon, SkullIcon } from './icons';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { SkullIcon } from './icons';
 
 interface Props {
   children?: ReactNode;
@@ -14,7 +14,7 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,

@@ -103,6 +103,7 @@ const initializeCloudSync = async () => {
             console.log("Found Sync ID in URL, connecting...", syncId);
             store = { ...store, syncId };
             saveState(store);
+            subscribers.forEach(callback => callback(store)); // Notify UI of new ID
         }
     } else {
         // Create a new blob if none exists
@@ -119,6 +120,7 @@ const initializeCloudSync = async () => {
                     console.log("Created new Cloud Sync Blob:", syncId);
                     store = { ...store, syncId: syncId! };
                     saveState(store);
+                    subscribers.forEach(callback => callback(store)); // Notify UI of new ID
                 }
             }
         } catch (e) {
