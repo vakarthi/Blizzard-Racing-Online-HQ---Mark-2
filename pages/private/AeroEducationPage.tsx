@@ -166,69 +166,54 @@ const CFDModule: React.FC = () => (
             </div>
         </div>
 
-        <Section title="1. Discretization (The Mesh)">
+        <Section title="1. Discretization (The Voxel Grid)">
             <p className="text-sm text-brand-text-secondary mb-4">
-                The quality of the result depends entirely on the mesh. Bad mesh = Garbage In, Garbage Out.
+                Aerotest now uses a state-of-the-art <b>Cartesian Voxel</b> approach instead of traditional tetrahedral meshing.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-brand-dark p-5 rounded-xl border border-brand-border">
-                    <h4 className="font-bold text-brand-text mb-2">Polyhedral vs. Tetrahedral</h4>
+                    <h4 className="font-bold text-brand-text mb-2">Voxel-Based FVM</h4>
                     <ul className="text-sm space-y-2 text-brand-text-secondary">
-                        <li><b>Tetrahedral (Pyramids):</b> Easy to generate for complex shapes, but inaccurate for swirling flow. Requires 3x more cells for same accuracy.</li>
-                        <li><b>Polyhedral (Honeycombs):</b> Harder to generate, but extremely accurate. Each cell has many neighbors, capturing gradients better. <span className="text-green-400 font-bold">Aerotest uses this.</span></li>
+                        <li><b>Automatic Meshing:</b> The geometry is "rasterized" into a 3D grid of cubes (voxels), similar to Minecraft but with physics.</li>
+                        <li><b>Immersed Boundary Method:</b> We don't need a perfectly watertight mesh. The solver detects which voxels are "solid" and which are "fluid" automatically.</li>
+                        <li><span className="text-green-400 font-bold">Benefit:</span> Handles raw STL files instantly without hours of cleanup.</li>
                     </ul>
                 </div>
                 <div className="bg-brand-dark p-5 rounded-xl border border-brand-border">
-                    <h4 className="font-bold text-brand-text mb-2">Inflation Layers (Prism Layers)</h4>
-                    <p className="text-sm text-brand-text-secondary">
-                        Flat, thin cells stacked on the car's surface. Crucial for capturing the Boundary Layer. Without these, skin friction calculations are wrong.
-                    </p>
+                    <h4 className="font-bold text-brand-text mb-2">Resolution Tiers</h4>
+                    <ul className="text-sm space-y-2 text-brand-text-secondary">
+                        <li><b>Standard Mode:</b> Uses a coarse voxel grid (~32x16x16) for rapid iteration (under 5 seconds). Good for general trends.</li>
+                        <li><b>Deep Solve (Premium):</b> Uses a high-fidelity grid (~64x32x32+) with dense sampling. Captures wake structures and pressure gradients accurately.</li>
+                    </ul>
                 </div>
             </div>
         </Section>
 
-        <Section title="2. Turbulence Modeling (RANS)">
+        <Section title="2. Turbulence Modeling (LES-ish)">
             <p className="text-sm text-brand-text-secondary mb-4">
-                Directly simulating every swirl (DNS) would take a supercomputer 100 years. Instead, we use RANS (Reynolds-Averaged Navier-Stokes) to model the <i>average</i> effect of turbulence.
+               Our Voxel solver uses an approach similar to <b>Large Eddy Simulation (LES)</b> on a coarse scale.
             </p>
             <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
-                <h4 className="font-bold text-brand-accent mb-3">Why k-ω SST?</h4>
+                <h4 className="font-bold text-brand-accent mb-3">Advection & Diffusion</h4>
                 <p className="text-sm text-brand-text-secondary leading-relaxed mb-4">
-                    Aerotest defaults to the <b>Shear Stress Transport (SST)</b> model. It combines the best of two worlds:
+                    The solver splits the physics into steps:
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
-                        <span className="block font-bold text-brand-text text-sm">k-ω model</span>
-                        <span className="text-xs text-brand-text-secondary">Excellent near walls (boundary layers).</span>
-                    </div>
-                    <div className="p-3 bg-brand-dark rounded border border-brand-border">
-                        <span className="block font-bold text-brand-text text-sm">k-ε model</span>
-                        <span className="text-xs text-brand-text-secondary">Excellent in the free stream (far from car).</span>
-                    </div>
+                <div className="space-y-2 text-sm text-brand-text-secondary">
+                    <p><b>1. Advection:</b> Moves velocity and smoke/dye through the grid based on current flow speed.</p>
+                    <p><b>2. Diffusion:</b> Simulates the viscosity (stickiness) of air, smoothing out sharp velocity differences.</p>
+                    <p><b>3. Projection:</b> Solves a massive system of linear equations (Poisson Equation) to ensure mass is conserved—making sure air doesn't just disappear or compress infinitely.</p>
                 </div>
-                <p className="text-sm text-brand-text-secondary mt-4">
-                    SST switches between them automatically based on distance from the wall.
-                </p>
             </div>
         </Section>
 
-        <Section title="3. Convergence & Y+">
+        <Section title="3. Convergence & Divergence">
             <div className="space-y-4">
                 <div className="flex gap-4 items-start">
                     <div className="p-2 bg-brand-surface rounded text-brand-accent"><BarChartIcon className="w-5 h-5" /></div>
                     <div>
-                        <h4 className="font-bold text-brand-text text-sm">Residuals</h4>
+                        <h4 className="font-bold text-brand-text text-sm">Divergence-Free</h4>
                         <p className="text-xs text-brand-text-secondary mt-1">
-                            These measure the error in the equations. We look for residuals to drop below 1e-4 or 1e-5. If they oscillate, the flow is unsteady (flapping wake).
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-4 items-start">
-                    <div className="p-2 bg-brand-surface rounded text-brand-accent"><LayersIcon className="w-5 h-5" /></div>
-                    <div>
-                        <h4 className="font-bold text-brand-text text-sm">Y+ Value</h4>
-                        <p className="text-xs text-brand-text-secondary mt-1">
-                            A dimensionless distance from the wall to the first mesh node. For k-ω SST, we need a Y+ &lt; 1. This ensures the first cell is inside the viscous sublayer of the boundary layer.
+                            Incompressible flow means the amount of air entering a cell must equal the amount leaving. If this isn't true, the simulation "blows up". The Project step enforces this.
                         </p>
                     </div>
                 </div>

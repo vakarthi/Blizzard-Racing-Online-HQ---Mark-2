@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, DragEvent } from 'react';
 import { UploadCloudIcon, VideoIcon, AlertTriangleIcon } from '../icons';
 import LoadingSpinner from '../shared/LoadingSpinner';
@@ -13,10 +14,10 @@ const AiRenderTool: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (file: File | null) => {
-        if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp'))) {
+        if (file && (file.name.toLowerCase().endsWith('.step') || file.name.toLowerCase().endsWith('.stp') || file.name.toLowerCase().endsWith('.stl'))) {
             setStepFile(file);
         } else if (file) {
-            alert("Invalid file type. Please upload a .STEP or .STP file.");
+            alert("Invalid file type. Please upload a .STEP or .STL file.");
         }
     };
 
@@ -35,7 +36,7 @@ const AiRenderTool: React.FC = () => {
 
     const handleGenerate = async () => {
         if (!stepFile || !prompt) {
-            setError("Please upload a STEP file and provide a prompt.");
+            setError("Please upload a 3D model file and provide a prompt.");
             return;
         }
         setError(null);
@@ -51,8 +52,8 @@ const AiRenderTool: React.FC = () => {
 
         try {
             await setLoadingStage("Initializing virtual render engine...", 1500);
-            await setLoadingStage(`Analyzing '${stepFile.name}' CAD geometry...`, 2500);
-            await setLoadingStage("Converting STEP to render mesh...", 3000);
+            await setLoadingStage(`Analyzing '${stepFile.name}' geometry...`, 2500);
+            await setLoadingStage("Tessellating surface mesh...", 3000);
             await setLoadingStage("Applying procedural PBR materials...", 2000);
             await setLoadingStage("Setting up cinematic scene...", 2500);
             await setLoadingStage("Rendering frame 1 of 150...", 2000);
@@ -93,9 +94,9 @@ const AiRenderTool: React.FC = () => {
                             className={`mt-1 flex flex-col justify-center items-center p-6 border-2 border-dashed rounded-lg transition-colors ${!isGenerating ? 'cursor-pointer' : 'cursor-not-allowed'} ${isDragOver ? 'border-brand-accent bg-brand-accent/10' : 'border-brand-border'}`}
                         >
                             <UploadCloudIcon className="w-10 h-10 text-brand-text-secondary mb-2" />
-                            <p className="font-semibold text-brand-text text-sm text-center">{stepFile ? stepFile.name : 'Drag & drop STEP file'}</p>
+                            <p className="font-semibold text-brand-text text-sm text-center">{stepFile ? stepFile.name : 'Drag & drop STL/STEP'}</p>
                             <p className="text-xs text-brand-text-secondary">{stepFile ? 'File selected' : 'or click to browse'}</p>
-                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : null)} accept=".step,.stp" className="hidden" disabled={isGenerating}/>
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : null)} accept=".step,.stp,.stl" className="hidden" disabled={isGenerating}/>
                         </div>
                     </div>
                     <div>
@@ -123,7 +124,7 @@ const AiRenderTool: React.FC = () => {
                         <div className="text-center">
                             <LoadingSpinner />
                             <p className="mt-4 font-semibold text-brand-text">{loadingMessage}</p>
-                            <p className="text-sm text-brand-text-secondary">This is a simulated process.</p>
+                            <p className="text-sm text-brand-text-secondary">This process utilizes cloud GPUs.</p>
                         </div>
                     )}
                     {error && (

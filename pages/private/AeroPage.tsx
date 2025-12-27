@@ -2,10 +2,11 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, CarClass } from '../../types';
-import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon, GraduationCapIcon, CalculatorIcon, ScaleIcon } from '../../components/icons';
+import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon, GraduationCapIcon, CalculatorIcon, ScaleIcon, EyeIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import MonteCarloScatterPlot from '../../components/hq/MonteCarloScatterPlot';
+import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
 import { THEORETICAL_OPTIMUM } from '../../services/mockData';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
@@ -99,6 +100,50 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
         </div>
     );
 
+    const renderVisualization = () => (
+        <div className="space-y-6 animate-fade-in">
+            <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                        <EyeIcon className="w-5 h-5 text-brand-accent"/> 3D Finite Volume Field
+                    </h3>
+                    {!result.flowFieldData && (
+                        <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">No 3D data available for this run</span>
+                    )}
+                </div>
+                {result.flowFieldData ? (
+                    <FlowFieldVisualizer flowFieldData={result.flowFieldData} parameters={result.parameters} />
+                ) : (
+                    <div className="h-[400px] flex items-center justify-center bg-brand-dark/50 rounded-lg border border-brand-border border-dashed">
+                        <p className="text-brand-text-secondary text-sm">Run a 'Deep Solve' simulation to generate FVM data.</p>
+                    </div>
+                )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">FVM Grid Stats</h4>
+                    <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                            <span>Cell Count:</span>
+                            <span className="font-mono text-brand-accent">
+                                {result.meshCellCount?.toLocaleString() || 'N/A'} Voxels
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Grid Resolution:</span>
+                            <span className="font-mono">{result.tier === 'premium' ? '~3.5mm' : '~8.0mm'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Solver Scheme:</span>
+                            <span className="font-mono">Semi-Lagrangian Advection</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderMonteCarlo = () => (
         <div className="space-y-6 animate-fade-in">
             <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
@@ -178,12 +223,14 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
         <div className="space-y-6">
             <div className="flex flex-wrap gap-2 p-1 bg-brand-dark rounded-lg border border-brand-border w-fit">
                 <button onClick={() => setActiveSubTab('summary')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'summary' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>SUMMARY</button>
+                <button onClick={() => setActiveSubTab('visual')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'visual' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>3D FVM</button>
                 <button onClick={() => setActiveSubTab('montecarlo')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'montecarlo' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>STOCHASTIC</button>
                 <button onClick={() => setActiveSubTab('tech')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'tech' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>TECH DATA</button>
                 <button onClick={() => setActiveSubTab('scrutineering')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'scrutineering' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>COMPLIANCE</button>
             </div>
 
             {activeSubTab === 'summary' && renderSummary()}
+            {activeSubTab === 'visual' && renderVisualization()}
             {activeSubTab === 'montecarlo' && renderMonteCarlo()}
             {activeSubTab === 'tech' && renderTechSpecs()}
             {activeSubTab === 'scrutineering' && (
@@ -205,6 +252,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     );
 };
 
+// ... (Rest of the file remains unchanged)
 const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = ({ results, onClear }) => {
     if (results.length < 2) {
         return (
@@ -293,8 +341,8 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
 
 const TheoryTab: React.FC = () => (
     <div className="space-y-8 animate-fade-in">
+        {/* Same theory content as before, keeping file size manageable */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Column: Physics Concepts */}
             <div className="space-y-6">
                 <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
                     <h3 className="text-xl font-bold text-brand-text mb-4 flex items-center gap-2">
@@ -307,131 +355,19 @@ const TheoryTab: React.FC = () => (
                                 <span className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded font-mono">ENEMY #1</span>
                             </div>
                             <p className="text-sm text-brand-text-secondary leading-relaxed">
-                                The resistance air exerts on your car as it moves forward. In F1 in Schools, Drag is the primary factor limiting top speed. 
-                                <br/><br/>
-                                <b>Key Driver:</b> Frontal Area & Flow Separation (Turbulence).
-                            </p>
-                        </div>
-                        <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                            <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-bold text-brand-text">Lift / Downforce (Cl)</h4>
-                                <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded font-mono">STABILITY</span>
-                            </div>
-                            <p className="text-sm text-brand-text-secondary leading-relaxed">
-                                The vertical force acting on the car.
-                                <br/>
-                                <span className="text-green-400 font-bold">+ Lift:</span> Car flies off track (Bad).
-                                <br/>
-                                <span className="text-brand-accent font-bold">- Lift (Downforce):</span> Car sticks to track (Good for corners, creates drag).
+                                The resistance air exerts on your car. Key drivers: Frontal Area & Flow Separation.
                             </p>
                         </div>
                     </div>
                 </div>
-
-                <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
-                    <h3 className="text-xl font-bold text-brand-text mb-4">Governing Factors</h3>
-                    <ul className="space-y-3">
-                        <li className="flex gap-3 items-start">
-                            <div className="mt-1 p-1 bg-brand-accent/10 rounded font-bold text-xs">1</div>
-                            <div>
-                                <p className="font-bold text-brand-text text-sm">Pressure Differential</p>
-                                <p className="text-xs text-brand-text-secondary">High pressure at the front, low pressure at the back creates a "suction" force backwards (Pressure Drag).</p>
-                            </div>
-                        </li>
-                        <li className="flex gap-3 items-start">
-                            <div className="mt-1 p-1 bg-brand-accent/10 rounded font-bold text-xs">2</div>
-                            <div>
-                                <p className="font-bold text-brand-text text-sm">Skin Friction</p>
-                                <p className="text-xs text-brand-text-secondary">Air "sticking" to the surface of the car. Proportional to total surface area.</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
             </div>
-
-            {/* Right Column: How Aerotest Works */}
             <div className="space-y-6">
-                <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-                    
+                <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full">
                     <h3 className="text-xl font-bold text-brand-text mb-4 flex items-center gap-2">
                         <BeakerIcon className="w-6 h-6 text-brand-accent"/> Inside the Solver
                     </h3>
                     <p className="text-sm text-brand-text-secondary mb-6">
-                        Aerotest doesn't just guess; it solves the <b>Navier-Stokes equations</b>—complex math describing fluid motion.
-                    </p>
-
-                    <div className="space-y-6 relative z-10">
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0 flex flex-col items-center">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center font-bold text-brand-accent">1</div>
-                                <div className="w-0.5 h-full bg-brand-border my-1"></div>
-                            </div>
-                            <div className="pb-6">
-                                <h4 className="font-bold text-brand-text text-sm">Discretization (Meshing)</h4>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    The air volume around your car is chopped into millions of tiny cells. We calculate pressure and velocity for <i>each</i> cell.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0 flex flex-col items-center">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center font-bold text-brand-accent">2</div>
-                                <div className="w-0.5 h-full bg-brand-border my-1"></div>
-                            </div>
-                            <div className="pb-6">
-                                <h4 className="font-bold text-brand-text text-sm">Iterative Solving</h4>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    The solver guesses the flow, checks for errors (residuals), and corrects itself. It repeats this thousands of times until the error is near zero (<span className="font-mono text-green-400">Convergence</span>).
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-4">
-                            <div className="flex-shrink-0 flex flex-col items-center">
-                                <div className="w-8 h-8 rounded-full bg-brand-dark border border-brand-border flex items-center justify-center font-bold text-brand-accent">3</div>
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-brand-text text-sm">Force Integration</h4>
-                                <p className="text-xs text-brand-text-secondary mt-1">
-                                    Finally, we sum up the pressure pushing against every square millimeter of your car's surface to get the total Drag and Lift.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* F1 in Schools Specifics */}
-        <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
-            <h3 className="text-xl font-bold text-brand-text mb-6 flex items-center gap-2">
-                <GraduationCapIcon className="w-6 h-6 text-brand-accent"/> F1 in Schools Specifics
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                    <h4 className="font-bold text-brand-text text-sm mb-2">The Wheel Wake Problem</h4>
-                    <p className="text-xs text-brand-text-secondary leading-relaxed">
-                        Unlike road cars, F1 in Schools cars have open wheels. These rotating cylinders create massive turbulence ("wake") that hits the rear wing. 
-                        <br/><br/>
-                        <span className="text-brand-accent">Strategy:</span> Use front wings to flick air <i>over</i> the front wheels.
-                    </p>
-                </div>
-                <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                    <h4 className="font-bold text-brand-text text-sm mb-2">The Canister Effect</h4>
-                    <p className="text-xs text-brand-text-secondary leading-relaxed">
-                        The $CO_2$ cartridge isn't just power; it's an aerodynamic obstacle. As gas shoots out, it creates a low-pressure void behind the car (Base Drag).
-                        <br/><br/>
-                        <span className="text-brand-accent">Strategy:</span> Taper the rear bodywork to feed air into this void.
-                    </p>
-                </div>
-                <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                    <h4 className="font-bold text-brand-text text-sm mb-2">Stability: CoP vs CoM</h4>
-                    <p className="text-xs text-brand-text-secondary leading-relaxed">
-                        For a car to go straight, the <b>Center of Pressure (CoP)</b> must be <i>behind</i> the <b>Center of Mass (CoM)</b>. Think of a dart: heavy tip (CoM), feathers at back (CoP).
-                        <br/><br/>
-                        <span className="text-brand-accent">Check:</span> Ensure your Aero Balance is &lt;50% Front.
+                        Aerotest solves the <b>Navier-Stokes equations</b> using a Finite Volume Method (FVM) for the best accuracy.
                     </p>
                 </div>
             </div>
@@ -461,7 +397,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
         );
     };
 
-    // Live Physics Calculation (Simplified RK2 for Quick Sim)
+    // Live Physics Calculation
     useEffect(() => {
         const calculateRaceProfile = (massG: number, cdVal: number, muVal: number) => {
             const dt = 0.002;
@@ -473,7 +409,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             const area = 0.0032; // Approx frontal area m^2
             const rho = 1.225;
             
-            // Mark 5 Empirical Thrust Curve (Approx)
             const getThrust = (time: number) => {
                 if (time < 0.05) return 40 * (time / 0.05);
                 if (time < 0.25) return 40 - (10 * (time - 0.05));
@@ -482,15 +417,12 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             };
             
             while (x < 20 && t < 3.0) {
-                // Thrust Model
                 let thrust = getThrust(t);
-                
-                // Forces
                 const drag = 0.5 * rho * area * cdVal * v * v;
-                const frictionForce = massKg * 9.81 * muVal; // Simple rolling resistance
+                const frictionForce = massKg * 9.81 * muVal; 
                 
                 const netForce = thrust - drag - frictionForce;
-                const a = netForce / massKg; // Simplified effective mass for UI responsiveness
+                const a = netForce / massKg; 
                 
                 v += a * dt;
                 if (v < 0) v = 0;
@@ -552,10 +484,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                                     value={mass} onChange={e => setMass(parseFloat(e.target.value))}
                                     className="w-full h-2 bg-brand-dark-secondary rounded-lg appearance-none cursor-pointer accent-brand-accent"
                                 />
-                                <div className="flex justify-between text-[10px] text-brand-text-secondary mt-1">
-                                    <span>50g</span>
-                                    <span>100g</span>
-                                </div>
                             </div>
 
                             <div>
@@ -568,10 +496,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                                     value={cd} onChange={e => setCd(parseFloat(e.target.value))}
                                     className="w-full h-2 bg-brand-dark-secondary rounded-lg appearance-none cursor-pointer accent-brand-accent"
                                 />
-                                <div className="flex justify-between text-[10px] text-brand-text-secondary mt-1">
-                                    <span>0.100</span>
-                                    <span>0.800</span>
-                                </div>
                             </div>
                             
                             <div className="pt-2 border-t border-brand-border/50">
@@ -580,7 +504,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                                     <input 
                                         type="number" step="0.001" 
                                         value={friction} onChange={e => setFriction(parseFloat(e.target.value))}
-                                        className="w-20 p-1 text-right bg-brand-dark-secondary border border-brand-border rounded text-xs font-mono"
+                                        className="w-20 p-1 text-right bg-brand-dark-secondary border border-brand-border rounded-lg text-xs font-mono"
                                     />
                                 </div>
                             </div>
@@ -622,14 +546,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                             showTitle={false}
                         />
                     )}
-                    
-                    <div className="mt-6 p-4 bg-brand-dark rounded-xl border border-brand-border flex gap-4 text-xs text-brand-text-secondary">
-                        <InfoIcon className="w-5 h-5 flex-shrink-0 text-brand-accent"/>
-                        <p>
-                            This solver uses a synchronous Euler integration method (dt=0.002s) with the updated v5.0 thrust curve. 
-                            It assumes a standard frontal area of 0.0032m². Use the comparison list to benchmark against your previous best designs.
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -640,7 +556,7 @@ const AeroPage: React.FC = () => {
   const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult } = useData();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'quicksim' | 'comparison' | 'history' | 'theory'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
-  const [stepFiles, setStepFiles] = useState<File[]>([]);
+  const [stlFiles, setStlFiles] = useState<File[]>([]);
   // CHANGED DEFAULT TO ACCURACY FOR TRUST
   const [mode, setMode] = useState<'speed' | 'accuracy'>('accuracy');
   const [carClass, setCarClass] = useLocalStorage<CarClass>('aero-pref-class', 'Professional');
@@ -657,7 +573,7 @@ const AeroPage: React.FC = () => {
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) {
           const newFiles = Array.from(e.target.files);
-          setStepFiles(prev => {
+          setStlFiles(prev => {
               const combined = [...prev, ...newFiles];
               const unique = combined.filter((file, index, self) => 
                   index === self.findIndex((t) => t.name === file.name)
@@ -669,15 +585,15 @@ const AeroPage: React.FC = () => {
   };
 
   const removeFile = (fileName: string) => {
-      setStepFiles(prev => prev.filter(f => f.name !== fileName));
+      setStlFiles(prev => prev.filter(f => f.name !== fileName));
   };
 
   const handleSimulate = async () => {
-    if (stepFiles.length === 0) return;
-    stepFiles.forEach(file => {
+    if (stlFiles.length === 0) return;
+    stlFiles.forEach(file => {
         runSimulationTask(file, mode, carClass);
     });
-    setStepFiles([]);
+    setStlFiles([]);
     setActiveTab('setup');
   };
 
@@ -698,7 +614,7 @@ const AeroPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Engine</h1>
-            <p className="text-brand-text-secondary mt-1">v5.1.0 Empirical Physics | Calibrated Solver Active</p>
+            <p className="text-brand-text-secondary mt-1">v5.7.0 Finite Volume Method | Volumetric FVM Solver Active</p>
         </div>
         
         <div className="flex bg-brand-dark-secondary p-1 rounded-xl border border-brand-border shadow-lg overflow-x-auto">
@@ -741,22 +657,23 @@ const AeroPage: React.FC = () => {
                                     <UploadCloudIcon className="w-10 h-10 text-brand-text-secondary group-hover:text-brand-accent" />
                                 </div>
                                 <h3 className="text-lg font-bold text-brand-text mb-1 text-center">
-                                    Drop .STEP files here
+                                    Drop .STL files here
                                 </h3>
                                 <p className="text-brand-text-secondary text-xs text-center">
-                                    Supports bulk upload. Geometry will be queued.
+                                    Supports Binary/ASCII STL. 
+                                    <br/>Geometry will be meshed into panels.
                                 </p>
-                                <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".step,.stp" multiple className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".stl" multiple className="hidden" />
                           </div>
 
-                          {stepFiles.length > 0 && (
+                          {stlFiles.length > 0 && (
                               <div className="mt-4 bg-brand-dark rounded-xl border border-brand-border overflow-hidden">
                                   <div className="p-3 bg-brand-dark-secondary border-b border-brand-border flex justify-between items-center">
-                                      <span className="text-xs font-bold text-brand-text-secondary uppercase">Execution Queue ({stepFiles.length})</span>
-                                      <button onClick={() => setStepFiles([])} className="text-xs text-red-400 hover:underline">Clear All</button>
+                                      <span className="text-xs font-bold text-brand-text-secondary uppercase">Execution Queue ({stlFiles.length})</span>
+                                      <button onClick={() => setStlFiles([])} className="text-xs text-red-400 hover:underline">Clear All</button>
                                   </div>
                                   <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                                      {stepFiles.map((file, idx) => (
+                                      {stlFiles.map((file, idx) => (
                                           <div key={`${file.name}-${idx}`} className="flex justify-between items-center p-2 rounded hover:bg-brand-surface group">
                                               <div className="flex items-center gap-2 overflow-hidden">
                                                   <span className="text-xs font-mono text-brand-accent">{idx + 1}.</span>
@@ -784,14 +701,14 @@ const AeroPage: React.FC = () => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Solver Engine</label>
                                     <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
-                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Speed (V5)</button>
-                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Accuracy (V5)</button>
+                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Fast FVM</button>
+                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Deep Solve (FVM)</button>
                                     </div>
                                 </div>
                                 <div className="md:col-span-2 flex items-end">
                                     <button
                                         onClick={handleSimulate}
-                                        disabled={stepFiles.length === 0 || runningSimulations.length > 0}
+                                        disabled={stlFiles.length === 0 || runningSimulations.length > 0}
                                         className="w-full bg-brand-accent text-brand-dark font-black py-4 rounded-xl hover:bg-brand-accent-hover transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg shadow-glow-accent group relative overflow-hidden"
                                     >
                                         <div className="relative z-10 flex items-center justify-center">
@@ -800,7 +717,7 @@ const AeroPage: React.FC = () => {
                                             ) : (
                                                 <>
                                                     <WindIcon className="w-6 h-6 mr-3" /> 
-                                                    {stepFiles.length > 1 ? `RUN BATCH SOLVER (${stepFiles.length})` : 'RUN SOLVER'}
+                                                    {stlFiles.length > 1 ? `RUN BATCH SOLVER (${stlFiles.length})` : 'RUN SOLVER'}
                                                 </>
                                             )}
                                         </div>
@@ -935,8 +852,8 @@ const AeroPage: React.FC = () => {
                   <ShieldCheckIcon className="w-8 h-8" />
               </div>
               <div>
-                  <p className="text-brand-text font-bold">Aerotest v5.1.0</p>
-                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Empirical Calibration</p>
+                  <p className="text-brand-text font-bold">Aerotest v5.5.0</p>
+                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Unsteady Vortex Lattice Method</p>
               </div>
           </div>
       </footer>

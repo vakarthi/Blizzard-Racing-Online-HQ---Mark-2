@@ -190,6 +190,7 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         hasVirtualCargo: true
     },
     solverSettings: {
+        solverType: 'FVM',
         solver: 'Coupled Implicit',
         precision: 'Double',
         spatialDiscretization: {

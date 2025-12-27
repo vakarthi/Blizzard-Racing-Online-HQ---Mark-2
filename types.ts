@@ -54,6 +54,8 @@ export interface DesignParameters {
       featureIdentification: string;
       rotationLog?: string;
   };
+  // Pass the raw geometry buffer for the FVM voxelizer
+  rawBuffer?: ArrayBuffer;
 }
 
 export interface ScrutineeringItem {
@@ -112,14 +114,15 @@ export interface ProbabilisticRaceTimePrediction {
 export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
 
 export interface SolverSettings {
-    solver: 'Coupled Implicit';
-    precision: 'Double';
+    solverType: 'VLM' | 'FVM'; // Distinguish method
+    solver: 'Coupled Implicit' | 'Explicit Relaxation';
+    precision: 'Double' | 'Single';
     spatialDiscretization: {
         gradient: 'Least Squares Cell-Based' | 'Green-Gauss Node Based';
-        momentum: 'Second Order Upwind' | 'Third Order MUSCL';
-        turbulence: 'Second Order Upwind';
+        momentum: 'Second Order Upwind' | 'Third Order MUSCL' | 'Central Difference';
+        turbulence: 'Second Order Upwind' | 'Laminar';
     };
-    turbulenceModel: 'k-ω SST' | 'Spalart-Allmaras' | 'Detached Eddy Simulation (DES)';
+    turbulenceModel: 'k-ω SST' | 'Spalart-Allmaras' | 'Detached Eddy Simulation (DES)' | 'Large Eddy Simulation (LES)';
 }
 
 export interface VerificationCheck {

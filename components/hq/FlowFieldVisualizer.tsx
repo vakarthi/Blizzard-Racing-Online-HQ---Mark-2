@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -38,7 +39,7 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
 
-    // Car Body Geometry
+    // Car Body Geometry (Approximation)
     const carLength = parameters.totalLength / 1000;
     const carWidth = parameters.totalWidth / 1000;
     const carHeight = 45 / 1000; // approx height
@@ -67,7 +68,7 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
         const value = viewMode === 'velocity' ? point[4] : point[3];
         const normalizedValue = (value - minVal) / (maxVal - minVal);
         
-        // Blue (low) to Red (high) colormap
+        // Heatmap: Blue (low) to Red (high)
         color.setHSL(0.7 * (1 - normalizedValue), 1.0, 0.5);
         colors[i * 3] = color.r;
         colors[i * 3 + 1] = color.g;
@@ -109,12 +110,12 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
   }, [flowFieldData, parameters, viewMode]);
 
   return (
-    <div>
-        <div className="absolute top-14 right-8 z-10 bg-brand-dark/50 p-1 rounded-lg border border-brand-border flex">
-             <button onClick={() => setViewMode('velocity')} className={`px-2 py-1 text-xs rounded ${viewMode === 'velocity' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Velocity</button>
-             <button onClick={() => setViewMode('pressure')} className={`px-2 py-1 text-xs rounded ${viewMode === 'pressure' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Pressure</button>
+    <div className="relative">
+        <div className="absolute top-4 right-4 z-10 bg-brand-dark/50 p-1 rounded-lg border border-brand-border flex gap-1">
+             <button onClick={() => setViewMode('velocity')} className={`px-2 py-1 text-xs font-bold rounded transition-colors ${viewMode === 'velocity' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>Velocity</button>
+             <button onClick={() => setViewMode('pressure')} className={`px-2 py-1 text-xs font-bold rounded transition-colors ${viewMode === 'pressure' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>Pressure</button>
         </div>
-        <div ref={mountRef} className="w-full h-[400px] rounded-lg" />
+        <div ref={mountRef} className="w-full h-[400px] rounded-lg bg-brand-dark/20 border border-brand-border/50" />
     </div>
   );
 };
