@@ -111,16 +111,24 @@ export interface ProbabilisticRaceTimePrediction {
     canisterPerformanceDelta?: number; // ms
 }
 
-export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
+export type FlowFieldPoint = [number, number, number, number, number, number]; // [x, y, z, pressure, velocity, density/co2]
+
+export interface SurfaceMapPoint {
+    x: number;
+    y: number;
+    z: number;
+    cp: number; // Coefficient of Pressure
+    sensitivity: number; // Adjoint sensitivity (negative = drag reduction if pushed)
+}
 
 export interface SolverSettings {
-    solverType: 'VLM' | 'FVM'; // Distinguish method
-    solver: 'Coupled Implicit' | 'Explicit Relaxation';
-    precision: 'Double' | 'Single';
+    solverType: 'VLM' | 'FVM' | 'RANS-WebGPU'; // Distinguish method
+    solver: 'Coupled Implicit' | 'Explicit Relaxation' | 'Density-Based Coupled';
+    precision: 'Double' | 'Single' | 'Mixed';
     spatialDiscretization: {
         gradient: 'Least Squares Cell-Based' | 'Green-Gauss Node Based';
         momentum: 'Second Order Upwind' | 'Third Order MUSCL' | 'Central Difference';
-        turbulence: 'Second Order Upwind' | 'Laminar';
+        turbulence: 'Second Order Upwind' | 'Laminar' | 'First Order Upwind';
     };
     turbulenceModel: 'k-ω SST' | 'Spalart-Allmaras' | 'Detached Eddy Simulation (DES)' | 'Large Eddy Simulation (LES)';
 }
@@ -192,6 +200,7 @@ export interface AeroResult {
   
   // 3D Visualization Data
   flowFieldData?: FlowFieldPoint[];
+  surfaceMapData?: SurfaceMapPoint[]; // For Cp and Adjoint maps
   
   // Curve Data
   performanceCurve?: PerformancePoint[];

@@ -93,7 +93,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     
                     <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
                         <p className="font-bold text-brand-text mb-2 text-xs uppercase tracking-widest">Engineer Notes:</p>
-                        "Mark 5 Calibration Active. CO2 Impulse capped at 3.8 Ns (Track Realism). Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
+                        "Mark 5 Calibration Active. CO2 Impulse capped at 2.5 Ns (12N Peak). Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
                     </div>
                 </div>
             </div>
@@ -105,14 +105,18 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
             <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
-                        <EyeIcon className="w-5 h-5 text-brand-accent"/> 3D Finite Volume Field
+                        <EyeIcon className="w-5 h-5 text-brand-accent"/> 3D CFD Solution
                     </h3>
                     {!result.flowFieldData && (
                         <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">No 3D data available for this run</span>
                     )}
                 </div>
                 {result.flowFieldData ? (
-                    <FlowFieldVisualizer flowFieldData={result.flowFieldData} parameters={result.parameters} />
+                    <FlowFieldVisualizer 
+                        flowFieldData={result.flowFieldData} 
+                        surfaceMapData={result.surfaceMapData}
+                        parameters={result.parameters} 
+                    />
                 ) : (
                     <div className="h-[400px] flex items-center justify-center bg-brand-dark/50 rounded-lg border border-brand-border border-dashed">
                         <p className="text-brand-text-secondary text-sm">Run a 'Deep Solve' simulation to generate FVM data.</p>
@@ -122,7 +126,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">FVM Grid Stats</h4>
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">RANS Solver Stats</h4>
                     <div className="space-y-2 text-xs">
                         <div className="flex justify-between">
                             <span>Cell Count:</span>
@@ -131,12 +135,16 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span>Grid Resolution:</span>
-                            <span className="font-mono">{result.tier === 'premium' ? '~3.5mm' : '~8.0mm'}</span>
+                            <span>Turbulence Model:</span>
+                            <span className="font-mono text-purple-400">k-ω SST</span>
                         </div>
                         <div className="flex justify-between">
-                            <span>Solver Scheme:</span>
-                            <span className="font-mono">Semi-Lagrangian Advection</span>
+                            <span>Residuals (Continuity):</span>
+                            <span className="font-mono text-green-400">{result.finalResiduals?.continuity.toExponential(2) || 'N/A'}</span>
+                        </div>
+                         <div className="flex justify-between">
+                            <span>Precision:</span>
+                            <span className="font-mono">Sub-Voxel (8x Sampling)</span>
                         </div>
                     </div>
                 </div>
@@ -407,22 +415,23 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             const points = [];
             const massKg = massG / 1000;
             // Approx frontal area for a standard F1S car (65mm width x 50mm height approx * fill factor)
-            const area = 0.0045; // Increased area to match server physics
+            const area = 0.0055; // Increased area for realism (bluff body)
             const rho = 1.225;
             
             const getThrust = (time: number) => {
-                // Matching the new server-side physics model for 8g CO2 (3.8Ns impulse effective)
+                // Matching the new server-side physics model for 8g CO2 (2.5Ns impulse effective)
                 if (time < 0) return 0;
-                if (time < 0.05) return 16 * (time / 0.05); // Ramp up to 16N
-                if (time < 0.15) return 16 - (4 * (time - 0.05) / 0.1); // Decay to 12N
-                if (time < 0.60) return 12 * (1 - ((time - 0.15) / 0.45)); // Tail decay to 0
+                if (time < 0.05) return 12 * (time / 0.05); // Ramp up to 12N
+                if (time < 0.15) return 12 - (3 * (time - 0.05) / 0.1); // Decay to 9N
+                if (time < 0.50) return 9 * (1 - ((time - 0.15) / 0.35)); // Decay to 0
                 return 0;
             };
             
             while (x < 20 && t < 3.0) {
                 let thrust = getThrust(t);
                 const drag = 0.5 * rho * area * cdVal * v * v;
-                const frictionForce = (massKg * 9.81 * muVal) + (0.08 * (v/20)); // Base + Line Drag 
+                // Add tether drag penalty to friction: 0.1 * (v/20)
+                const frictionForce = (massKg * 9.81 * muVal) + (0.15 * Math.pow((v/15), 2)); 
                 
                 const netForce = thrust - drag - frictionForce;
                 const a = netForce / massKg; 

@@ -216,19 +216,19 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
-        bestRaceTime: 1.035, // Updated for 14-21 m/s physics constraint
-        worstRaceTime: 1.050,
-        averageRaceTime: 1.042, 
+        bestRaceTime: 1.115, // Corrected for realistic 20m sprint time (~19m/s top speed)
+        worstRaceTime: 1.130,
+        averageRaceTime: 1.122, 
         averageDrag: 0.1300,
-        bestFinishLineSpeed: 20.8, // ~74.8 km/h (Strict physics cap)
-        worstFinishLineSpeed: 20.5,
-        averageFinishLineSpeed: 20.7,
-        bestStartSpeed: 16.5,
-        worstStartSpeed: 16.2,
-        averageStartSpeed: 16.3,
-        bestAverageSpeed: 19.3,
-        worstAverageSpeed: 19.0,
-        averageSpeed: 19.19,
+        bestFinishLineSpeed: 19.8, // ~71.2 km/h
+        worstFinishLineSpeed: 19.5,
+        averageFinishLineSpeed: 19.65,
+        bestStartSpeed: 15.5,
+        worstStartSpeed: 15.2,
+        averageStartSpeed: 15.3,
+        bestAverageSpeed: 17.9,
+        worstAverageSpeed: 17.6,
+        averageSpeed: 17.82,
         trustIndex: 100,
         isPhysical: true
     }
