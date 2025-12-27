@@ -12,6 +12,7 @@ import { analyzeStepFile } from '../services/fileAnalysisService';
 import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../services/simulationService';
 import { generateAeroSuggestions, performScrutineering } from '../services/localSimulationService';
 import { generateAvatar } from '../utils/avatar';
+import { useTheme } from './ThemeContext';
 
 // --- Context Types ---
 
@@ -134,6 +135,7 @@ const generateMathNoise = (complexity: number) => {
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [store, updateStore] = useSyncedStore();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { gear5Mode } = useTheme();
   
   // Track user activity for bounty purposes
   const lastActivityRef = useRef<number>(Date.now());
@@ -250,10 +252,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
           if (isActive) {
               updateStore(state => {
-                  // Increase current user's bounty by 100 berries every minute they are "actively" online
+                  const bountyIncrease = gear5Mode ? 100000 : 1000;
+                  // Increase current user's bounty
                   const updatedUsers = state.users.map(u => 
                       u.id === currentUser.id 
-                      ? { ...u, bounty: (u.bounty || 0) + 100 }
+                      ? { ...u, bounty: (u.bounty || 0) + bountyIncrease }
                       : u
                   );
                   return { ...state, users: updatedUsers };
@@ -265,7 +268,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }, 60000); // Run every 60 seconds
 
       return () => clearInterval(bountyInterval);
-  }, [currentUser, updateStore]);
+  }, [currentUser, updateStore, gear5Mode]);
 
 
   // --- Auth Logic ---

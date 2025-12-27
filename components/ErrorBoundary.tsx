@@ -15,7 +15,8 @@ interface State {
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
 class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
+  // Fix: Use class property for state initialization to resolve issues with 'this' context.
+  state: State = {
     hasError: false,
     error: null,
   };
@@ -25,7 +26,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to an error reporting service if needed
     console.error("Uncaught error:", error, errorInfo);
   }
@@ -33,13 +34,13 @@ class ErrorBoundary extends React.Component<Props, State> {
   /**
    * Resets the error state to allow the user to try again.
    */
-  public handleRetry = () => {
+  handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
     window.location.reload();
   };
 
-  public render() {
+  render() {
     // If the state indicates an error, render the fallback UI
     if (this.state.hasError) {
       return (

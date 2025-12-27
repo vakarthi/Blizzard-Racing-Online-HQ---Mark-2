@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AeroResult, CarClass } from '../../types';
 import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon, GraduationCapIcon, CalculatorIcon, ScaleIcon, EyeIcon, DownloadIcon, FileTextIcon, SkullIcon, AnchorIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
@@ -12,7 +13,7 @@ import { THEORETICAL_OPTIMUM } from '../../services/mockData';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 // --- PUNK RECORDS VISUALIZER (Formerly Neural Kernel) ---
-const PunkRecordsPanel: React.FC<{ result: AeroResult }> = ({ result }) => {
+const PunkRecordsPanel: React.FC<{ result: AeroResult; gear5Mode: boolean; }> = ({ result, gear5Mode }) => {
     const ai = result.aiCorrectionModel;
     if (!ai) return null;
 
@@ -51,7 +52,10 @@ const PunkRecordsPanel: React.FC<{ result: AeroResult }> = ({ result }) => {
                 </div>
                 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
-                    <h4 className="text-xs font-bold text-white uppercase mb-2">Future Sight (Kenbunshoku)</h4>
+                    <h4 className={`text-xs font-bold text-white uppercase mb-2 flex items-center gap-2 ${gear5Mode ? 'font-manga text-xl' : ''}`}>
+                        {gear5Mode && <EyeIcon className="w-5 h-5 text-purple-400 animate-pulse" />}
+                        {gear5Mode ? 'Future Sight' : 'Genetic Optimization'}
+                    </h4>
                     <div className="flex justify-between items-end mb-2">
                         <span className="text-sm text-white/60">Current Reality</span>
                         <span className="font-mono text-white">{ai.originalCd.toFixed(5)}</span>
@@ -77,7 +81,7 @@ const MetricCard: React.FC<{ label: string; value: string; subValue?: string; co
     </div>
 );
 
-const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) => {
+const DetailedAnalysisContent: React.FC<{ result: AeroResult; gear5Mode: boolean; }> = ({ result, gear5Mode }) => {
     const [activeSubTab, setActiveSubTab] = useState('summary');
     const pred = result.raceTimePrediction;
     const avgSpeedKmh = pred ? (pred.averageSpeed * 3.6).toFixed(1) : '0.0';
@@ -86,7 +90,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     const renderSummary = () => (
         <div className="space-y-6 animate-fade-in">
             {/* Neural Kernel is highlighted at the top */}
-            <PunkRecordsPanel result={result} />
+            <PunkRecordsPanel result={result} gear5Mode={gear5Mode} />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <MetricCard label="Drag (Cd)" value={result.cd.toFixed(5)} />
@@ -271,7 +275,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-brand-text">Comparison Engine Idle</h3>
-                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'Poneglyphs' history tab to compare their signatures.</p>
+                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'Simulation Archives (Poneglyphs)' history tab to compare their signatures.</p>
                 </div>
             </div>
         );
@@ -556,6 +560,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
 
 const AeroPage: React.FC = () => {
   const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult, punkRecords } = useData();
+  const { gear5Mode } = useTheme();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'quicksim' | 'comparison' | 'history' | 'theory'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
   const [stlFiles, setStlFiles] = useState<File[]>([]);
@@ -808,7 +813,7 @@ const AeroPage: React.FC = () => {
                                     </button>
                                 </div>
                           </div>
-                          <DetailedAnalysisContent result={currentResult} />
+                          <DetailedAnalysisContent result={currentResult} gear5Mode={gear5Mode} />
                       </div>
                   ) : (
                       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
@@ -829,7 +834,7 @@ const AeroPage: React.FC = () => {
           {activeTab === 'history' && (
               <div className="space-y-4 animate-fade-in">
                   <div className="flex justify-between items-end mb-4">
-                      <h2 className="text-2xl font-bold">Poneglyphs (Archives)</h2>
+                      <h2 className="text-2xl font-bold">Simulation Archives (Poneglyphs)</h2>
                       <button onClick={resetAeroResults} className="text-xs font-bold text-red-400 hover:underline flex items-center gap-1"><TrashIcon className="w-3 h-3"/> Wipe History</button>
                   </div>
                   <div className="grid grid-cols-1 gap-2">

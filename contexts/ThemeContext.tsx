@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useKonamiCode } from '../hooks/useKonamiCode';
 
 // --- TYPE DEFINITIONS ---
 
@@ -37,6 +38,8 @@ interface ThemeContextType {
   customThemes: Record<string, Theme>;
   saveCurrentTheme: (newThemeName: string) => void;
   deleteTheme: (themeName: string) => void;
+  gear5Mode: boolean;
+  setGear5Mode: (active: boolean) => void;
 }
 
 // --- THEME PRESETS ---
@@ -114,7 +117,15 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useLocalStorage<Theme>('brh-theme', PRESET_THEMES["Blizzard Dark"]);
   const [customThemes, setCustomThemes] = useLocalStorage<Record<string, Theme>>('brh-custom-themes', {});
+  const [gear5Mode, setGear5Mode] = useState(false);
+  const [locationHash, setLocationHash] = useState(window.location.hash);
 
+  // Easter Egg Trigger
+  useKonamiCode(() => {
+    setGear5Mode(prev => !prev);
+    console.log("JOYBOY HAS RETURNED!");
+  });
+  
   const applyTheme = useCallback((themeToApply: Theme) => {
     const root = document.documentElement;
     Object.entries(themeToApply.colors).forEach(([key, value]) => {
@@ -126,9 +137,38 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     root.style.setProperty('--bg-overlay-opacity', themeToApply.background.overlayOpacity.toString());
   }, []);
   
+  // Apply base theme whenever it changes
   useEffect(() => {
     applyTheme(theme);
   }, [theme, applyTheme]);
+  
+  // Listen to hash changes to make theme context route-aware
+  useEffect(() => {
+    const handleHashChange = () => {
+        setLocationHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+  
+  // Apply special easter egg themes based on route
+  useEffect(() => {
+      const isHq = locationHash.startsWith('#/hq');
+      const body = document.body;
+
+      // Always clean up first
+      body.classList.remove('gear-5-mode', 'dawn-mode');
+
+      if (gear5Mode) {
+          if (isHq) {
+              body.classList.add('gear-5-mode');
+          } else {
+              body.classList.add('dawn-mode');
+          }
+      }
+  }, [gear5Mode, locationHash]);
 
   const allThemes = { ...PRESET_THEMES, ...customThemes };
 
@@ -190,7 +230,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       themes: PRESET_THEMES,
       customThemes,
       saveCurrentTheme,
-      deleteTheme
+      deleteTheme,
+      gear5Mode,
+      setGear5Mode
     }}>
       {children}
     </ThemeContext.Provider>

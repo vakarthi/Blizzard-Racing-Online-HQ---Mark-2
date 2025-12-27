@@ -88,15 +88,18 @@ const AboutPage: React.FC = () => {
 
 // Update Team Page to use Wanted Posters ONLY
 const TeamPage: React.FC = () => {
-    const { users } = useData();
+    const { users, publicPortalContent } = useData();
+    const { team: teamContent } = publicPortalContent;
 
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
+            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{teamContent.title}</h1>
+            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{teamContent.subtitle}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 justify-items-center mt-8">
                 {users.map(member => (
                     <div key={member.id} className="relative w-72 h-[450px] bg-[#F3E5AB] text-[#3e2723] p-5 flex flex-col items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-300 font-display rotate-1 hover:rotate-0 border-2 border-[#3e2723]/10">
                         <div className="absolute top-4 left-0 w-full text-center text-3xl font-black opacity-80 tracking-widest uppercase">
-                            MEMBER
+                            WANTED
                         </div>
                         
                         <div className="mt-12 w-full h-56 bg-gray-300 border-4 border-[#3e2723] overflow-hidden relative shadow-inner">
@@ -105,8 +108,8 @@ const TeamPage: React.FC = () => {
                         
                         <h2 className="text-4xl font-black mt-5 uppercase tracking-tighter w-full text-center truncate px-2">{member.name.split(' ')[0]}</h2>
                         
-                        <div className="w-full flex items-center justify-between px-4 mt-auto mb-3 font-mono font-bold text-xl border-t-4 border-b-4 border-[#3e2723] py-2 bg-[#3e2723]/5">
-                            <span className="text-[10px] self-end mb-1 opacity-70 tracking-widest font-sans font-bold">VALUE</span>
+                        <div className="w-full flex items-center justify-center gap-2 px-4 mt-auto mb-3 font-mono font-bold text-xl border-t-4 border-b-4 border-[#3e2723] py-2 bg-[#3e2723]/5">
+                            <span className="text-yellow-900 font-bold text-2xl">฿</span>
                             <span className="tracking-tighter text-2xl">{(member.bounty || 0).toLocaleString()}</span>
                         </div>
                         <p className="text-[10px] font-bold text-[#3e2723]/70 uppercase tracking-[0.3em] text-center w-full">{member.role}</p>

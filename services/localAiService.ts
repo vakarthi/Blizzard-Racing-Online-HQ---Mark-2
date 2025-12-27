@@ -19,6 +19,9 @@ const KNOWLEDGE_BASE: Record<string, string> = {
     'vegapunk': 'The world\'s smartest scientist. Our AI strives to emulate his (or their) genius. Beware of York-like bugs.',
     'mother flame': 'An infinite energy source... or perhaps just a very efficient battery setup for our F1 car.',
     'void century': 'The 100-year gap in history. Just like the data we lost when the server crashed last month. Do not speak of it.',
+    'haki': 'A mysterious power that allows the user to exert their own spiritual energy. There are three types: Armament, Observation, and the rare Conqueror\'s Haki.',
+    'devil fruit': 'Mystical fruits that grant the eater a superpower, at the cost of their ability to swim. Our simulations are like Devil Fruits for cars, but without the swimming penalty.',
+    'poneglyph': 'Massive, indestructible cubes of stone with history inscribed on them in an ancient language. Our simulation archives are the Poneglyphs of our team\'s history.',
 };
 
 // --- Responder Interface and List ---
@@ -33,7 +36,7 @@ const RESPONDERS: Responder[] = [
         regex: /^(hello|hi|hey|greetings)/i,
         handler: (_, __, isEggheadMode) => {
             if (isEggheadMode) {
-                return "Puru puru puru... Connection established. This is Satellite Punk-01 Shaka. What logic do you require?";
+                return "Connection established to Punk Records. This is AI Core Shaka. State your query.";
             }
             const greetings = ["Hello! How can I assist with the Blizzard Racing data today?", "Hi there! What can I help you analyze?", "Greetings! Icicle at your service."];
             return greetings[Math.floor(Math.random() * greetings.length)];
@@ -46,9 +49,9 @@ const RESPONDERS: Responder[] = [
 
     // --- Knowledge Base ---
     {
-        regex: /(what is|what's|define|explain|who is) (aerodynamics|downforce|chassis|drag|lift|cfd|boundary layer|one piece|egghead|vegapunk|mother flame|void century)/i,
+        regex: /(what is|what's|define|explain|who is) (aerodynamics|downforce|chassis|drag|lift|cfd|boundary layer|one piece|egghead|vegapunk|mother flame|void century|haki|devil fruit|poneglyph)/i,
         handler: (match) => {
-            const term = match[2].toLowerCase();
+            const term = match[2].toLowerCase().replace(/\s/g, '');
             return KNOWLEDGE_BASE[term] || `I don't have a definition for "${term}" in the Punk Records archives.`;
         }
     },
@@ -124,7 +127,7 @@ export const queryLocalAI = (query: string, data: DataContextType, isEggheadMode
 
     // --- Fallback Response ---
     if (isEggheadMode) {
-        return "Puru puru... My logic banks do not compute this query. Try asking about 'Aerodynamics', 'Best Car', or check the 'Protocols'.";
+        return "My logic banks do not compute this query. Try asking about 'Haki', 'Best Car', or check the 'Protocols'.";
     }
     return "I'm sorry, I can't answer that. You can ask me about protocols, define terms, or ask about team data.";
 };

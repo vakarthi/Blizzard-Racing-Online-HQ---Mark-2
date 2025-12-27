@@ -13,10 +13,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppProvider>
-      <ThemeProvider>
+    <ThemeProvider>
+      <AppProvider>
         <App />
-      </ThemeProvider>
-    </AppProvider>
+      </AppProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

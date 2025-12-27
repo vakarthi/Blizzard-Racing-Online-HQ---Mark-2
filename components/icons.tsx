@@ -38,16 +38,13 @@ export const AnchorIcon = (props: IconProps) => (
     </svg>
 );
 
-// Snail Icon for Den Den Mushi
-export const SnailIcon = (props: IconProps) => (
+// BrainCircuit Icon for AI Core
+export const BrainCircuitIcon = (props: IconProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M2 13a6 6 0 1 0 12 0 4 4 0 1 0-8 0 2 2 0 0 0 4 0"/>
-        <circle cx="10" cy="13" r="8"/>
-        <path d="M2 21h16c1.1 0 2-.9 2-2v-2a2 2 0 0 0-2-2H2v6Z"/>
-        <path d="m18 15 2-2"/>
-        <path d="m20 19 2-2"/>
+        <path d="M12 5a3 3 0 1 0-5.993.296M12 5a3 3 0 1 1 5.993.296M15 13a3 3 0 1 0-5.993.296M15 13a3 3 0 1 1 5.993.296M9 13a3 3 0 1 0-5.993.296M9 13a3 3 0 1 1 5.993.296M12 18a3 3 0 1 0-5.993.296M12 18a3 3 0 1 1 5.993.296M12 5.296V5m0 0V3m0 2.296a3 3 0 0 0 0 5.408M12 10.704V13m0 0v-2.296m0 5.408a3 3 0 0 0 0-5.408M12 18.296V18m0 0V16m-3-4.704a3 3 0 0 0-2.993-2.993M6.007 8.003A3 3 0 0 0 9 10.704m-2.993.292V13m-.004-2.296a3 3 0 0 0-2.993 2.993m5.99-.292a3 3 0 0 0-2.994-2.993m2.994 2.993V13m0 0a3 3 0 0 1-2.994 2.993M9 16.007a3 3 0 0 1-2.994-2.994m2.994 2.994V18m0-2.007a3 3 0 0 0 2.993 2.994M12 16.007a3 3 0 0 0-2.993 2.994M12 18.296V18m2.993-.296a3 3 0 0 0 2.994-2.993m-2.994 2.993V16m2.994-.007a3 3 0 0 0 2.994-2.993M15 13.296V13m2.993-.296a3 3 0 0 1 2.994-2.993m-2.994 2.993V10.704m2.994.292a3 3 0 0 1 2.994 2.993m-5.99-2.986a3 3 0 0 1 2.994-2.994M15 8.007A3 3 0 0 1 18 5.013m-2.993.292A3 3 0 0 1 15 8.007M12 5.296A3 3 0 0 1 15 8.007"/>
     </svg>
 );
+
 
 export const GraduationCapIcon = (props: IconProps) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>

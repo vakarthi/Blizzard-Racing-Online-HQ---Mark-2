@@ -67,7 +67,7 @@ const LoadingSpinner: React.FC = () => {
             <div className="flex items-center justify-center gap-2 mt-2">
                 <div className="h-[2px] w-8 bg-white/50"></div>
                 <p className="text-[10px] font-mono text-white/80 tracking-[0.3em] uppercase">
-                    Liberation Engine
+                    Drums of Liberation
                 </p>
                 <div className="h-[2px] w-8 bg-white/50"></div>
             </div>

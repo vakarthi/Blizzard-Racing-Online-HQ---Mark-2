@@ -284,16 +284,28 @@ const _runEmpiricalSim = async (
         let v = 0;
         let x = 0;
         const dt = 0.001; // 1ms time step
-        const mass = (massGrams / 1000) * massFactor;
         
+        // MARK 2 PHYSICS CALIBRATION: "The 1-Second Adjuster"
+        // Previous models resulted in unphysically fast times (0.4s) due to missing inertial mass and ideal thrust.
+        // F1 in Schools cars are ~55g empty, but carry ~32g CO2 + Rotational Inertia of wheels.
+        const CARTRIDGE_MASS_KG = 0.032;
+        const ROTATIONAL_INERTIA = 1.1; // 10% adder for wheel inertia
+        const effectiveMass = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
+
+        // Thrust Calibration:
+        // Theoretical max thrust (15N) produces sub-0.5s times.
+        // We apply a calibration factor to account for nozzle losses, real-world net force, and line drag.
+        // Scaling down to ~0.25 effective thrust yields ~1.3s-1.4s times, aligning with the user request.
+        const THRUST_CALIBRATION = 0.25;
+
         const getThrust = (time: number) => {
             if (time < 0) return 0;
             // Ramp up
-            if (time < 0.05) return 15 * (time / 0.05) * thrustFactor;
+            if (time < 0.05) return 15 * (time / 0.05) * thrustFactor * THRUST_CALIBRATION;
             // Peak plateau
-            if (time < 0.15) return 15 * thrustFactor;
+            if (time < 0.15) return 15 * thrustFactor * THRUST_CALIBRATION;
             // Decay curve
-            if (time < 0.5) return Math.max(0, 15 - (30 * (time - 0.15))) * thrustFactor;
+            if (time < 0.5) return Math.max(0, 15 - (30 * (time - 0.15))) * thrustFactor * THRUST_CALIBRATION;
             return 0; // Empty
         };
 
@@ -307,11 +319,11 @@ const _runEmpiricalSim = async (
             // F_f = mu * N. 
             // Normal Force N = Weight - Lift. (If Lift is negative (downforce), N increases).
             // N must be >= 0.
-            const normalForce = Math.max(0, (mass * 9.81) - aeroLift); 
+            const normalForce = Math.max(0, (effectiveMass * 9.81) - aeroLift); 
             const friction = normalForce * frictionMu;
             
             const netForce = thrust - aeroDrag - friction;
-            const acceleration = netForce / mass;
+            const acceleration = netForce / effectiveMass;
             
             v += acceleration * dt;
             if (v < 0) v = 0;
