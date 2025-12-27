@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BeakerIcon, GraduationCapIcon, WindIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, BarChartIcon, CommandIcon, AlertTriangleIcon, FileTextIcon, InfoIcon, EyeIcon, LayersIcon, DownloadIcon, MenuIcon } from '../../components/icons';
+import { BeakerIcon, GraduationCapIcon, WindIcon, BookOpenIcon, SparklesIcon, ShieldCheckIcon, BarChartIcon, CommandIcon, AlertTriangleIcon, FileTextIcon, InfoIcon, EyeIcon, LayersIcon, DownloadIcon, MenuIcon, LightbulbIcon, CheckCircleIcon } from '../../components/icons';
 
 const ModuleHeader: React.FC<{ title: string; subtitle: string; icon: React.ReactNode }> = ({ title, subtitle, icon }) => (
     <div className="flex items-center justify-between border-b border-brand-border pb-4 mb-6">
@@ -14,7 +14,7 @@ const ModuleHeader: React.FC<{ title: string; subtitle: string; icon: React.Reac
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className="mb-8">
-        <h3 className="text-lg font-bold text-brand-accent mb-4">{title}</h3>
+        <h3 className="text-lg font-bold text-brand-accent mb-4 uppercase tracking-wider text-xs">{title}</h3>
         {children}
     </div>
 );
@@ -111,29 +111,107 @@ const PhysicsModule: React.FC = () => (
                 </div>
             </div>
         </Section>
+    </div>
+);
 
-        <Section title="Advanced Concepts">
-            <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border space-y-6">
-                <div>
-                    <h4 className="font-bold text-brand-text mb-2">The Boundary Layer</h4>
-                    <p className="text-sm text-brand-text-secondary leading-relaxed">
-                        Air doesn't slip over a surface; the molecules touching the car have 0 velocity. The layer from 0 velocity to free-stream velocity is the Boundary Layer.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div className="bg-brand-dark p-4 rounded-lg border-l-4 border-blue-400">
-                            <span className="font-bold text-blue-400 block mb-1">Laminar Flow</span>
-                            <span className="text-xs text-brand-text-secondary">Smooth, parallel layers. Very low friction, but fragile. Separates easily. Ideal for front wings and nose cones.</span>
-                        </div>
-                        <div className="bg-brand-dark p-4 rounded-lg border-l-4 border-red-400">
-                            <span className="font-bold text-red-400 block mb-1">Turbulent Flow</span>
-                            <span className="text-xs text-brand-text-secondary">Chaotic, mixing layers. Higher friction, but sticks to the surface better (resists separation). Sometimes we trip flow to turbulent on purpose to prevent stalling.</span>
-                        </div>
-                    </div>
+const AdvancedAeroModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="The Mechanics of Speed" subtitle="Module MECH-404" icon={<SparklesIcon className="w-6 h-6 text-brand-accent" />} />
+        
+        <div className="p-6 bg-brand-dark-secondary rounded-xl border border-brand-border mb-8">
+            <h3 className="text-xl font-bold text-brand-text mb-2">The Master Equation Breakdown</h3>
+            <div className="flex justify-center my-6">
+                <div className="px-8 py-4 bg-brand-dark rounded-lg border-2 border-brand-accent shadow-[0_0_20px_rgba(14,165,233,0.1)]">
+                    <span className="font-mono text-2xl font-bold text-white">F<span className="text-xs align-sub">d</span> = ½ · ρ · v² · C<span className="text-xs align-sub">d</span> · A</span>
                 </div>
-                <div className="border-t border-brand-border pt-6">
-                    <h4 className="font-bold text-brand-text mb-2">The Coanda Effect</h4>
-                    <p className="text-sm text-brand-text-secondary leading-relaxed">
-                        A fluid jet tends to stay attached to a convex surface. We use this on the sidepods to "bend" airflow around the body and direct it towards the rear wheels or into the low-pressure wake of the canister housing.
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-center">
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="text-brand-accent font-bold">ρ (Rho)</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase">Air Density</div>
+                    <div className="text-xs mt-1">1.225 kg/m³</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="text-brand-accent font-bold">v² (Velocity)</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase">Speed Squared</div>
+                    <div className="text-xs mt-1">Exponential Impact</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="text-brand-accent font-bold">Cd</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase">Drag Coeff.</div>
+                    <div className="text-xs mt-1">Shape Efficiency</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="text-brand-accent font-bold">A (Area)</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase">Reference Area</div>
+                    <div className="text-xs mt-1">Frontal Size</div>
+                </div>
+                <div className="p-3 bg-brand-dark rounded border border-brand-border">
+                    <div className="text-brand-accent font-bold">½</div>
+                    <div className="text-[10px] text-brand-text-secondary uppercase">Constant</div>
+                    <div className="text-xs mt-1">Maths.</div>
+                </div>
+            </div>
+        </div>
+
+        <Section title="Factors Influencing Downforce (Cl)">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-2">1. Angle of Attack (AoA)</h4>
+                    <p className="text-sm text-brand-text-secondary">
+                        The angle at which the wing meets the air. 
+                        <br/><br/>
+                        <span className="text-green-400">↑ AoA = ↑ Downforce</span>
+                        <br/>
+                        <span className="text-red-400">↑ AoA = ↑ Drag</span>
+                        <br/><br/>
+                        <b>Limit:</b> If AoA exceeds ~15-20°, the air can no longer stick to the surface. It separates, causing a <b>STALL</b>. Downforce disappears, Drag skyrockets.
+                    </p>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-2">2. Camber (Curvature)</h4>
+                    <p className="text-sm text-brand-text-secondary">
+                        The curvature of the airfoil. A more curved wing accelerates air faster underneath, creating lower pressure (suction).
+                        <br/><br/>
+                        Highly cambered wings can generate more downforce at lower speeds but are more prone to separation at the trailing edge.
+                    </p>
+                </div>
+                <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border">
+                    <h4 className="font-bold text-brand-text mb-2">3. Ground Effect</h4>
+                    <p className="text-sm text-brand-text-secondary">
+                        As a wing (or chassis floor) gets closer to the ground, the air is squeezed through a Venturi tunnel.
+                        <br/><br/>
+                        <span className="text-blue-400 font-bold">Rule of Thumb:</span> Reducing ride height usually increases downforce for "free" (minimal drag penalty) until you hit the track surface.
+                    </p>
+                </div>
+            </div>
+        </Section>
+
+        <Section title="Advanced Drag Management">
+            <div className="bg-brand-dark p-6 rounded-xl border border-brand-border space-y-6">
+                <div>
+                    <h4 className="flex items-center gap-2 font-bold text-brand-text mb-2">
+                        <LayersIcon className="w-4 h-4 text-brand-accent"/>
+                        The Aspect Ratio Trade-off
+                    </h4>
+                    <p className="text-sm text-brand-text-secondary mb-2">
+                        Aspect Ratio (AR) = Span² / Area. 
+                    </p>
+                    <ul className="list-disc list-inside text-sm text-brand-text-secondary space-y-1">
+                        <li><b>High AR (Gliders):</b> Very efficient, low induced drag. Good for efficiency.</li>
+                        <li><b>Low AR (Fighter Jets / F1):</b> Large chord, short span. Creates strong vortex lift (good for high AoA) but creates significant induced drag.</li>
+                        <li><b>F1S Tip:</b> Keep wings as wide (high span) as the rules allow to maximize efficiency (L/D).</li>
+                    </ul>
+                </div>
+                <div className="border-t border-brand-border pt-4">
+                    <h4 className="flex items-center gap-2 font-bold text-brand-text mb-2">
+                        <WindIcon className="w-4 h-4 text-brand-accent"/>
+                        Surface Roughness (k)
+                    </h4>
+                    <p className="text-sm text-brand-text-secondary">
+                        While simulation often assumes smooth walls, reality has 3D print lines. Rough surfaces trip the boundary layer into turbulence earlier.
+                        <br/>
+                        <b>Aerotest Simulation:</b> We assume a standard roughness value ($k_s$) equivalent to 600-grit sanded primer. If you leave raw 3D print lines, your <b>actual drag will be 15-20% higher</b> than the simulation predicts.
                     </p>
                 </div>
             </div>
@@ -219,6 +297,79 @@ const CFDModule: React.FC = () => (
                 </div>
             </div>
         </Section>
+    </div>
+);
+
+const AerotestManifestoModule: React.FC = () => (
+    <div className="space-y-8 animate-fade-in">
+        <ModuleHeader title="The Aerotest Advantage" subtitle="Module AERO-X" icon={<ShieldCheckIcon className="w-6 h-6 text-brand-accent" />} />
+
+        <div className="bg-gradient-to-br from-brand-dark-secondary to-brand-dark p-8 rounded-2xl border border-brand-accent/20 shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-10">
+                <SparklesIcon className="w-32 h-32 text-brand-accent" />
+            </div>
+            <h3 className="text-2xl font-black text-brand-text mb-4 italic">Why did we build our own solver?</h3>
+            <p className="text-brand-text-secondary leading-relaxed max-w-2xl mb-6">
+                Industry standards like ANSYS Fluent and Siemens Star-CCM+ are incredible tools, but they are generalists. They are designed to simulate everything from jet engines to blood flow. They require PhD-level setup, hours of mesh cleaning, and huge computing power.
+                <br/><br/>
+                <b>Aerotest is different.</b> It is a specialist. It knows it is simulating an F1 in Schools car.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-black/30 p-4 rounded-xl border border-white/10">
+                    <h4 className="text-red-400 font-bold mb-2">Industry Standard (Old Way)</h4>
+                    <ul className="text-xs text-brand-text-secondary space-y-2">
+                        <li>❌ Requires "Watertight" Geometry (Hours of CAD fix)</li>
+                        <li>❌ Manual Meshing (Tetra/Poly/Hex decisions)</li>
+                        <li>❌ Slow Convergence (Hours/Days)</li>
+                        <li>❌ Generic Physics (Doesn't know about CO2 thrust)</li>
+                    </ul>
+                </div>
+                <div className="bg-brand-accent/10 p-4 rounded-xl border border-brand-accent/30">
+                    <h4 className="text-green-400 font-bold mb-2">Aerotest Mark 3 (Egghead Way)</h4>
+                    <ul className="text-xs text-brand-text space-y-2">
+                        <li>✅ <b>Immersed Boundary Voxelization:</b> Ignores holes/gaps.</li>
+                        <li>✅ <b>Automated Gridding:</b> Instant Cartesian mesh.</li>
+                        <li>✅ <b>Hybrid Solver:</b> Inviscid Pressure + Viscous Corrections.</li>
+                        <li>✅ <b>Context Aware:</b> Integrated Physics Engine (Thrust/Friction/Mass).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <Section title="The Hybrid-AI Architecture">
+            <div className="flex gap-6 items-start">
+                <div className="hidden md:block w-32 shrink-0 text-center">
+                    <div className="w-24 h-24 bg-brand-dark rounded-full border-4 border-brand-accent/20 flex items-center justify-center mx-auto mb-2 relative">
+                        <div className="absolute inset-0 rounded-full border-t-4 border-brand-accent animate-spin"></div>
+                        <span className="font-black text-2xl text-brand-accent">AI</span>
+                    </div>
+                    <span className="text-xs font-bold text-brand-text-secondary uppercase">Neural Kernel</span>
+                </div>
+                <div>
+                    <h4 className="text-lg font-bold text-brand-text mb-2">Punk Records (The Secondary Lobe)</h4>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed mb-4">
+                        Aerotest doesn't just run math; it <b>remembers</b>. We have trained a neural network on thousands of previous race results and wind tunnel data points.
+                    </p>
+                    <p className="text-sm text-brand-text-secondary leading-relaxed">
+                        1. <b>CFD Step:</b> The Voxel solver calculates the raw pressure field and ideal $C_d$.
+                        <br/>
+                        2. <b>Correction Step:</b> The Neural Kernel analyzes the geometry features (wheel proximity, wing angles) and applies a "Realism Factor" derived from historical data.
+                        <br/>
+                        3. <b>Result:</b> A drag number that is closer to the <i>track reality</i> than a pure CFD simulation which assumes perfect conditions.
+                    </p>
+                </div>
+            </div>
+        </Section>
+
+        <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex gap-4">
+            <LightbulbIcon className="w-6 h-6 text-yellow-400 shrink-0" />
+            <div>
+                <h4 className="font-bold text-yellow-400 text-sm uppercase mb-1">Portfolio Gold</h4>
+                <p className="text-xs text-yellow-200/80">
+                    Use this section in your Engineering Portfolio! Judges love to see that you understand the <b>limitations of your tools</b> and why you chose a specific workflow. Mentioning "Immersed Boundary Voxelization" and "Hybrid Neural Correction" shows innovation.
+                </p>
+            </div>
+        </div>
     </div>
 );
 
@@ -328,7 +479,7 @@ const ReferenceModule: React.FC = () => (
 );
 
 const AeroEducationPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'physics' | 'cfd' | 'f1s' | 'reference'>('physics');
+    const [activeTab, setActiveTab] = useState<'physics' | 'mechanics' | 'cfd' | 'manifesto' | 'f1s' | 'reference'>('physics');
 
     return (
         <div className="animate-fade-in max-w-6xl mx-auto pb-20 flex flex-col h-full">
@@ -351,8 +502,14 @@ const AeroEducationPage: React.FC = () => {
                         <button onClick={() => setActiveTab('physics')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'physics' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
                             <WindIcon className="w-5 h-5" /> Fundamentals
                         </button>
+                        <button onClick={() => setActiveTab('mechanics')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'mechanics' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <SparklesIcon className="w-5 h-5" /> Advanced Aero
+                        </button>
                         <button onClick={() => setActiveTab('cfd')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'cfd' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
                             <BeakerIcon className="w-5 h-5" /> CFD Internals
+                        </button>
+                        <button onClick={() => setActiveTab('manifesto')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'manifesto' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
+                            <ShieldCheckIcon className="w-5 h-5" /> Why Aerotest?
                         </button>
                         <button onClick={() => setActiveTab('f1s')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'f1s' ? 'bg-brand-accent text-brand-dark font-bold shadow-lg' : 'text-brand-text-secondary hover:bg-brand-dark-secondary'}`}>
                             <TrophyIcon className="w-5 h-5" /> F1S Specifics
@@ -364,7 +521,7 @@ const AeroEducationPage: React.FC = () => {
                         <div className="mt-8 p-4 bg-brand-dark-secondary rounded-xl border border-brand-border">
                             <h4 className="text-xs font-bold text-brand-text uppercase mb-2">Pro Tip</h4>
                             <p className="text-xs text-brand-text-secondary leading-relaxed">
-                                Use concepts from the <b>Fundamentals</b> and <b>F1S Specifics</b> modules to justify your design decisions in your Engineering Portfolio. Judges look for <span className="text-brand-accent">"Iterative Design based on Data."</span>
+                                Use concepts from the <b>Advanced Aero</b> and <b>Aerotest Advantage</b> modules to justify your design decisions in your Engineering Portfolio. Judges look for <span className="text-brand-accent">"Iterative Design based on Data."</span>
                             </p>
                         </div>
                     </div>
@@ -374,7 +531,9 @@ const AeroEducationPage: React.FC = () => {
                 <main className="flex-1 min-w-0">
                     <div className="bg-brand-surface/5 p-1 rounded-2xl"> {/* Subtle container */}
                         {activeTab === 'physics' && <PhysicsModule />}
+                        {activeTab === 'mechanics' && <AdvancedAeroModule />}
                         {activeTab === 'cfd' && <CFDModule />}
+                        {activeTab === 'manifesto' && <AerotestManifestoModule />}
                         {activeTab === 'f1s' && <F1SModule />}
                         {activeTab === 'reference' && <ReferenceModule />}
                     </div>

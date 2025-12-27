@@ -19,6 +19,15 @@ export interface User {
   bounty: number;
 }
 
+export interface Session {
+    id: string;
+    userId: string; // ID of logged in user or 'guest'
+    userName: string;
+    userAgent: string;
+    lastActive: string;
+    deviceType: 'desktop' | 'mobile' | 'tablet';
+}
+
 export enum TaskStatus {
   ToDo = 'To Do',
   InProgress = 'In Progress',

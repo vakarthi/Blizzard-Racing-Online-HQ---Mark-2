@@ -1,41 +1,47 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const useKonamiCode = (action: () => void) => {
-  const [input, setInput] = useState<string[]>([]);
-  const sequence = [
-    'ArrowUp',
-    'ArrowUp',
-    'ArrowDown',
-    'ArrowDown',
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowLeft',
-    'ArrowRight',
-    'b',
-    'a',
-  ];
+  // Use refs to keep track of input and action without triggering re-renders or effect re-runs
+  const inputRef = useRef<string[]>([]);
+  const actionRef = useRef(action);
+
+  // Update the action ref whenever the passed action changes
+  useEffect(() => {
+    actionRef.current = action;
+  }, [action]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const newItem = e.key;
-      const newInput = [...input, newItem];
+    const sequence = [
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'b',
+      'a',
+    ];
 
-      // Keep only the last n keys where n is the sequence length
-      if (newInput.length > sequence.length) {
-        newInput.shift();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Add the new key to the buffer
+      inputRef.current.push(e.key);
+
+      // Maintain the buffer size equal to the sequence length (sliding window)
+      if (inputRef.current.length > sequence.length) {
+        inputRef.current.shift();
       }
 
-      setInput(newInput);
-
-      // Check if the sequence matches
-      if (JSON.stringify(newInput) === JSON.stringify(sequence)) {
-        action();
-        setInput([]); // Reset
+      // Check for a match
+      if (JSON.stringify(inputRef.current) === JSON.stringify(sequence)) {
+        actionRef.current();
+        inputRef.current = []; // Reset buffer after successful activation
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [input, action]); // Removed sequence from dep array to avoid re-bind
+  }, []); // Empty dependency array ensures listener is attached only once
 };

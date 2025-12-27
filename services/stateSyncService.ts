@@ -1,7 +1,7 @@
 
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
-  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState
+  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState, Session
 } from '../types';
 import {
   MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS,
@@ -29,11 +29,15 @@ export interface AppStore {
   teamLogoUrl: string;
   simulationRunCount: number;
   punkRecords: PunkRecordsState; 
-  syncId?: string; // New: Track the connected cloud blob ID
+  syncId?: string; // Track the connected cloud blob ID
+  activeSessions: Session[]; // Track connected devices
 }
 
 const STORAGE_KEY = 'brh-synced-store';
 const SYNC_API_URL = 'https://jsonblob.com/api/jsonBlob';
+
+// Generate a random session ID for this tab/window
+export const SESSION_ID = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
@@ -69,7 +73,8 @@ const getInitialState = (): AppStore => {
             currentMasterFormula: 'F_d = \\int (\\rho v^2) + \\nabla \\cdot \\sigma + \\sum_{i=0}^{\\infty} \\epsilon_i',
             complexityScore: 100, 
             accuracyRating: 60.0 
-        }
+        },
+        activeSessions: []
     };
 
     try {
@@ -177,6 +182,36 @@ const pushToCloud = async (newState: AppStore) => {
         isSyncing = false;
     }
 };
+
+// 4. Session Heartbeat
+export const updateSessionHeartbeat = (user: User | null) => {
+    const now = new Date().toISOString();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    const mySession: Session = {
+        id: SESSION_ID,
+        userId: user ? user.id : 'guest',
+        userName: user ? user.name : 'Guest Unit',
+        userAgent: navigator.userAgent,
+        lastActive: now,
+        deviceType: isMobile ? 'mobile' : 'desktop'
+    };
+
+    // Use updateStore to ensure it syncs
+    stateSyncService.updateStore((currentStore) => {
+        // Filter out stale sessions (> 2 minutes old)
+        const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        const otherSessions = (currentStore.activeSessions || []).filter(s => 
+            s.id !== SESSION_ID && s.lastActive > activeThreshold
+        );
+        
+        return {
+            ...currentStore,
+            activeSessions: [...otherSessions, mySession]
+        };
+    });
+};
+
 
 // --- STORAGE & EVENT LISTENERS ---
 

@@ -1,12 +1,12 @@
 
 import React, { createContext, useContext, ReactNode, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSyncedStore } from '../hooks/useSyncedStore';
-import { AppStore } from '../services/stateSyncService';
+import { AppStore, updateSessionHeartbeat, SESSION_ID } from '../services/stateSyncService';
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
   DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent,
   LoginRecord, Inquiry, BackgroundTask, UserRole, DesignParameters, CarClass,
-  ContentVersion, TaskStatus, SponsorTier, DiscussionPost, PunkRecordsState
+  ContentVersion, TaskStatus, SponsorTier, DiscussionPost, PunkRecordsState, Session
 } from '../types';
 import { analyzeStepFile } from '../services/fileAnalysisService';
 import { runAerotestCFDSimulation, runAerotestPremiumCFDSimulation } from '../services/simulationService';
@@ -42,6 +42,9 @@ export interface DataContextType {
   inquiries: Inquiry[];
   backgroundTasks: BackgroundTask[];
   punkRecords: PunkRecordsState; // Exposed to UI
+  activeSessions: Session[]; // Exposed to UI
+  currentSessionId: string; // To identify "This Device"
+  syncId?: string;
   
   // Methods
   setUsers: (update: (users: User[]) => User[]) => void; // Helper for Manager Panel
@@ -135,7 +138,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Track user activity for bounty purposes
   const lastActivityRef = useRef<number>(Date.now());
 
-  // --- ACTIVITY TRACKING (For Bounties) ---
+  // --- HEARTBEAT & ACTIVITY TRACKING ---
+  useEffect(() => {
+      // Immediate update on load/login change
+      updateSessionHeartbeat(currentUser);
+
+      const interval = setInterval(() => {
+          updateSessionHeartbeat(currentUser);
+      }, 30000); // 30 seconds heartbeat
+
+      return () => clearInterval(interval);
+  }, [currentUser]);
+
   useEffect(() => {
       const handleUserActivity = () => {
           // Throttle updates slightly to avoid thrashing
@@ -647,6 +661,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       inquiries: store.inquiries,
       backgroundTasks: store.backgroundTasks,
       punkRecords: store.punkRecords,
+      activeSessions: store.activeSessions || [], // Ensure array
+      currentSessionId: SESSION_ID,
+      syncId: store.syncId,
       setUsers,
       addUser,
       updateUser,

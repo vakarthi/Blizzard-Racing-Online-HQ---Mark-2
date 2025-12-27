@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth, useData } from '../../contexts/AppContext';
 import { useTheme, ThemeColors } from '../../contexts/ThemeContext';
-import { UserCircleIcon, PaletteIcon, SaveIcon, TrashIcon, LinkIcon, UploadIcon, KeyIcon } from '../../components/icons';
+import { UserCircleIcon, PaletteIcon, SaveIcon, TrashIcon, LinkIcon, UploadIcon, KeyIcon, MonitorIcon, SmartphoneIcon } from '../../components/icons';
 import { generateAvatar } from '../../utils/avatar';
 import { registerBiometrics, bufferToB64Url } from '../../utils/biometrics';
 
@@ -254,7 +254,7 @@ const AppearanceSettings: React.FC = () => {
 
 const SecuritySettings: React.FC = () => {
     const { user, getBiometricConfig, setBiometricConfig, clearBiometricConfig } = useAuth();
-    const { users, syncId } = useData(); // Note: syncId might need to be exposed from useData if we update AppContext
+    const { activeSessions, currentSessionId } = useData();
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const biometricConfig = getBiometricConfig();
@@ -317,7 +317,7 @@ const SecuritySettings: React.FC = () => {
             );
         }
 
-        const otherUser = users.find(u => u.id === biometricConfig.userId);
+        const otherUser = useData().users.find(u => u.id === biometricConfig.userId);
         return (
              <p className="text-yellow-400">
                 Biometrics are registered to another user ({otherUser?.name || 'Unknown'}) on this device.
@@ -333,14 +333,42 @@ const SecuritySettings: React.FC = () => {
             {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
 
             <div className="mt-8 pt-8 border-t border-brand-border">
-                <h3 className="text-xl font-bold text-brand-text mb-4">Cloud Sync</h3>
-                <p className="text-brand-text-secondary mb-2">Use this URL to sync other devices to your session.</p>
-                <div className="p-3 bg-black/30 border border-brand-accent/30 rounded font-mono text-xs text-brand-accent break-all select-all">
-                    {window.location.origin}/#/?sync_id={localStorage.getItem('brh-synced-store') ? JSON.parse(localStorage.getItem('brh-synced-store') || '{}').syncId : '...'}
+                <h3 className="text-xl font-bold text-brand-text mb-4">Cloud Sync & Devices</h3>
+                <p className="text-brand-text-secondary mb-4">Manage connected devices sharing this data stream.</p>
+                
+                <div className="space-y-4 mb-6">
+                    <h4 className="text-sm font-bold text-brand-text-secondary uppercase tracking-wider">Active Neural Links</h4>
+                    <div className="grid gap-4">
+                        {activeSessions.map((session) => (
+                            <div key={session.id} className={`p-4 rounded-xl border flex items-center justify-between ${session.id === currentSessionId ? 'bg-brand-accent/10 border-brand-accent shadow-[0_0_15px_-5px_var(--color-accent-default)]' : 'bg-brand-dark border-brand-border'}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-3 rounded-full ${session.id === currentSessionId ? 'bg-brand-accent text-brand-dark' : 'bg-brand-surface text-brand-text-secondary'}`}>
+                                        {session.deviceType === 'mobile' ? <SmartphoneIcon className="w-6 h-6" /> : <MonitorIcon className="w-6 h-6" />}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-bold text-brand-text">{session.id === currentSessionId ? 'This Device' : session.userName}</p>
+                                            {session.id === currentSessionId && <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold uppercase">Online</span>}
+                                        </div>
+                                        <p className="text-xs text-brand-text-secondary truncate max-w-[200px] sm:max-w-md">{session.userAgent}</p>
+                                        <p className="text-[10px] text-brand-text-secondary mt-1">Last Seen: {new Date(session.lastActive).toLocaleTimeString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {activeSessions.length === 0 && <p className="text-sm text-brand-text-secondary italic">No active sessions detected (Offline Mode).</p>}
+                    </div>
                 </div>
-                <p className="text-xs text-brand-text-secondary mt-2">
-                    Note: Copying the full URL above to another device will link their state.
-                </p>
+
+                <div className="p-4 bg-black/30 border border-brand-accent/30 rounded-xl">
+                    <p className="text-xs font-bold text-brand-accent mb-2 uppercase">Sync Link</p>
+                    <div className="p-3 bg-brand-dark/50 border border-brand-border rounded font-mono text-xs text-brand-text-secondary break-all select-all">
+                        {window.location.origin}/#/?sync_id={localStorage.getItem('brh-synced-store') ? JSON.parse(localStorage.getItem('brh-synced-store') || '{}').syncId : '...'}
+                    </div>
+                    <p className="text-[10px] text-brand-text-secondary mt-2">
+                        Share this URL to connect another device to the Punk Records network.
+                    </p>
+                </div>
             </div>
         </div>
     );
