@@ -93,7 +93,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     
                     <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
                         <p className="font-bold text-brand-text mb-2 text-xs uppercase tracking-widest">Engineer Notes:</p>
-                        "Mark 5 Calibration Active. CO2 Impulse capped at 12.5 Ns. Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
+                        "Mark 5 Calibration Active. CO2 Impulse capped at 3.8 Ns (Track Realism). Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
                     </div>
                 </div>
             </div>
@@ -406,20 +406,23 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             let x = 0; // m
             const points = [];
             const massKg = massG / 1000;
-            const area = 0.0032; // Approx frontal area m^2
+            // Approx frontal area for a standard F1S car (65mm width x 50mm height approx * fill factor)
+            const area = 0.0045; // Increased area to match server physics
             const rho = 1.225;
             
             const getThrust = (time: number) => {
-                if (time < 0.05) return 40 * (time / 0.05);
-                if (time < 0.25) return 40 - (10 * (time - 0.05));
-                if (time < 0.60) return 38 * (1 - ((time - 0.25) / 0.35));
+                // Matching the new server-side physics model for 8g CO2 (3.8Ns impulse effective)
+                if (time < 0) return 0;
+                if (time < 0.05) return 16 * (time / 0.05); // Ramp up to 16N
+                if (time < 0.15) return 16 - (4 * (time - 0.05) / 0.1); // Decay to 12N
+                if (time < 0.60) return 12 * (1 - ((time - 0.15) / 0.45)); // Tail decay to 0
                 return 0;
             };
             
             while (x < 20 && t < 3.0) {
                 let thrust = getThrust(t);
                 const drag = 0.5 * rho * area * cdVal * v * v;
-                const frictionForce = massKg * 9.81 * muVal; 
+                const frictionForce = (massKg * 9.81 * muVal) + (0.08 * (v/20)); // Base + Line Drag 
                 
                 const netForce = thrust - drag - frictionForce;
                 const a = netForce / massKg; 
