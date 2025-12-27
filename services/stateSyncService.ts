@@ -86,14 +86,27 @@ const getInitialState = (): AppStore => {
             complexityScore: 100, 
             accuracyRating: 60.0 
         },
-        _version: 0,
+        _version: 1, // Current app version. Used for migrations.
         _lastUpdatedBy: null,
     };
 
     try {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState) {
-            return { ...defaultState, ...JSON.parse(serializedState) };
+            let loadedState = JSON.parse(serializedState);
+
+            // Migration logic for bounty reset.
+            if (!loadedState._version || loadedState._version < 1) {
+                if (loadedState.users && Array.isArray(loadedState.users)) {
+                    console.log("Migrating state to v1: Resetting all user bounties to 0.");
+                    loadedState.users.forEach((user: User) => {
+                        user.bounty = 0;
+                    });
+                }
+                loadedState._version = 1;
+            }
+
+            return { ...defaultState, ...loadedState };
         }
     } catch (e) {
         console.error("Could not load state from localStorage, initializing with default.", e);
