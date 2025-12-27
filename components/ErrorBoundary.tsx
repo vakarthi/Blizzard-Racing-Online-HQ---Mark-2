@@ -15,15 +15,11 @@ interface State {
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
 class ErrorBoundary extends React.Component<Props, State> {
-  // FIX: Reverted to constructor for state initialization and method binding to resolve type errors where 'this.props' and 'this.setState' were not found.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-    this.handleRetry = this.handleRetry.bind(this);
-  }
+  // FIX: Using class properties for state and arrow function for methods to ensure correct 'this' binding and resolve property access errors.
+  state: State = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
@@ -38,7 +34,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   /**
    * Resets the error state to allow the user to try again.
    */
-  handleRetry() {
+  handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
     window.location.reload();

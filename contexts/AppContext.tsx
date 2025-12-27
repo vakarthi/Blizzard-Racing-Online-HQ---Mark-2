@@ -331,7 +331,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ...userData,
           id: `user-${Date.now()}`,
           avatarUrl: generateAvatar(userData.name),
-          bounty: 1000000
+          bounty: 0 // Starting bounty for new members
       };
       updateStore(s => ({ ...s, users: [...s.users, newUser] }));
       return true;
