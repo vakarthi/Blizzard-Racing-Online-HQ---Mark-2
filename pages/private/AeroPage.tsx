@@ -23,10 +23,6 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     const avgSpeedKmh = pred ? (pred.averageSpeed * 3.6).toFixed(1) : '0.0';
     const geoMeta = result.parameters.geometryMeta;
 
-    // Extract Vortex Frequency from flow analysis string if present
-    const vortexFreqMatch = result.flowAnalysis.match(/Vortex Shedding: (\d+\.\d+)Hz/);
-    const vortexFreq = vortexFreqMatch ? vortexFreqMatch[1] : 'N/A';
-
     const renderSummary = () => (
         <div className="space-y-6 animate-fade-in">
             {geoMeta && geoMeta.correctionApplied && (
@@ -43,7 +39,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="Drag (Cd)" value={result.cd.toFixed(5)} subValue={`Vortex: ${vortexFreq} Hz`}/>
+                <MetricCard label="Drag (Cd)" value={result.cd.toFixed(4)} />
                 <MetricCard label="Efficiency (L/D)" value={result.liftToDragRatio.toFixed(3)} color="text-green-400" />
                 <MetricCard label="Avg Race Time" value={`${pred?.averageRaceTime.toFixed(4) ?? '-.----'}s`} color="text-brand-accent" />
                 <MetricCard label="Average Velocity" value={`${avgSpeedKmh} km/h`} subValue={`${pred?.averageSpeed.toFixed(2) ?? '0.00'} m/s`} color="text-yellow-400" />
@@ -54,7 +50,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-sm font-bold text-brand-accent uppercase flex items-center gap-2">
-                                <StopwatchIcon className="w-4 h-4" /> 20m Transient Profile
+                                <StopwatchIcon className="w-4 h-4" /> 20m Empirical Profile
                             </h3>
                             <span className="text-[10px] font-black px-2 py-1 bg-brand-accent/10 border border-brand-accent/20 rounded-full text-brand-accent uppercase">
                                 {result.carClass || (result.tier === 'premium' ? 'Professional Class' : 'Development Class')}
@@ -66,12 +62,12 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                                 <p className="text-xl font-bold font-mono">{pred ? (pred.averageFinishLineSpeed * 3.6).toFixed(1) : '0.0'} km/h</p>
                             </div>
                             <div className="text-center border-x border-brand-border">
-                                <p className="text-xs text-brand-text-secondary mb-1">Total Mass</p>
+                                <p className="text-xs text-brand-text-secondary mb-1">Static Mass</p>
                                 <p className="text-xl font-bold font-mono text-brand-accent">{result.parameters.totalWeight}g</p>
                             </div>
                             <div className="text-center">
-                                <p className="text-xs text-brand-text-secondary mb-1">Physical Asymptote</p>
-                                <p className="text-xl font-bold font-mono">0.905s</p>
+                                <p className="text-xs text-brand-text-secondary mb-1">Safety Floor</p>
+                                <p className="text-xl font-bold font-mono">0.500s</p>
                             </div>
                         </div>
                     </div>
@@ -91,12 +87,12 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                         <ShieldCheckIcon className="w-8 h-8 text-green-400 mb-2" />
                         <h4 className="font-bold text-xs uppercase text-brand-text-secondary">Physics Validation</h4>
                         <p className="text-3xl font-black font-mono text-green-400">100%</p>
-                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">v4.0 Transient-Dynamic</p>
+                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">Mark 5 Empirical</p>
                     </div>
                     
                     <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
                         <p className="font-bold text-brand-text mb-2 text-xs uppercase tracking-widest">Engineer Notes:</p>
-                        "Mark 4 Engine Active. Vortex Shedding (Von Kármán) frequency resolved. Tribological heat saturation model applied to bearing friction coefficient ($\mu$). Adiabatic cooling calculated for CO2 thrust decay."
+                        "Mark 5 Calibration Active. CO2 Impulse capped at 12.5 Ns. Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
                     </div>
                 </div>
             </div>
@@ -106,24 +102,24 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     const renderMonteCarlo = () => (
         <div className="space-y-6 animate-fade-in">
             <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
-                <h3 className="text-lg font-bold text-brand-accent mb-2 uppercase tracking-tighter">Stochastic Chaos Field</h3>
-                <p className="text-sm text-brand-text-secondary mb-6">Visualizing deterministic chaos. Variation emerges naturally from the interaction of shedding frequencies and thermal variance.</p>
+                <h3 className="text-lg font-bold text-brand-accent mb-2 uppercase tracking-tighter">Stochastic Analysis</h3>
+                <p className="text-sm text-brand-text-secondary mb-6">Visualizing the probability distribution based on mechanical variances (bearing friction, thrust consistency).</p>
                 <MonteCarloScatterPlot result={result} />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">Dynamic Factors</h4>
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">Variability Sources</h4>
                     <ul className="space-y-2 text-xs">
-                        <li className="flex justify-between"><span>Launch Reaction Sensitivity</span> <span className="text-brand-text font-mono">±0.002s</span></li>
-                        <li className="flex justify-between"><span>Adiabatic Cooling Index</span> <span className="text-brand-text font-mono">1.30</span></li>
-                        <li className="flex justify-between"><span>Bearing Thermal Mass</span> <span className="text-brand-text font-mono">2.0g (Steel)</span></li>
+                        <li className="flex justify-between"><span>Thrust Consistency</span> <span className="text-brand-text font-mono">±1.0%</span></li>
+                        <li className="flex justify-between"><span>Bearing Friction (µ)</span> <span className="text-brand-text font-mono">±2.5%</span></li>
+                        <li className="flex justify-between"><span>Tether Line Drag</span> <span className="text-brand-text font-mono">Dynamic</span></li>
                     </ul>
                 </div>
                 <div className="p-4 bg-brand-accent/10 border border-brand-accent/30 rounded-xl">
                     <h4 className="text-xs font-bold text-brand-accent uppercase mb-2">Confidence Interval</h4>
                     <p className="text-brand-text-secondary text-xs leading-relaxed">
-                        Based on the scatter density, this design has a **99.999% probability** of finishing within **{pred?.stdDevTime ? (pred.stdDevTime * 3).toFixed(4) : '0.000'}s** of the predicted average.
+                        Based on the scatter density, this design has a **99.5% probability** of finishing within **{pred?.stdDevTime ? (pred.stdDevTime * 3).toFixed(4) : '0.000'}s** of the predicted average.
                     </p>
                 </div>
             </div>
@@ -280,7 +276,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                                     {results.map((r, i) => (
                                         <td key={r.id} className={`px-6 py-4 text-center font-mono ${bestVal !== null && values[i] === bestVal ? 'text-green-400 bg-green-500/5 font-bold' : ''}`}>
                                             {m.key === 'carClass' ? (values[i] || 'N/A') :
-                                             m.key === 'cd' ? (values[i] as number).toFixed(5) : 
+                                             m.key === 'cd' ? (values[i] as number).toFixed(4) : 
                                              m.key === 'averageRaceTime' ? `${(values[i] as number).toFixed(4)}s` : 
                                              `${((values[i] as number) * 3.6).toFixed(1)} km/h`}
                                         </td>
@@ -475,24 +471,26 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             const points = [];
             const massKg = massG / 1000;
             const area = 0.0032; // Approx frontal area m^2
-            const rho = 1.204;
+            const rho = 1.225;
             
-            // Peak thrust from 8g cartridge (approx)
-            const peakThrust = 30.0; 
+            // Mark 5 Empirical Thrust Curve (Approx)
+            const getThrust = (time: number) => {
+                if (time < 0.05) return 40 * (time / 0.05);
+                if (time < 0.25) return 40 - (10 * (time - 0.05));
+                if (time < 0.60) return 38 * (1 - ((time - 0.25) / 0.35));
+                return 0;
+            };
             
             while (x < 20 && t < 3.0) {
                 // Thrust Model
-                let thrust = 0;
-                if (t < 0.02) thrust = peakThrust * (t / 0.02);
-                else if (t < 0.25) thrust = 35 - (5 * (t - 0.02));
-                else if (t < 0.8) thrust = 30 * Math.exp(-8 * (t - 0.25));
+                let thrust = getThrust(t);
                 
                 // Forces
                 const drag = 0.5 * rho * area * cdVal * v * v;
                 const frictionForce = massKg * 9.81 * muVal; // Simple rolling resistance
                 
                 const netForce = thrust - drag - frictionForce;
-                const a = netForce / massKg;
+                const a = netForce / massKg; // Simplified effective mass for UI responsiveness
                 
                 v += a * dt;
                 if (v < 0) v = 0;
@@ -628,7 +626,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                     <div className="mt-6 p-4 bg-brand-dark rounded-xl border border-brand-border flex gap-4 text-xs text-brand-text-secondary">
                         <InfoIcon className="w-5 h-5 flex-shrink-0 text-brand-accent"/>
                         <p>
-                            This solver uses a synchronous Euler integration method (dt=0.002s) with the updated v3.0 thrust curve. 
+                            This solver uses a synchronous Euler integration method (dt=0.002s) with the updated v5.0 thrust curve. 
                             It assumes a standard frontal area of 0.0032m². Use the comparison list to benchmark against your previous best designs.
                         </p>
                     </div>
@@ -700,7 +698,7 @@ const AeroPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Engine</h1>
-            <p className="text-brand-text-secondary mt-1">v4.0.0 Transient-Dynamic Physics | RK4 Integrator Active</p>
+            <p className="text-brand-text-secondary mt-1">v5.1.0 Empirical Physics | Calibrated Solver Active</p>
         </div>
         
         <div className="flex bg-brand-dark-secondary p-1 rounded-xl border border-brand-border shadow-lg overflow-x-auto">
@@ -786,8 +784,8 @@ const AeroPage: React.FC = () => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Solver Engine</label>
                                     <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
-                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Speed (V4)</button>
-                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Accuracy (V4)</button>
+                                        <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Speed (V5)</button>
+                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Accuracy (V5)</button>
                                     </div>
                                 </div>
                                 <div className="md:col-span-2 flex items-end">
@@ -937,8 +935,8 @@ const AeroPage: React.FC = () => {
                   <ShieldCheckIcon className="w-8 h-8" />
               </div>
               <div>
-                  <p className="text-brand-text font-bold">Aerotest v4.0.0</p>
-                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Transient-Dynamic Solver</p>
+                  <p className="text-brand-text font-bold">Aerotest v5.1.0</p>
+                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Empirical Calibration</p>
               </div>
           </div>
       </footer>
