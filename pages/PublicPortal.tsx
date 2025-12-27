@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect, useMemo, useRef, DragEvent } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-// FIX: Imported the missing CheckSquareIcon component.
 import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon, UploadCloudIcon, WindIcon, StopwatchIcon, BeakerIcon, LightbulbIcon, FileTextIcon, CheckSquareIcon } from '../components/icons';
 import FbxViewer from '../components/shared/FbxViewer';
 import ErrorBoundary from '../components/ErrorBoundary';
@@ -86,20 +86,35 @@ const AboutPage: React.FC = () => {
     )
 }
 
+// Update Team Page to use Wanted Posters ONLY
 const TeamPage: React.FC = () => {
-    const { users, publicPortalContent } = useData();
-    const { team: teamContent } = publicPortalContent;
+    const { users } = useData();
+
     return (
         <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{teamContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{teamContent.subtitle}</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 justify-items-center mt-8">
                 {users.map(member => (
-                    <div key={member.id} className="bg-brand-dark-secondary rounded-lg shadow-lg border border-brand-border p-6 text-center">
-                        <img src={member.avatarUrl} alt={member.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-brand-border object-cover" />
-                        <h3 className="text-xl font-bold text-brand-text">{member.name}</h3>
-                        <p className="text-brand-accent font-semibold">{member.role}</p>
+                    <div key={member.id} className="relative w-72 h-[450px] bg-[#F3E5AB] text-[#3e2723] p-5 flex flex-col items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-300 font-display rotate-1 hover:rotate-0 border-2 border-[#3e2723]/10">
+                        <div className="absolute top-4 left-0 w-full text-center text-3xl font-black opacity-80 tracking-widest uppercase">
+                            MEMBER
+                        </div>
+                        
+                        <div className="mt-12 w-full h-56 bg-gray-300 border-4 border-[#3e2723] overflow-hidden relative shadow-inner">
+                             <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover grayscale contrast-125 sepia-[.3]" />
+                        </div>
+                        
+                        <h2 className="text-4xl font-black mt-5 uppercase tracking-tighter w-full text-center truncate px-2">{member.name.split(' ')[0]}</h2>
+                        
+                        <div className="w-full flex items-center justify-between px-4 mt-auto mb-3 font-mono font-bold text-xl border-t-4 border-b-4 border-[#3e2723] py-2 bg-[#3e2723]/5">
+                            <span className="text-[10px] self-end mb-1 opacity-70 tracking-widest font-sans font-bold">VALUE</span>
+                            <span className="tracking-tighter text-2xl">{(member.bounty || 0).toLocaleString()}</span>
+                        </div>
+                        <p className="text-[10px] font-bold text-[#3e2723]/70 uppercase tracking-[0.3em] text-center w-full">{member.role}</p>
+                        
+                        {/* Paper Texture Overlay */}
+                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] opacity-60 pointer-events-none mix-blend-multiply"></div>
+                        {/* Pin */}
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-red-800 shadow-md border border-black/30"></div>
                     </div>
                 ))}
             </div>

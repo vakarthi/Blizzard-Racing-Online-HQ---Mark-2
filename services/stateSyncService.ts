@@ -1,14 +1,14 @@
 
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
-  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask
+  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState
 } from '../types';
 import {
   MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS,
   MOCK_THREADS, MOCK_COMPETITION_PROGRESS, MOCK_PROTOCOLS, INITIAL_PUBLIC_PORTAL_CONTENT
 } from './mockData';
 
-// This is the shape of our global, synchronized store.
+// --- Types ---
 export interface AppStore {
   users: User[];
   tasks: Task[];
@@ -28,14 +28,16 @@ export interface AppStore {
   competitionDate: string | null;
   teamLogoUrl: string;
   simulationRunCount: number;
+  punkRecords: PunkRecordsState; 
+  syncId?: string; // New: Track the connected cloud blob ID
 }
 
 const STORAGE_KEY = 'brh-synced-store';
+const SYNC_API_URL = 'https://jsonblob.com/api/jsonBlob';
 
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBBMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
 const getInitialState = (): AppStore => {
-    // This is the source of truth for the shape of the store.
     const defaultState: AppStore = {
         users: MOCK_USERS,
         tasks: MOCK_TASKS,
@@ -59,38 +61,128 @@ const getInitialState = (): AppStore => {
         competitionDate: '2024-12-01T09:00:00',
         teamLogoUrl: DEFAULT_LOGO,
         simulationRunCount: 0,
+        punkRecords: {
+            syncRate: 0,
+            solverGeneration: 1,
+            generationName: 'Saturn',
+            formulasSynthesized: 0,
+            currentMasterFormula: 'F_d = \\int (\\rho v^2) + \\nabla \\cdot \\sigma + \\sum_{i=0}^{\\infty} \\epsilon_i',
+            complexityScore: 100, 
+            accuracyRating: 60.0 
+        }
     };
 
     try {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState) {
             const loadedState = JSON.parse(serializedState);
-            // By spreading the defaultState first, then the loadedState, we ensure
-            // that any properties missing from the loaded (older) state are gracefully
-            // initialized from the default state. This prevents crashes when new
-            // properties are added to the application, such as the `backgroundTasks` array.
             return { ...defaultState, ...loadedState };
         }
     } catch (e) {
         console.error("Could not load state from localStorage, initializing with default.", e);
     }
 
-    // If nothing in storage or parsing fails, return the default state
     return defaultState;
 };
 
 let store: AppStore = getInitialState();
 const subscribers = new Set<(store: AppStore) => void>();
+let isSyncing = false;
+let lastServerStateStr = "";
 
-// New: Listener for storage events from other tabs.
-// This is more robust than BroadcastChannel for ensuring state sync.
+// --- CLOUD SYNC LOGIC ---
+
+// 1. Initialize Sync (Check URL or create new blob)
+const initializeCloudSync = async () => {
+    // Check URL params for sync_id
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    let syncId = urlParams.get('sync_id') || store.syncId;
+
+    if (syncId) {
+        if (syncId !== store.syncId) {
+            console.log("Found Sync ID in URL, connecting...", syncId);
+            store = { ...store, syncId };
+            saveState(store);
+        }
+    } else {
+        // Create a new blob if none exists
+        try {
+            const response = await fetch(SYNC_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(store)
+            });
+            if (response.ok) {
+                const location = response.headers.get('Location');
+                if (location) {
+                    syncId = location.split('/').pop();
+                    console.log("Created new Cloud Sync Blob:", syncId);
+                    store = { ...store, syncId: syncId! };
+                    saveState(store);
+                }
+            }
+        } catch (e) {
+            console.warn("Offline mode: Could not create cloud sync blob.", e);
+        }
+    }
+    
+    if (store.syncId) {
+        startPolling();
+    }
+};
+
+// 2. Poll for updates
+const startPolling = () => {
+    setInterval(async () => {
+        if (!store.syncId || isSyncing) return;
+
+        try {
+            const response = await fetch(`${SYNC_API_URL}/${store.syncId}`);
+            if (response.ok) {
+                const serverState = await response.json();
+                const serverStateStr = JSON.stringify(serverState);
+                
+                // Only update if server has different data and we aren't currently writing
+                if (serverStateStr !== lastServerStateStr && serverStateStr !== JSON.stringify(store)) {
+                    // console.log("Received update from cloud.");
+                    lastServerStateStr = serverStateStr;
+                    store = { ...store, ...serverState }; // Merge/Overwrite
+                    saveState(store);
+                    subscribers.forEach(callback => callback(store));
+                }
+            }
+        } catch (e) {
+            // Silent fail on polling errors
+        }
+    }, 2000); // Poll every 2 seconds for near-realtime feel
+};
+
+// 3. Push updates
+const pushToCloud = async (newState: AppStore) => {
+    if (!newState.syncId) return;
+    
+    isSyncing = true;
+    try {
+        await fetch(`${SYNC_API_URL}/${newState.syncId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newState)
+        });
+        lastServerStateStr = JSON.stringify(newState);
+    } catch (e) {
+        console.warn("Failed to push to cloud:", e);
+    } finally {
+        isSyncing = false;
+    }
+};
+
+// --- STORAGE & EVENT LISTENERS ---
+
 window.addEventListener('storage', (event: StorageEvent) => {
-    // FIX: Instead of relying on event.newValue, which can be inconsistent,
-    // we re-read from localStorage directly whenever a change to our key is detected.
     if (event.key === STORAGE_KEY) {
         try {
             const serializedState = localStorage.getItem(STORAGE_KEY);
-            if (!serializedState) return; // This can happen on a 'clear' event.
+            if (!serializedState) return;
 
             const newState: AppStore = JSON.parse(serializedState);
             store = newState;
@@ -101,7 +193,6 @@ window.addEventListener('storage', (event: StorageEvent) => {
     }
 });
 
-// Simplified function to save state, which implicitly triggers the sync event.
 const saveState = (newState: AppStore) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
@@ -110,27 +201,8 @@ const saveState = (newState: AppStore) => {
   }
 };
 
-// --- GLOBAL POLLING SYNC ---
-// Ensures that every 10 seconds, the app checks the persistent store for updates.
-// This guarantees that "everyone globally" (all active tabs/windows) stays in sync 
-// even if the storage event mechanism misses an update or if external tools modify data.
-setInterval(() => {
-    try {
-        const remoteStateStr = localStorage.getItem(STORAGE_KEY);
-        if (remoteStateStr) {
-            // Only parse and update if the string content is actually different
-            // to avoid unnecessary object reference changes and re-renders.
-            if (remoteStateStr !== JSON.stringify(store)) {
-                const newState = JSON.parse(remoteStateStr);
-                store = newState;
-                subscribers.forEach(callback => callback(store));
-                // console.debug("Global sync: State refreshed from storage.");
-            }
-        }
-    } catch (e) {
-        console.warn("Global sync polling failed:", e);
-    }
-}, 10000);
+// Initialize Cloud Sync on module load
+initializeCloudSync();
 
 export const stateSyncService = {
   getStore: (): AppStore => store,
@@ -142,8 +214,9 @@ export const stateSyncService = {
 
   updateStore: (updater: (currentStore: AppStore) => AppStore) => {
     const newState = updater(store);
-    store = newState; // 1. Update the local, in-memory store for the current tab.
-    saveState(newState); // 2. Persist to localStorage, which triggers the 'storage' event for all other tabs.
-    subscribers.forEach(callback => callback(store)); // 3. Notify local subscribers in the current tab to trigger UI updates.
+    store = newState; 
+    saveState(newState);
+    pushToCloud(newState); // Trigger cloud push
+    subscribers.forEach(callback => callback(store)); 
   },
 };

@@ -1,25 +1,26 @@
 
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
-import { useAuth, useAppState } from '../contexts/AppContext';
-import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon } from '../components/icons';
-import { useCommandK } from '../hooks/useCommandK';
-import useInactivityTimeout from '../hooks/useInactivityTimeout';
-import DashboardPage from './private/DashboardPage';
-import AeroPage from './private/AeroPage';
-import AeroEducationPage from './private/AeroEducationPage';
-import ProjectsPage from './private/ProjectsPage';
-import ManagerPanelGate from './private/ManagerPanelGate';
-import SocialsPage from './private/SocialsPage';
-import CommunicationsPage from './private/CommunicationsPage';
-import Icicle from '../components/hq/IcicleAssistant';
-import ToolboxPage from './private/ToolboxPage';
-import SettingsPage from './private/SettingsPage';
-import CommandPalette from '../components/hq/CommandPalette';
-import PortalEditorPage from './private/PortalEditorPage';
-import LeadsPage from './private/LeadsPage';
-import NotificationManager from '../components/hq/NotificationManager';
+import { useAuth, useAppState, useData } from './contexts/AppContext';
+import { UserRole } from './types';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon, SparklesIcon, CalculatorIcon } from './components/icons';
+import { useCommandK } from './hooks/useCommandK';
+import { useKonamiCode } from './hooks/useKonamiCode';
+import useInactivityTimeout from './hooks/useInactivityTimeout';
+import DashboardPage from './pages/private/DashboardPage';
+import AeroPage from './pages/private/AeroPage';
+import AeroEducationPage from './pages/private/AeroEducationPage';
+import ProjectsPage from './pages/private/ProjectsPage';
+import ManagerPanelGate from './pages/private/ManagerPanelGate';
+import SocialsPage from './pages/private/SocialsPage';
+import CommunicationsPage from './pages/private/CommunicationsPage';
+import Icicle from './components/hq/IcicleAssistant';
+import ToolboxPage from './pages/private/ToolboxPage';
+import SettingsPage from './pages/private/SettingsPage';
+import CommandPalette from './components/hq/CommandPalette';
+import PortalEditorPage from './pages/private/PortalEditorPage';
+import LeadsPage from './pages/private/LeadsPage';
+import NotificationManager from './components/hq/NotificationManager';
 
 interface NavItem {
   path: string;
@@ -43,13 +44,30 @@ const navItems: NavItem[] = [
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const { announcement, teamLogoUrl } = useAppState();
+  const { punkRecords } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [gear5Mode, setGear5Mode] = useState(false);
 
   // Auto-logout after 5 minutes of inactivity.
   const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
   useInactivityTimeout(logout, INACTIVITY_TIMEOUT_MS);
+
+  // Trigger Gear 5
+  useKonamiCode(() => {
+      setGear5Mode(prev => !prev);
+      // Play sound effect if desired, or console log
+      console.log("THE DRUMS OF LIBERATION ARE BEATING!");
+  });
+
+  useEffect(() => {
+      if (gear5Mode) {
+          document.body.classList.add('gear-5-mode');
+      } else {
+          document.body.classList.remove('gear-5-mode');
+      }
+  }, [gear5Mode]);
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));
@@ -68,7 +86,9 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
         </div>
         <div>
             <h1 className="text-xl font-display font-bold text-brand-text tracking-tight">Blizzard HQ</h1>
-            <p className="text-[10px] text-brand-text-secondary font-mono tracking-widest uppercase">Operations V2</p>
+            <p className="text-[10px] text-brand-text-secondary font-mono tracking-widest uppercase">
+                {gear5Mode ? 'WARRIOR OF LIBERATION' : 'Operations V2'}
+            </p>
         </div>
       </div>
       <nav className="flex-grow px-3 space-y-1 overflow-y-auto">
@@ -142,7 +162,7 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   return (
-    <div className="flex h-screen bg-brand-dark overflow-hidden">
+    <div className={`flex h-screen bg-brand-dark overflow-hidden ${gear5Mode ? 'animate-liberation' : ''}`}>
        {isPaletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
       
       {/* Mobile Sidebar Overlay */}
@@ -163,11 +183,35 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                  <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-brand-text mr-4 p-2 -ml-2 rounded-md hover:bg-white/5">
                     {sidebarOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
                 </button>
-                {/* Breadcrumbs or Page Title could go here */}
-                <div className="hidden md:block w-px h-6 bg-brand-border mx-4"></div>
-                <div className="hidden md:flex items-center text-xs text-brand-text-secondary font-mono">
-                    <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
-                    SYSTEM OPERATIONAL
+                {/* PUNK RECORDS STATUS BAR */}
+                <div className="hidden md:flex items-center gap-6">
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-brand-accent uppercase tracking-widest font-egghead flex items-center gap-1">
+                                <SparklesIcon className="w-3 h-3 animate-pulse" />
+                                {punkRecords?.generationName || 'SATURN'} 
+                                <span className="opacity-50"> // GEN-{punkRecords?.solverGeneration.toString().padStart(2, '0')}</span>
+                            </span>
+                        </div>
+                        <div className="w-32 h-1 bg-brand-border/50 rounded-full mt-1 overflow-hidden">
+                            <div 
+                                className="h-full bg-brand-accent shadow-[0_0_10px_rgba(14,165,233,0.8)] transition-all duration-1000 ease-linear"
+                                style={{ width: `${punkRecords?.syncRate}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                    {/* Visualizer for Formula Synthesis */}
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-bold text-brand-text-secondary uppercase">Logic Optimization</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-mono text-pink-400">{punkRecords?.formulasSynthesized.toLocaleString()} Vars</span>
+                            <span className="text-[9px] font-mono text-white/40">→</span>
+                            <span className={`text-[10px] font-mono ${punkRecords?.complexityScore < 20 ? 'text-green-400' : 'text-yellow-400'}`}>
+                                CMPX: {punkRecords?.complexityScore.toFixed(0)}
+                            </span>
+                        </div>
+                    </div>
+                    {gear5Mode && <div className="text-[10px] font-mono text-purple-400 animate-bounce">NI-KA</div>}
                 </div>
              </div>
             

@@ -3,12 +3,12 @@ import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier
 import { generateAvatar } from '../utils/avatar';
 
 export const MOCK_USERS_DATA = [
-  { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager },
-  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.ManufacturingEngineer },
-  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Marketing },
-  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.SocialsDesigner },
-  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Resource },
-  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.DesignEngineer },
+  { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager, bounty: 350000000 },
+  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.ManufacturingEngineer, bounty: 120000000 },
+  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Marketing, bounty: 88000000 },
+  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.SocialsDesigner, bounty: 66000000 },
+  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Resource, bounty: 45000000 },
+  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.DesignEngineer, bounty: 210000000 },
 ];
 
 export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({

@@ -131,28 +131,36 @@ const RecentActivityWidget: React.FC = () => {
     );
 };
 
-const TeamOverviewWidget: React.FC = () => {
+const BountyLeaderboardWidget: React.FC = () => {
     const { users } = useData();
-    const roleCounts = useMemo(() => {
-        return users.reduce((acc, user) => {
-            acc[user.role] = (acc[user.role] || 0) + 1;
-            return acc;
-        }, {} as Record<UserRole, number>);
+    
+    const sortedUsers = useMemo(() => {
+        return [...users].sort((a, b) => (b.bounty || 0) - (a.bounty || 0));
     }, [users]);
 
     return (
-        <DashboardWidget title="Team Overview" icon={<UsersIcon className="w-5 h-5"/>}>
+        <DashboardWidget title="Active Bounties" icon={<UsersIcon className="w-5 h-5"/>}>
             <ul className="space-y-2">
-                {Object.entries(roleCounts).map(([role, count]) => (
-                    <li key={role} className="flex justify-between items-center text-sm p-2 bg-brand-dark rounded">
-                        <span className="font-semibold text-brand-text-secondary truncate pr-2">{role}</span>
-                        <span className="font-bold text-brand-text text-lg">{count}</span>
+                {sortedUsers.map((user, index) => (
+                    <li key={user.id} className="flex justify-between items-center text-sm p-3 bg-brand-dark rounded-lg border border-brand-border hover:border-[#3e2723]/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <span className={`font-mono text-xs w-4 ${index === 0 ? 'text-yellow-400 font-bold' : 'text-brand-text-secondary'}`}>{index + 1}.</span>
+                            <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover border border-brand-border" />
+                            <div className="flex flex-col">
+                                <span className="font-bold text-brand-text leading-none">{user.name}</span>
+                                <span className="text-[10px] text-brand-text-secondary uppercase tracking-wider">{user.role}</span>
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className={`font-mono font-bold ${index === 0 ? 'text-yellow-400' : 'text-brand-text'}`}>{(user.bounty || 0).toLocaleString()}</span>
+                            <span className="text-[9px] text-brand-text-secondary uppercase">Value</span>
+                        </div>
                     </li>
                 ))}
             </ul>
         </DashboardWidget>
-    )
-}
+    );
+};
 
 const DashboardPage: React.FC = () => {
   const { tasks, aeroResults, sponsors } = useData();
@@ -169,6 +177,8 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <CompetitionProgressWidget />
             
+            <BountyLeaderboardWidget />
+
             <DashboardWidget title="Top Aero Design" icon={<WindIcon className="w-5 h-5"/>}>
                 {topAero ? (
                      <div className="space-y-2">
@@ -197,8 +207,6 @@ const DashboardPage: React.FC = () => {
             </DashboardWidget>
 
             <RecentActivityWidget />
-
-            <TeamOverviewWidget />
 
             <DashboardWidget title="Project Deadlines" icon={<ClipboardListIcon className="w-5 h-5"/>}>
                 <ul className="space-y-3">

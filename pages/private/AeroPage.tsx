@@ -2,19 +2,78 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { AeroResult, CarClass } from '../../types';
-import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon, GraduationCapIcon, CalculatorIcon, ScaleIcon, EyeIcon } from '../../components/icons';
+import { WindIcon, BeakerIcon, BarChartIcon, StopwatchIcon, UploadCloudIcon, SparklesIcon, CheckCircleIcon, XCircleIcon, CommandIcon, InfoIcon, TrashIcon, AlertTriangleIcon, ShieldCheckIcon, XIcon, PlusCircleIcon, GraduationCapIcon, CalculatorIcon, ScaleIcon, EyeIcon, DownloadIcon, FileTextIcon, SkullIcon, AnchorIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import MonteCarloScatterPlot from '../../components/hq/MonteCarloScatterPlot';
+import ConvergenceGraph from '../../components/hq/ConvergenceGraph';
 import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
 import { THEORETICAL_OPTIMUM } from '../../services/mockData';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
-const MetricCard: React.FC<{ label: string; value: string | number; subValue?: string; color?: string }> = ({ label, value, subValue, color = 'text-brand-text' }) => (
+// --- PUNK RECORDS VISUALIZER (Formerly Neural Kernel) ---
+const PunkRecordsPanel: React.FC<{ result: AeroResult }> = ({ result }) => {
+    const ai = result.aiCorrectionModel;
+    if (!ai) return null;
+
+    return (
+        <div className="bg-white/5 border border-white/20 p-6 rounded-3xl relative overflow-hidden group font-egghead shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+            {/* Egghead Tech Elements */}
+            <div className="absolute top-0 right-0 p-4 opacity-30 pointer-events-none">
+                <div className="text-[100px] leading-none font-black text-white/5 select-none absolute -top-4 -right-4 rotate-12">PUNK</div>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent opacity-80"></div>
+
+            <div className="flex justify-between items-start mb-6 relative z-10">
+                <div>
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                        <span className="bg-pink-500 text-white rounded px-2 py-0.5 text-sm">PUNK RECORDS</span>
+                        SYNC ESTABLISHED
+                    </h3>
+                    <p className="text-xs text-white/60 font-mono mt-1 uppercase tracking-widest">
+                        Satellite Logic: {result.flowAnalysis.split('Logic')[0]} // Epochs: {ai.evolutionPath.length}
+                    </p>
+                </div>
+                <div className="text-right">
+                    <p className="text-3xl font-mono font-bold text-pink-400 drop-shadow-[0_0_5px_rgba(236,72,153,0.8)]">
+                        {ai.confidence.toFixed(2)}%
+                    </p>
+                    <p className="text-[9px] text-white/60 uppercase">Truth Accuracy</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                <div className="bg-black/40 p-4 rounded-xl border border-white/10 font-mono text-[10px] text-green-400 leading-relaxed overflow-hidden">
+                    <p className="text-white/40 mb-2 uppercase tracking-widest">Applied Master Formula:</p>
+                    <div className="break-all opacity-80">
+                        {ai.appliedFormula || "FORMULA_DATA_MISSING"}
+                    </div>
+                </div>
+                
+                <div className="bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
+                    <h4 className="text-xs font-bold text-white uppercase mb-2">Future Sight (Kenbunshoku)</h4>
+                    <div className="flex justify-between items-end mb-2">
+                        <span className="text-sm text-white/60">Current Reality</span>
+                        <span className="font-mono text-white">{ai.originalCd.toFixed(5)}</span>
+                    </div>
+                    <div className="flex justify-between items-end mb-4">
+                        <span className="text-sm text-white/60">Genetic Potential</span>
+                        <span className="font-mono text-pink-400 font-bold">{ai.optimizedCd.toFixed(5)}</span>
+                    </div>
+                    <p className="text-xs text-white/80 leading-relaxed italic border-t border-white/10 pt-3">
+                        "Logic dictates: {ai.suggestion}"
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MetricCard: React.FC<{ label: string; value: string; subValue?: string; color?: string }> = ({ label, value, subValue, color = 'text-brand-text' }) => (
     <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-        <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-xs font-bold text-brand-text-secondary uppercase tracking-wider mb-1 font-egghead">{label}</p>
         <p className={`text-2xl font-mono font-bold ${color}`}>{value}</p>
-        {subValue && <p className="text-[10px] text-brand-text-secondary mt-1">{subValue}</p>}
+        {subValue && <p className="text-xs text-brand-text-secondary mt-1">{subValue}</p>}
     </div>
 );
 
@@ -26,21 +85,11 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
 
     const renderSummary = () => (
         <div className="space-y-6 animate-fade-in">
-            {geoMeta && geoMeta.correctionApplied && (
-                <div className="p-3 bg-brand-accent/10 border border-brand-accent/30 rounded-xl flex items-start gap-3">
-                    <div className="bg-brand-accent text-brand-dark p-1.5 rounded-full mt-0.5">
-                        <WindIcon className="w-4 h-4"/>
-                    </div>
-                    <div>
-                        <h4 className="text-sm font-bold text-brand-text">Geometry Pre-Processor Active</h4>
-                        <p className="text-xs text-brand-text-secondary mt-1">{geoMeta.rotationLog}</p>
-                        <p className="text-[10px] text-brand-accent mt-1 font-mono">{geoMeta.featureIdentification}</p>
-                    </div>
-                </div>
-            )}
+            {/* Neural Kernel is highlighted at the top */}
+            <PunkRecordsPanel result={result} />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricCard label="Drag (Cd)" value={result.cd.toFixed(4)} />
+                <MetricCard label="Drag (Cd)" value={result.cd.toFixed(5)} />
                 <MetricCard label="Efficiency (L/D)" value={result.liftToDragRatio.toFixed(3)} color="text-green-400" />
                 <MetricCard label="Avg Race Time" value={`${pred?.averageRaceTime.toFixed(4) ?? '-.----'}s`} color="text-brand-accent" />
                 <MetricCard label="Average Velocity" value={`${avgSpeedKmh} km/h`} subValue={`${pred?.averageSpeed.toFixed(2) ?? '0.00'} m/s`} color="text-yellow-400" />
@@ -74,26 +123,23 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     </div>
                     
                     <SpeedTimeGraph result={result} />
-
-                    <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                        <h3 className="text-xs font-bold text-brand-accent uppercase flex items-center gap-2 mb-4 tracking-widest">
-                            <BeakerIcon className="w-4 h-4" /> Efficiency Curve (L/D vs Speed)
-                        </h3>
-                        <PerformanceGraph results={[result]} height={220} />
-                    </div>
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-brand-dark p-6 rounded-xl border border-green-500/30 flex flex-col items-center justify-center text-center">
-                        <ShieldCheckIcon className="w-8 h-8 text-green-400 mb-2" />
-                        <h4 className="font-bold text-xs uppercase text-brand-text-secondary">Physics Validation</h4>
-                        <p className="text-3xl font-black font-mono text-green-400">100%</p>
-                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter">Mark 5 Empirical</p>
+                    <div className="bg-brand-dark p-6 rounded-xl border border-green-500/30 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                        <div className="absolute inset-0 bg-green-500/5 animate-pulse"></div>
+                        <ShieldCheckIcon className="w-8 h-8 text-green-400 mb-2 relative z-10" />
+                        <h4 className="font-bold text-xs uppercase text-brand-text-secondary relative z-10">Physics Validation</h4>
+                        <p className="text-3xl font-black font-mono text-green-400 relative z-10">{pred?.trustIndex?.toFixed(1)}%</p>
+                        <p className="text-[10px] text-brand-text-secondary mt-1 uppercase tracking-tighter relative z-10">Omega-Class Solver</p>
                     </div>
                     
-                    <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed">
-                        <p className="font-bold text-brand-text mb-2 text-xs uppercase tracking-widest">Engineer Notes:</p>
-                        "Mark 5 Calibration Active. CO2 Impulse capped at 2.5 Ns (12N Peak). Geometric Drag Penalties applied for poor aspect ratios. Rotational Inertia included in effective mass calculation."
+                    <div className="p-4 bg-brand-dark/50 rounded-xl border border-brand-border text-sm text-brand-text-secondary leading-relaxed font-mono text-xs">
+                        <p className="font-bold text-brand-text mb-2 uppercase tracking-widest text-[10px]">Labophase Log:</p>
+                        {">"} Voxelizing Geometry... DONE<br/>
+                        {">"} Combinatorial Substitution... DONE<br/>
+                        {">"} Syncing Punk Records... DONE<br/>
+                        {">"} York Check... PASSED (No Bugs)
                     </div>
                 </div>
             </div>
@@ -102,26 +148,11 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
 
     const renderVisualization = () => (
         <div className="space-y-6 animate-fade-in">
-            <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
-                        <EyeIcon className="w-5 h-5 text-brand-accent"/> 3D CFD Solution
-                    </h3>
-                    {!result.flowFieldData && (
-                        <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">No 3D data available for this run</span>
-                    )}
-                </div>
-                {result.flowFieldData ? (
-                    <FlowFieldVisualizer 
-                        flowFieldData={result.flowFieldData} 
-                        surfaceMapData={result.surfaceMapData}
-                        parameters={result.parameters} 
-                    />
-                ) : (
-                    <div className="h-[400px] flex items-center justify-center bg-brand-dark/50 rounded-lg border border-brand-border border-dashed">
-                        <p className="text-brand-text-secondary text-sm">Run a 'Deep Solve' simulation to generate FVM data.</p>
-                    </div>
-                )}
+            <div className="bg-brand-dark p-1 rounded-xl border border-brand-border overflow-hidden">
+                <FlowFieldVisualizer 
+                    flowFieldData={result.flowFieldData} 
+                    parameters={result.parameters} 
+                />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -136,17 +167,21 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                         </div>
                         <div className="flex justify-between">
                             <span>Turbulence Model:</span>
-                            <span className="font-mono text-purple-400">k-ω SST</span>
+                            <span className="font-mono text-purple-400">k-ω SST (Hybrid)</span>
                         </div>
                         <div className="flex justify-between">
                             <span>Residuals (Continuity):</span>
                             <span className="font-mono text-green-400">{result.finalResiduals?.continuity.toExponential(2) || 'N/A'}</span>
                         </div>
-                         <div className="flex justify-between">
-                            <span>Precision:</span>
-                            <span className="font-mono">Sub-Voxel (8x Sampling)</span>
-                        </div>
                     </div>
+                </div>
+                <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
+                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">Solver Diagnostics</h4>
+                    {result.residualHistory ? (
+                        <ConvergenceGraph history={result.residualHistory} height={120} />
+                    ) : (
+                        <p className="text-xs text-brand-text-secondary italic">No convergence history available.</p>
+                    )}
                 </div>
             </div>
         </div>
@@ -158,23 +193,6 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                 <h3 className="text-lg font-bold text-brand-accent mb-2 uppercase tracking-tighter">Stochastic Analysis</h3>
                 <p className="text-sm text-brand-text-secondary mb-6">Visualizing the probability distribution based on mechanical variances (bearing friction, thrust consistency).</p>
                 <MonteCarloScatterPlot result={result} />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">Variability Sources</h4>
-                    <ul className="space-y-2 text-xs">
-                        <li className="flex justify-between"><span>Thrust Consistency</span> <span className="text-brand-text font-mono">±1.0%</span></li>
-                        <li className="flex justify-between"><span>Bearing Friction (µ)</span> <span className="text-brand-text font-mono">±2.5%</span></li>
-                        <li className="flex justify-between"><span>Tether Line Drag</span> <span className="text-brand-text font-mono">Dynamic</span></li>
-                    </ul>
-                </div>
-                <div className="p-4 bg-brand-accent/10 border border-brand-accent/30 rounded-xl">
-                    <h4 className="text-xs font-bold text-brand-accent uppercase mb-2">Confidence Interval</h4>
-                    <p className="text-brand-text-secondary text-xs leading-relaxed">
-                        Based on the scatter density, this design has a **99.5% probability** of finishing within **{pred?.stdDevTime ? (pred.stdDevTime * 3).toFixed(4) : '0.000'}s** of the predicted average.
-                    </p>
-                </div>
             </div>
         </div>
     );
@@ -193,10 +211,6 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                             <span>Target Density:</span>
                             <span className="font-mono">0.163 g/cm³</span>
                         </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span>Tolerance:</span>
-                            <span className="font-mono text-brand-text-secondary">± 0.012 g/cm³</span>
-                        </div>
                     </div>
                 </div>
                 <div className="bg-brand-dark p-6 rounded-xl border border-brand-border">
@@ -208,30 +222,18 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
                     </div>
                 </div>
             </div>
-            {geoMeta && (
-                <div className="bg-brand-dark-secondary p-4 rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-2">CAD Topology Data</h4>
-                    <div className="text-xs font-mono space-y-1 text-brand-text-secondary">
-                        <p>Orientation: <span className={geoMeta.correctionApplied ? "text-yellow-400" : "text-green-400"}>{geoMeta.originalOrientation}</span></p>
-                        <p>Feature Scan: {geoMeta.featureIdentification}</p>
-                    </div>
-                </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
-                    <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Efficiency Mapping</h4>
-                    <PerformanceGraph results={[result]} height={200} />
-                </div>
-                <SpeedTimeGraph result={result} height={200} />
+            <div className="bg-brand-dark p-4 rounded-xl border border-brand-border">
+                <h4 className="text-xs font-bold text-brand-text-secondary uppercase mb-4">Efficiency Mapping</h4>
+                <PerformanceGraph results={[result]} height={200} />
             </div>
         </div>
     );
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap gap-2 p-1 bg-brand-dark rounded-lg border border-brand-border w-fit">
-                <button onClick={() => setActiveSubTab('summary')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'summary' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>SUMMARY</button>
-                <button onClick={() => setActiveSubTab('visual')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'visual' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>3D FVM</button>
+            <div className="flex flex-wrap gap-2 p-1 bg-brand-dark rounded-lg border border-brand-border w-fit font-egghead">
+                <button onClick={() => setActiveSubTab('summary')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'summary' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>PUNK RECORDS</button>
+                <button onClick={() => setActiveSubTab('visual')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'visual' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>HOLOGRAM</button>
                 <button onClick={() => setActiveSubTab('montecarlo')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'montecarlo' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>STOCHASTIC</button>
                 <button onClick={() => setActiveSubTab('tech')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'tech' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>TECH DATA</button>
                 <button onClick={() => setActiveSubTab('scrutineering')} className={`px-4 py-1.5 text-xs font-bold rounded-md transition-colors ${activeSubTab === 'scrutineering' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary hover:text-brand-text'}`}>COMPLIANCE</button>
@@ -260,7 +262,6 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult }> = ({ result }) =
     );
 };
 
-// ... (Rest of the file remains unchanged)
 const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = ({ results, onClear }) => {
     if (results.length < 2) {
         return (
@@ -270,7 +271,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                 </div>
                 <div>
                     <h3 className="text-xl font-bold text-brand-text">Comparison Engine Idle</h3>
-                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'History' tab to compare their aerodynamic signatures.</p>
+                    <p className="text-brand-text-secondary max-w-sm mx-auto">Select at least two cars from the 'Poneglyphs' history tab to compare their signatures.</p>
                 </div>
             </div>
         );
@@ -332,7 +333,7 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
                                     {results.map((r, i) => (
                                         <td key={r.id} className={`px-6 py-4 text-center font-mono ${bestVal !== null && values[i] === bestVal ? 'text-green-400 bg-green-500/5 font-bold' : ''}`}>
                                             {m.key === 'carClass' ? (values[i] || 'N/A') :
-                                             m.key === 'cd' ? (values[i] as number).toFixed(4) : 
+                                             m.key === 'cd' ? (values[i] as number).toFixed(5) : 
                                              m.key === 'averageRaceTime' ? `${(values[i] as number).toFixed(4)}s` : 
                                              `${((values[i] as number) * 3.6).toFixed(1)} km/h`}
                                         </td>
@@ -349,7 +350,6 @@ const ComparisonTab: React.FC<{ results: AeroResult[]; onClear: () => void }> = 
 
 const TheoryTab: React.FC = () => (
     <div className="space-y-8 animate-fade-in">
-        {/* Same theory content as before, keeping file size manageable */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
                 <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border">
@@ -383,18 +383,14 @@ const TheoryTab: React.FC = () => (
     </div>
 );
 
-// --- NEW QUICK SIM TAB ---
-
 const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) => {
     const [selectedCarIds, setSelectedCarIds] = useState<string[]>([]);
     const [mass, setMass] = useState<number>(55.0);
     const [cd, setCd] = useState<number>(0.150);
     const [friction, setFriction] = useState<number>(0.012);
     
-    // Derived state for results
     const [results, setResults] = useState<{ time: number; speed: number; points: {time: number, speed: number}[] } | null>(null);
 
-    // Baseline results for comparisons
     const baselines = useMemo(() => {
         return aeroResults.filter(r => selectedCarIds.includes(r.id));
     }, [selectedCarIds, aeroResults]);
@@ -405,32 +401,28 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
         );
     };
 
-    // Live Physics Calculation
     useEffect(() => {
         const calculateRaceProfile = (massG: number, cdVal: number, muVal: number) => {
             const dt = 0.002;
             let t = 0;
-            let v = 0; // m/s
-            let x = 0; // m
+            let v = 0; 
+            let x = 0; 
             const points = [];
             const massKg = massG / 1000;
-            // Approx frontal area for a standard F1S car (65mm width x 50mm height approx * fill factor)
-            const area = 0.0055; // Increased area for realism (bluff body)
+            const area = 0.0055; 
             const rho = 1.225;
             
             const getThrust = (time: number) => {
-                // Matching the new server-side physics model for 8g CO2 (2.5Ns impulse effective)
                 if (time < 0) return 0;
-                if (time < 0.05) return 12 * (time / 0.05); // Ramp up to 12N
-                if (time < 0.15) return 12 - (3 * (time - 0.05) / 0.1); // Decay to 9N
-                if (time < 0.50) return 9 * (1 - ((time - 0.15) / 0.35)); // Decay to 0
+                if (time < 0.05) return 12 * (time / 0.05); 
+                if (time < 0.15) return 12 - (3 * (time - 0.05) / 0.1); 
+                if (time < 0.50) return 9 * (1 - ((time - 0.15) / 0.35)); 
                 return 0;
             };
             
             while (x < 20 && t < 3.0) {
                 let thrust = getThrust(t);
                 const drag = 0.5 * rho * area * cdVal * v * v;
-                // Add tether drag penalty to friction: 0.1 * (v/20)
                 const frictionForce = (massKg * 9.81 * muVal) + (0.15 * Math.pow((v/15), 2)); 
                 
                 const netForce = thrust - drag - frictionForce;
@@ -456,7 +448,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
-            {/* Control Panel */}
             <div className="lg:col-span-4 space-y-6">
                 <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full flex flex-col">
                     <h3 className="text-xl font-bold text-brand-text mb-6 flex items-center gap-2">
@@ -539,7 +530,6 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                 </div>
             </div>
 
-            {/* Visualization */}
             <div className="lg:col-span-8 space-y-6">
                 <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border shadow-2xl h-full">
                     <h3 className="text-sm font-black text-brand-accent uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -565,11 +555,10 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
 };
 
 const AeroPage: React.FC = () => {
-  const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult } = useData();
+  const { aeroResults, runSimulationTask, backgroundTasks, resetAeroResults, deleteAeroResult, punkRecords } = useData();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'quicksim' | 'comparison' | 'history' | 'theory'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
   const [stlFiles, setStlFiles] = useState<File[]>([]);
-  // CHANGED DEFAULT TO ACCURACY FOR TRUST
   const [mode, setMode] = useState<'speed' | 'accuracy'>('accuracy');
   const [carClass, setCarClass] = useLocalStorage<CarClass>('aero-pref-class', 'Professional');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -625,8 +614,11 @@ const AeroPage: React.FC = () => {
     <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-            <h1 className="text-4xl font-bold text-brand-text tracking-tight">Aerotest Engine</h1>
-            <p className="text-brand-text-secondary mt-1">v5.7.0 Finite Volume Method | Volumetric FVM Solver Active</p>
+            <h1 className="text-4xl font-bold text-brand-text tracking-tight font-egghead uppercase">Aerotest Mark 3</h1>
+            <p className="text-brand-text-secondary mt-1 flex items-center gap-2">
+                <span className="bg-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">EGGHEAD</span> 
+                Evolutionary Combinatorial Solver
+            </p>
         </div>
         
         <div className="flex bg-brand-dark-secondary p-1 rounded-xl border border-brand-border shadow-lg overflow-x-auto">
@@ -640,7 +632,7 @@ const AeroPage: React.FC = () => {
                         : 'text-brand-text-secondary hover:text-brand-text hover:bg-brand-dark'
                     }`}
                 >
-                    {tab === 'quicksim' ? 'Quick Sim' : tab === 'theory' ? 'CFD Basics' : tab}
+                    {tab === 'quicksim' ? 'Quick Sim' : tab === 'theory' ? 'Archives' : tab}
                 </button>
             ))}
         </div>
@@ -650,11 +642,14 @@ const AeroPage: React.FC = () => {
           {activeTab === 'setup' && (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-fade-in">
                   <div className="lg:col-span-3 space-y-8">
-                      <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl">
-                          <div className="flex justify-between items-start mb-6">
+                      <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl relative overflow-hidden">
+                          {/* Decorative Background Text */}
+                          <div className="absolute -top-10 -right-10 text-[150px] font-black text-brand-text/5 rotate-12 pointer-events-none select-none">LAB</div>
+                          
+                          <div className="flex justify-between items-start mb-6 relative z-10">
                               <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
                                   <UploadCloudIcon className="w-8 h-8 text-brand-accent" />
-                                  Initialize Simulation
+                                  Initialize Punk Records
                               </h2>
                               <span className="bg-brand-dark px-3 py-1 rounded-full text-xs font-bold border border-brand-border text-brand-text-secondary">
                                   Batch Mode Active (Max 20)
@@ -669,11 +664,11 @@ const AeroPage: React.FC = () => {
                                     <UploadCloudIcon className="w-10 h-10 text-brand-text-secondary group-hover:text-brand-accent" />
                                 </div>
                                 <h3 className="text-lg font-bold text-brand-text mb-1 text-center">
-                                    Drop .STL files here
+                                    Drop Geometry Files
                                 </h3>
                                 <p className="text-brand-text-secondary text-xs text-center">
-                                    Supports Binary/ASCII STL. 
-                                    <br/>Geometry will be meshed into panels.
+                                    Supports .STL (Stereolithography).
+                                    <br/>Geometry will be voxelized for Neural Analysis.
                                 </p>
                                 <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".stl" multiple className="hidden" />
                           </div>
@@ -701,7 +696,7 @@ const AeroPage: React.FC = () => {
                               </div>
                           )}
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 relative z-10">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Competition Class</label>
                                     <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border overflow-hidden">
@@ -714,7 +709,7 @@ const AeroPage: React.FC = () => {
                                     <label className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">Solver Engine</label>
                                     <div className="flex bg-brand-dark p-1.5 rounded-xl border border-brand-border">
                                         <button onClick={() => setMode('speed')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'speed' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Fast FVM</button>
-                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Deep Solve (FVM)</button>
+                                        <button onClick={() => setMode('accuracy')} className={`flex-1 py-3 rounded-lg text-sm font-bold transition-all ${mode === 'accuracy' ? 'bg-brand-accent text-brand-dark' : 'text-brand-text-secondary'}`}>Deep Neural</button>
                                     </div>
                                 </div>
                                 <div className="md:col-span-2 flex items-end">
@@ -725,11 +720,11 @@ const AeroPage: React.FC = () => {
                                     >
                                         <div className="relative z-10 flex items-center justify-center">
                                             {runningSimulations.length > 0 ? (
-                                                <>Solver Busy ({runningSimulations.length} active)...</>
+                                                <>Processing... ({runningSimulations.length} active)</>
                                             ) : (
                                                 <>
                                                     <WindIcon className="w-6 h-6 mr-3" /> 
-                                                    {stlFiles.length > 1 ? `RUN BATCH SOLVER (${stlFiles.length})` : 'RUN SOLVER'}
+                                                    {stlFiles.length > 1 ? `ENGAGE BATCH SOLVER (${stlFiles.length})` : 'ENGAGE EGGHEAD KERNEL'}
                                                 </>
                                             )}
                                         </div>
@@ -743,25 +738,49 @@ const AeroPage: React.FC = () => {
                       <div className="bg-brand-dark-secondary p-6 rounded-2xl border border-brand-border h-full flex flex-col">
                           <h2 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4">
                               <InfoIcon className="w-5 h-5 text-brand-accent" />
-                              Simulation Queue
+                              Punk Records Status
                           </h2>
-                          <div className="space-y-3 flex-grow overflow-y-auto max-h-[600px]">
+                          <div className="bg-black/30 p-4 rounded-xl border border-white/5 mb-4">
+                              <div className="flex justify-between items-center mb-2">
+                                  <span className="text-xs text-brand-text-secondary uppercase">Generation</span>
+                                  <span className="font-mono text-pink-400 font-bold">{punkRecords?.generationName}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                  <span className="text-xs text-brand-text-secondary uppercase">Logic Complexity</span>
+                                  <span className={`font-mono font-bold ${punkRecords?.complexityScore < 20 ? 'text-green-400' : 'text-yellow-400'}`}>{punkRecords?.complexityScore.toFixed(0)}%</span>
+                              </div>
+                              <div className="w-full bg-brand-dark h-1 rounded-full mt-3 overflow-hidden">
+                                  <div className="h-full bg-pink-500" style={{ width: `${punkRecords?.complexityScore}%` }}></div>
+                              </div>
+                              <p className="text-[9px] text-brand-text-secondary mt-2 italic">
+                                  Lower complexity = Faster simulations. <br/>Higher generation = Better formulas.
+                              </p>
+                          </div>
+
+                          <h2 className="text-lg font-bold text-brand-text flex items-center gap-2 mb-4 mt-4">
+                              <InfoIcon className="w-5 h-5 text-brand-accent" />
+                              Fabriophase Queue
+                          </h2>
+                          <div className="space-y-3 flex-grow overflow-y-auto max-h-[400px]">
                               {runningSimulations.length > 0 ? runningSimulations.map(task => (
-                                  <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse">
-                                      <div className="flex justify-between items-center mb-2">
-                                          <span className="text-sm font-bold text-brand-accent truncate max-w-[150px]">{task.fileName}</span>
-                                          <span className="text-xs font-mono">{task.progress.toFixed(0)}%</span>
+                                  <div key={task.id} className="bg-brand-dark p-4 rounded-xl border border-brand-border animate-pulse relative overflow-hidden">
+                                      <div className="absolute inset-0 bg-brand-accent/5 pointer-events-none"></div>
+                                      <div className="relative z-10">
+                                          <div className="flex justify-between items-center mb-2">
+                                              <span className="text-sm font-bold text-brand-accent truncate max-w-[150px]">{task.fileName}</span>
+                                              <span className="text-xs font-mono">{task.progress.toFixed(0)}%</span>
+                                          </div>
+                                          <div className="w-full bg-brand-surface h-2 rounded-full overflow-hidden">
+                                              <div className="bg-brand-accent h-full transition-all duration-300" style={{ width: `${task.progress}%` }}></div>
+                                          </div>
+                                          <p className="text-[10px] text-brand-text-secondary mt-2 uppercase tracking-tighter">{task.stage}</p>
+                                          {task.latestLog && <p className="text-[9px] text-brand-text-secondary mt-1 font-mono italic truncate">{task.latestLog}</p>}
                                       </div>
-                                      <div className="w-full bg-brand-surface h-2 rounded-full overflow-hidden">
-                                          <div className="bg-brand-accent h-full transition-all duration-300" style={{ width: `${task.progress}%` }}></div>
-                                      </div>
-                                      <p className="text-[10px] text-brand-text-secondary mt-2 uppercase tracking-tighter">{task.stage}</p>
-                                      {task.latestLog && <p className="text-[9px] text-brand-text-secondary mt-1 font-mono italic truncate">{task.latestLog}</p>}
                                   </div>
                               )) : (
                                   <div className="flex flex-col items-center justify-center py-10 text-brand-text-secondary border border-dashed border-brand-border rounded-xl h-full">
                                       <CommandIcon className="w-10 h-10 opacity-20 mb-2" />
-                                      <p className="text-xs font-bold uppercase tracking-widest">No Active Solves</p>
+                                      <p className="text-xs font-bold uppercase tracking-widest">System Idle</p>
                                   </div>
                               )}
                           </div>
@@ -770,6 +789,7 @@ const AeroPage: React.FC = () => {
               </div>
           )}
 
+          {/* ... Rest of the tabs (results, quicksim, comparison, history, theory) ... */}
           {activeTab === 'results' && (
               <div className="animate-fade-in">
                   {currentResult ? (
@@ -809,7 +829,7 @@ const AeroPage: React.FC = () => {
           {activeTab === 'history' && (
               <div className="space-y-4 animate-fade-in">
                   <div className="flex justify-between items-end mb-4">
-                      <h2 className="text-2xl font-bold">Analysis History</h2>
+                      <h2 className="text-2xl font-bold">Poneglyphs (Archives)</h2>
                       <button onClick={resetAeroResults} className="text-xs font-bold text-red-400 hover:underline flex items-center gap-1"><TrashIcon className="w-3 h-3"/> Wipe History</button>
                   </div>
                   <div className="grid grid-cols-1 gap-2">
@@ -864,9 +884,13 @@ const AeroPage: React.FC = () => {
                   <ShieldCheckIcon className="w-8 h-8" />
               </div>
               <div>
-                  <p className="text-brand-text font-bold">Aerotest v5.5.0</p>
-                  <p className="text-xs text-brand-text-secondary">Multi-Class Physics Engine | Unsteady Vortex Lattice Method</p>
+                  <p className="text-brand-text font-bold">Aerotest v7.0 (Codename: EGGHEAD)</p>
+                  <p className="text-xs text-brand-text-secondary">Neural-Accelerated Computational Fluid Dynamics</p>
               </div>
+          </div>
+          <div className="flex items-center gap-2 text-brand-text-secondary text-xs opacity-50 hover:opacity-100 transition-opacity cursor-default" title="The World's Greatest Brain">
+              <span className="font-egghead">Made by Egghead Science Unit</span>
+              <AnchorIcon className="w-3 h-3" />
           </div>
       </footer>
     </div>

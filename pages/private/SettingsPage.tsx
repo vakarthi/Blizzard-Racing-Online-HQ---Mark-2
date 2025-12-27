@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useAuth, useData } from '../../contexts/AppContext';
 import { useTheme, ThemeColors } from '../../contexts/ThemeContext';
@@ -253,7 +254,7 @@ const AppearanceSettings: React.FC = () => {
 
 const SecuritySettings: React.FC = () => {
     const { user, getBiometricConfig, setBiometricConfig, clearBiometricConfig } = useAuth();
-    const { users } = useData();
+    const { users, syncId } = useData(); // Note: syncId might need to be exposed from useData if we update AppContext
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const biometricConfig = getBiometricConfig();
@@ -330,6 +331,17 @@ const SecuritySettings: React.FC = () => {
             {renderBiometricStatus()}
             {message && <p className="text-sm text-green-400 mt-4">{message}</p>}
             {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
+
+            <div className="mt-8 pt-8 border-t border-brand-border">
+                <h3 className="text-xl font-bold text-brand-text mb-4">Cloud Sync</h3>
+                <p className="text-brand-text-secondary mb-2">Use this URL to sync other devices to your session.</p>
+                <div className="p-3 bg-black/30 border border-brand-accent/30 rounded font-mono text-xs text-brand-accent break-all select-all">
+                    {window.location.origin}/#/?sync_id={localStorage.getItem('brh-synced-store') ? JSON.parse(localStorage.getItem('brh-synced-store') || '{}').syncId : '...'}
+                </div>
+                <p className="text-xs text-brand-text-secondary mt-2">
+                    Note: Copying the full URL above to another device will link their state.
+                </p>
+            </div>
         </div>
     );
 };

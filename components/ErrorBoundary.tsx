@@ -1,5 +1,5 @@
 import React, { ErrorInfo, ReactNode } from 'react';
-import { AlertTriangleIcon } from './icons';
+import { AlertTriangleIcon, SkullIcon } from './icons';
 
 interface Props {
   children?: ReactNode;
@@ -43,21 +43,26 @@ class ErrorBoundary extends React.Component<Props, State> {
     // If the state indicates an error, render the fallback UI
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8">
-          <AlertTriangleIcon className="w-16 h-16 text-yellow-400 mb-4" />
-          <h1 className="text-3xl font-bold mb-2">Something went wrong.</h1>
-          <p className="text-brand-text-secondary mb-6 text-center">
-            An unexpected error occurred. This could be a temporary network issue or a component failure.
+        <div className="flex flex-col items-center justify-center min-h-screen bg-brand-dark text-brand-text p-8 relative overflow-hidden">
+          {/* York Traitor Theme */}
+          <div className="absolute inset-0 bg-red-500/5 pointer-events-none flex items-center justify-center">
+             <div className="text-[200px] font-black text-red-500/10 rotate-45 select-none">BETRAYAL</div>
+          </div>
+
+          <SkullIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
+          <h1 className="text-4xl font-bold mb-2 text-red-500 font-display">SYSTEM COMPROMISED</h1>
+          <p className="text-brand-text-secondary mb-6 text-center max-w-lg">
+            "It seems a Satellite has gone rogue. Error logic detected in the Punk Records synchronization stream. York is likely behind this."
           </p>
           <button
             onClick={this.handleRetry}
-            className="px-6 py-2 bg-brand-accent text-brand-dark font-bold rounded-lg hover:bg-brand-accent-hover transition-colors"
+            className="px-8 py-3 bg-brand-accent text-brand-dark font-bold rounded-xl hover:bg-brand-accent-hover transition-colors shadow-glow-accent uppercase tracking-widest"
           >
-            Refresh Page
+            Reboot Stella Body
           </button>
-          <details className="mt-8 text-sm text-brand-text-secondary w-full max-w-2xl">
-            <summary className="cursor-pointer">Error Details</summary>
-            <pre className="mt-2 p-4 bg-brand-dark-secondary rounded-md whitespace-pre-wrap break-all">
+          <details className="mt-8 text-sm text-brand-text-secondary w-full max-w-2xl border border-red-500/30 rounded-lg bg-black/50">
+            <summary className="cursor-pointer p-4 font-mono text-xs uppercase hover:text-red-400">View Traitor Log</summary>
+            <pre className="p-4 pt-0 whitespace-pre-wrap break-all text-xs text-red-300 font-mono">
               {this.state.error?.toString()}
             </pre>
           </details>

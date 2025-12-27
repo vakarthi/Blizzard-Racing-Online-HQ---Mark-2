@@ -16,6 +16,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  bounty: number;
 }
 
 export enum TaskStatus {
@@ -111,18 +112,10 @@ export interface ProbabilisticRaceTimePrediction {
     canisterPerformanceDelta?: number; // ms
 }
 
-export type FlowFieldPoint = [number, number, number, number, number, number]; // [x, y, z, pressure, velocity, density/co2]
-
-export interface SurfaceMapPoint {
-    x: number;
-    y: number;
-    z: number;
-    cp: number; // Coefficient of Pressure
-    sensitivity: number; // Adjoint sensitivity (negative = drag reduction if pushed)
-}
+export type FlowFieldPoint = [number, number, number, number, number]; // [x, y, z, pressure, velocity]
 
 export interface SolverSettings {
-    solverType: 'VLM' | 'FVM' | 'RANS-WebGPU'; // Distinguish method
+    solverType: 'VLM' | 'FVM' | 'RANS-WebGPU' | 'OMEGA-NEURAL'; // Distinguish method
     solver: 'Coupled Implicit' | 'Explicit Relaxation' | 'Density-Based Coupled';
     precision: 'Double' | 'Single' | 'Mixed';
     spatialDiscretization: {
@@ -140,6 +133,33 @@ export interface VerificationCheck {
 }
 
 export type CarClass = 'Entry' | 'Development' | 'Professional';
+
+export interface ResidualData {
+    iteration: number;
+    continuity: number;
+    xVelocity: number;
+    yVelocity: number;
+    zVelocity: number;
+}
+
+// NEW: The Neural Kernel Types
+export interface OptimizationEpoch {
+    epoch: number;
+    mutations: string[];
+    resultCd: number;
+    improvement: number; // %
+    timestamp: string;
+}
+
+export interface NeuralCorrection {
+    originalCd: number;
+    optimizedCd: number;
+    potentialTimeSave: number;
+    confidence: number;
+    evolutionPath: OptimizationEpoch[];
+    suggestion: string;
+    appliedFormula: string; // The specific formula string used
+}
 
 export interface AeroResult {
   id: string;
@@ -182,6 +202,7 @@ export interface AeroResult {
     k?: number; // for k-omega
     omega?: number; // for k-omega
   };
+  residualHistory?: ResidualData[]; // New: Track convergence
   aiFlowFeatures?: string[];
   autoSelectedSettings?: {
       flowRegime: string;
@@ -189,18 +210,14 @@ export interface AeroResult {
   };
   validationLog?: string[];
   verificationChecks?: VerificationCheck[];
-  aiCorrectionModel?: {
-    version: string;
-    confidence: number;
-    correctionApplied: boolean;
-    originalCd?: number;
-    reason?: string;
-  };
+  
+  // THE OMEGA UPDATE
+  aiCorrectionModel?: NeuralCorrection;
+  
   auditLog?: string;
   
   // 3D Visualization Data
   flowFieldData?: FlowFieldPoint[];
-  surfaceMapData?: SurfaceMapPoint[]; // For Cp and Adjoint maps
   
   // Curve Data
   performanceCurve?: PerformancePoint[];
@@ -315,8 +332,8 @@ export interface PublicPortalContent {
   car: {
     title: string;
     subtitle: string;
-    carModelFbx: string | null;
-    isCarModelBlurred: boolean;
+    carModelFbx?: string | null;
+    isCarModelBlurred?: boolean;
   };
   competition: {
     title: string;
@@ -375,4 +392,15 @@ export interface BackgroundTask {
   resultId?: string;
   fileName: string;
   error?: string;
+}
+
+// THE PUNK RECORDS STATE (Central Lobe)
+export interface PunkRecordsState {
+    syncRate: number; // 0-100% progress within current generation
+    solverGeneration: number; // 1 to Infinity
+    generationName: string; // "Saturn", "York", etc.
+    formulasSynthesized: number; // Total formulas tested
+    currentMasterFormula: string; // The current best formula string (Latex-ish)
+    complexityScore: number; // 100 = Chaos, 0 = The Omega Function. Affects simulation TIME.
+    accuracyRating: number; // 50% = Guess, 100% = Truth. Affects simulation QUALITY.
 }

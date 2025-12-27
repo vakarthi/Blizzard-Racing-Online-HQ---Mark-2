@@ -877,20 +877,20 @@ const AppSettings: React.FC = () => {
                     </label>
                     <button 
                         onClick={() => {
-                            if(window.confirm("WARNING: This will permanently delete all aerodynamic simulation results and clear all active solver tasks for the entire team. Proceed?")) {
+                            if(window.confirm("WARNING: This will initiate a BUSTER CALL on the Aerotest Ledger. All simulation data will be destroyed. Proceed?")) {
                                 resetAeroResults();
                                 clearBackgroundTasks();
                             }
                         }} 
-                        className="flex items-center gap-2 bg-red-500/20 text-red-400 font-bold py-2 px-4 rounded-lg hover:bg-red-500/30"
+                        className="flex items-center gap-2 bg-red-500/20 text-red-400 font-bold py-2 px-4 rounded-lg hover:bg-red-500/30 uppercase"
                     >
-                        <WindIcon className="w-5 h-5"/> Wipe Aerotest Ledger
+                        <WindIcon className="w-5 h-5"/> Initiate Buster Call
                     </button>
                 </div>
                  <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-lg text-sm flex items-start gap-2">
                     <AlertTriangleIcon className="w-8 h-8 flex-shrink-0" />
                     <div>
-                        <span className="font-bold">Warning:</span> Data management operations are destructive. Always ensure you have a current export before performing wipes or imports.
+                        <span className="font-bold">Warning:</span> A Buster Call is irreversible. Ensure critical Poneglyphs (data) are exported first.
                     </div>
                 </div>
             </div>
