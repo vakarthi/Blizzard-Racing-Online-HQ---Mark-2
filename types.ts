@@ -115,7 +115,7 @@ export interface SolverSettings {
     solver: 'Coupled Implicit';
     precision: 'Double';
     spatialDiscretization: {
-        gradient: 'Least Squares Cell-Based';
+        gradient: 'Least Squares Cell-Based' | 'Green-Gauss Node Based';
         momentum: 'Second Order Upwind' | 'Third Order MUSCL';
         turbulence: 'Second Order Upwind';
     };
