@@ -38,15 +38,23 @@ const STORAGE_KEY = 'brh-local-store';
 const BROADCAST_CHANNEL_NAME = 'punk_records_mesh_network';
 
 let store: AppStore;
-let syncStatus: SyncStatus = 'OFFLINE';
+// Statuses: OFFLINE (Init), SEARCHING (No Hub), CONNECTED (Hub Found), HUB_ACTIVE (I am Hub)
+export type ExtendedSyncStatus = SyncStatus | 'SEARCHING' | 'HUB_ACTIVE';
+let syncStatus: ExtendedSyncStatus = 'OFFLINE';
 let syncLog: string[] = [];
-let currentUserRole: UserRole | null = null; // Track role for Hub logic
+let currentUserRole: UserRole | null = null; 
 
-// BroadcastChannel allows simple communication between browsing contexts (tabs, windows, iframes) with the same origin.
+// Hub Heartbeat Logic
+let hubHeartbeatInterval: any = null;
+let hubWatchdogTimeout: any = null;
+const HEARTBEAT_INTERVAL_MS = 1000;
+const HUB_TIMEOUT_MS = 3000; // If no heartbeat for 3s, Hub is down
+
+// BroadcastChannel
 const meshChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
 
 const subscribers = new Set<(store: AppStore) => void>();
-const statusSubscribers = new Set<(status: SyncStatus) => void>();
+const statusSubscribers = new Set<(status: ExtendedSyncStatus) => void>();
 const logSubscribers = new Set<(log: string[]) => void>();
 
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZHRoPSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBhMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
@@ -93,7 +101,6 @@ const getInitialState = (): AppStore => {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState) {
             let loadedState = JSON.parse(serializedState);
-            // Migration check
             if (!loadedState._version || loadedState._version < 1) {
                 loadedState._version = 1;
             }
@@ -117,10 +124,9 @@ const addLog = (message: string) => {
     notifyLogSubscribers();
 }
 
-const setStatus = (newStatus: SyncStatus) => {
+const setStatus = (newStatus: ExtendedSyncStatus) => {
     if(syncStatus !== newStatus) {
         syncStatus = newStatus;
-        addLog(`Mesh Network Status: ${newStatus}`);
         notifyStatusSubscribers();
     }
 }
@@ -131,34 +137,88 @@ const saveLocalState = (newState: AppStore) => {
   } catch (e) { console.error("Failed to save state:", e); }
 };
 
+// --- HUB LOGIC (The "Always-On" Module) ---
+
+const startHubService = () => {
+    if (hubHeartbeatInterval) clearInterval(hubHeartbeatInterval);
+    
+    setStatus('HUB_ACTIVE');
+    addLog('Taking command. Initializing Central Hub Service...');
+    
+    // The Hub is authoritative. It loads the latest from disk and enforces it.
+    // In a real app, this would pull from DB. Here, we trust LocalStorage + Memory.
+    
+    hubHeartbeatInterval = setInterval(() => {
+        meshChannel.postMessage({ type: 'HUB_HEARTBEAT', timestamp: Date.now() });
+    }, HEARTBEAT_INTERVAL_MS);
+};
+
+const stopHubService = () => {
+    if (hubHeartbeatInterval) {
+        clearInterval(hubHeartbeatInterval);
+        hubHeartbeatInterval = null;
+    }
+    setStatus('SEARCHING');
+};
+
+const resetWatchdog = () => {
+    if (currentUserRole === UserRole.Manager) return; // Managers don't watch themselves
+
+    if (hubWatchdogTimeout) clearTimeout(hubWatchdogTimeout);
+    
+    if (syncStatus !== 'SYNCED') {
+        setStatus('SYNCED'); // We found a hub!
+        addLog('Connection established to Manager Hub.');
+    }
+
+    hubWatchdogTimeout = setTimeout(() => {
+        setStatus('SEARCHING');
+        addLog('Lost connection to Manager Hub.');
+    }, HUB_TIMEOUT_MS);
+};
+
 // --- Broadcast Mesh Logic ---
 
 meshChannel.onmessage = (event) => {
     if (!event.data) return;
+    const { type, payload } = event.data;
 
-    if (event.data.type === 'SYNC_UPDATE') {
-        const remoteState = event.data.payload as AppStore;
-        
-        // Conflict Resolution Strategy: Highest Version Wins (LWW - Last Write Wins)
-        if (remoteState._version > store._version) {
+    // 1. Heartbeat Handling
+    if (type === 'HUB_HEARTBEAT') {
+        resetWatchdog();
+        return;
+    }
+
+    // 2. Data Sync Handling
+    if (type === 'SYNC_UPDATE') {
+        const remoteState = payload as AppStore;
+        // Nodes blindly accept updates from the Hub (Authoritative)
+        // Hubs check versions to prevent race conditions from other potential Hubs (though should only be 1)
+        if (remoteState._version > store._version || currentUserRole !== UserRole.Manager) {
             store = remoteState;
             saveLocalState(store);
             notifySubscribers();
-            addLog(`Received update v${remoteState._version} from Mesh.`);
-        } else if (remoteState._version < store._version) {
-            // We have a newer version, broadcast it back to correct the sender
-            addLog(`Mesh peer has older version (v${remoteState._version}). Broadcasting v${store._version}.`);
+            // Only log significant version jumps to avoid spam
+            if (remoteState._version - store._version > 1) {
+                addLog(`Synced to Hub State v${remoteState._version}`);
+            }
+        }
+    } 
+    
+    // 3. New Node Request
+    else if (type === 'REQUEST_STATE') {
+        if (currentUserRole === UserRole.Manager) {
+            addLog('New Node requesting uplink. Transmitting state...');
             meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
         }
-    } else if (event.data.type === 'REQUEST_STATE') {
-        // A new tab opened and wants the current state
-        addLog('New Satellite requested state. Broadcasting...');
-        meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
-    } else if (event.data.type === 'BOUNTY_UPDATE') {
-        // MANAGER HUB LOGIC
-        // If this instance is the Manager, authorize the bounty update and broadcast new state
+    } 
+    
+    // 4. Write Requests (Routed to Manager)
+    else if (type === 'BOUNTY_REQUEST') {
         if (currentUserRole === UserRole.Manager) {
-            const { userId, amount } = event.data.payload;
+            // AUTHORITATIVE PROCESSING
+            const { userId, amount } = payload;
+            addLog(`Received Bounty Request: ${amount} for ${userId}`);
             
             const updatedUsers = store.users.map(u => 
                 u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u
@@ -171,27 +231,18 @@ meshChannel.onmessage = (event) => {
             saveLocalState(store);
             notifySubscribers();
             
-            // Push authoritative update to all nodes
+            // Broadcast the result back to everyone
             meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
-            addLog(`Manager authorized bounty +${amount} for ${userId}`);
         }
     }
 };
 
-const broadcastUpdate = (newState: AppStore) => {
-    meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: newState });
-    setStatus('SYNCED');
-};
-
 const initialize = () => {
-    setStatus('CONNECTING');
+    // Default state: Searching for a Hub
+    setStatus('SEARCHING');
     
-    // Simulate initial connection handshake
+    // Ask if anyone is out there
     setTimeout(() => {
-        setStatus('SYNCED');
-        addLog('Connected to Punk Records Mesh Network.');
-        
-        // Ask for latest state from network on startup (in case other tabs have newer data)
         meshChannel.postMessage({ type: 'REQUEST_STATE' });
     }, 500);
 };
@@ -205,11 +256,13 @@ export const stateSyncService = {
   getSyncId: () => 'LOCAL-MESH-NET',
 
   setRole: (role: UserRole | null) => {
-      if (currentUserRole !== role) {
-          currentUserRole = role;
-          if (role === UserRole.Manager) {
-              addLog("Authenticated as Manager. Hub Mode Active.");
-          }
+      const prevRole = currentUserRole;
+      currentUserRole = role;
+      
+      if (role === UserRole.Manager) {
+          if (prevRole !== UserRole.Manager) startHubService();
+      } else {
+          if (prevRole === UserRole.Manager) stopHubService();
       }
   },
 
@@ -218,7 +271,7 @@ export const stateSyncService = {
     return () => subscribers.delete(callback);
   },
   
-  subscribeToStatus: (callback: (status: SyncStatus) => void): () => void => {
+  subscribeToStatus: (callback: (status: ExtendedSyncStatus) => void): () => void => {
       statusSubscribers.add(callback);
       callback(syncStatus);
       return () => statusSubscribers.delete(callback);
@@ -230,39 +283,37 @@ export const stateSyncService = {
       return () => logSubscribers.delete(callback);
   },
 
+  // General Update (Local Only or Manager Broadcast)
   updateStore: (updater: (currentStore: AppStore) => AppStore, updatedBy?: {userId: string, userName: string}) => {
     const newState = updater(store);
-    
-    // Version increment for conflict resolution
     newState._version = (store._version || 0) + 1;
-    if (updatedBy) {
-        newState._lastUpdatedBy = updatedBy;
-    }
+    if (updatedBy) newState._lastUpdatedBy = updatedBy;
 
     store = newState; 
     saveLocalState(newState);
     notifySubscribers(); 
     
-    // Broadcast change to other tabs/windows immediately
-    broadcastUpdate(newState);
+    // Anyone can broadcast generic updates (e.g. chat), but Hub enforces structure
+    meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: newState });
   },
   
+  // Specific Hub-Routed Action
   requestBountyUpdate: (userId: string, amount: number) => {
       if (currentUserRole === UserRole.Manager) {
-          // I am the Manager (Hub), apply directly
+          // I am the Hub, execute immediately
           stateSyncService.updateStore(s => ({
               ...s,
               users: s.users.map(u => u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u)
           }));
-          addLog(`Manager applied bounty +${amount}`);
+          addLog(`Hub: Applied bounty +${amount} locally.`);
       } else {
-          // I am a Node, transmit to Manager
-          meshChannel.postMessage({ type: 'BOUNTY_UPDATE', payload: { userId, amount } });
-          // Optimistic local update for UI responsiveness (optional, but good UX)
-          // Ideally we wait for sync, but for bouncy numbers, immediate feedback is better.
-          // However, strict hub architecture implies we wait. Let's send only.
-          // But to prevent UI lag in this demo, we'll optimistically update store but NOT broadcast generic SYNC_UPDATE
-          // Actually, let's trust the mesh speed (it's fast).
+          if (syncStatus !== 'SYNCED') {
+              addLog('Error: Cannot transmit bounty. Hub Offline.');
+              return;
+          }
+          // I am a Node, transmit request
+          meshChannel.postMessage({ type: 'BOUNTY_REQUEST', payload: { userId, amount } });
+          addLog(`Transmitted bounty request (+${amount}) to Hub.`);
       }
   },
   

@@ -1,9 +1,8 @@
-
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState, useData } from '../contexts/AppContext';
-import { UserRole } from '../types';
-import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, BriefcaseIcon, GraduationCapIcon, SparklesIcon, CalculatorIcon, SkullIcon, AnchorIcon, BotIcon } from '../components/icons';
+import { UserRole, SyncStatus } from '../types';
+import { HomeIcon, WindIcon, ClipboardListIcon, LogOutIcon, MenuIcon, XIcon, AlertTriangleIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, CommandIcon, Settings2Icon, EditIcon, SkullIcon, AnchorIcon, BotIcon, SparklesIcon, GraduationCapIcon } from '../components/icons';
 import { useCommandK } from '../hooks/useCommandK';
 import { useKonamiCode } from '../hooks/useKonamiCode';
 import useInactivityTimeout from '../hooks/useInactivityTimeout';
@@ -100,12 +99,25 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   
   const filteredNavItems = navItems.filter(item => !item.roles || (user && item.roles.includes(user.role)));
   
-  const statusColors: Record<typeof syncStatus, string> = {
+  // Define colors for the new extended status states
+  const statusColors: Record<string, string> = {
       OFFLINE: 'bg-gray-500',
       CONNECTING: 'bg-yellow-500 animate-pulse',
-      SYNCED: 'bg-green-500',
-      ERROR: 'bg-red-500 animate-pulse',
+      SYNCED: 'bg-green-500 shadow-[0_0_10px_#22c55e]',
+      HUB_ACTIVE: 'bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse',
+      SEARCHING: 'bg-red-500 animate-pulse shadow-[0_0_10px_#ef4444]',
+      ERROR: 'bg-red-700 animate-pulse',
       CONFLICT: 'bg-orange-500 animate-pulse',
+  };
+
+  const statusLabels: Record<string, string> = {
+      OFFLINE: 'OFFLINE',
+      CONNECTING: 'CONNECTING...',
+      SYNCED: 'HUB CONNECTED',
+      HUB_ACTIVE: 'HUB ONLINE (YOU)',
+      SEARCHING: 'SEARCHING FOR HUB...',
+      ERROR: 'SYSTEM ERROR',
+      CONFLICT: 'DATA CONFLICT'
   };
 
   const SidebarContent = () => (
@@ -227,9 +239,9 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                 {/* PUNK RECORDS STATUS BAR */}
                 <div className="hidden md:flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${statusColors[syncStatus]}`}></div>
+                        <div className={`w-3 h-3 rounded-full transition-colors duration-500 ${statusColors[syncStatus as string] || 'bg-gray-500'}`}></div>
                         <span className="text-[10px] font-black text-brand-text-secondary uppercase tracking-widest font-egghead">
-                            PUNK RECORDS: {syncStatus}
+                            PUNK RECORDS: {statusLabels[syncStatus as string] || syncStatus}
                         </span>
                     </div>
                     <div className="flex flex-col">
