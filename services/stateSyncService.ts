@@ -1,7 +1,7 @@
 
 import {
   User, Task, AeroResult, FinancialRecord, Sponsor, NewsPost, CarHighlight,
-  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState, Session, SyncStatus
+  DiscussionThread, CompetitionProgressItem, Protocol, PublicPortalContent, ContentVersion, LoginRecord, Inquiry, BackgroundTask, PunkRecordsState, Session, SyncStatus, UserRole
 } from '../types';
 import {
   MOCK_USERS, MOCK_TASKS, MOCK_FINANCES, MOCK_SPONSORS, MOCK_NEWS, MOCK_CAR_HIGHLIGHTS,
@@ -40,6 +40,7 @@ const BROADCAST_CHANNEL_NAME = 'punk_records_mesh_network';
 let store: AppStore;
 let syncStatus: SyncStatus = 'OFFLINE';
 let syncLog: string[] = [];
+let currentUserRole: UserRole | null = null; // Track role for Hub logic
 
 // BroadcastChannel allows simple communication between browsing contexts (tabs, windows, iframes) with the same origin.
 const meshChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -133,7 +134,9 @@ const saveLocalState = (newState: AppStore) => {
 // --- Broadcast Mesh Logic ---
 
 meshChannel.onmessage = (event) => {
-    if (event.data && event.data.type === 'SYNC_UPDATE') {
+    if (!event.data) return;
+
+    if (event.data.type === 'SYNC_UPDATE') {
         const remoteState = event.data.payload as AppStore;
         
         // Conflict Resolution Strategy: Highest Version Wins (LWW - Last Write Wins)
@@ -147,10 +150,31 @@ meshChannel.onmessage = (event) => {
             addLog(`Mesh peer has older version (v${remoteState._version}). Broadcasting v${store._version}.`);
             meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
         }
-    } else if (event.data && event.data.type === 'REQUEST_STATE') {
+    } else if (event.data.type === 'REQUEST_STATE') {
         // A new tab opened and wants the current state
         addLog('New Satellite requested state. Broadcasting...');
         meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
+    } else if (event.data.type === 'BOUNTY_UPDATE') {
+        // MANAGER HUB LOGIC
+        // If this instance is the Manager, authorize the bounty update and broadcast new state
+        if (currentUserRole === UserRole.Manager) {
+            const { userId, amount } = event.data.payload;
+            
+            const updatedUsers = store.users.map(u => 
+                u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u
+            );
+            
+            const newState = { ...store, users: updatedUsers };
+            newState._version = (store._version || 0) + 1;
+            
+            store = newState;
+            saveLocalState(store);
+            notifySubscribers();
+            
+            // Push authoritative update to all nodes
+            meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
+            addLog(`Manager authorized bounty +${amount} for ${userId}`);
+        }
     }
 };
 
@@ -179,6 +203,15 @@ export const stateSyncService = {
   getSyncStatus: () => syncStatus,
   getSyncLog: () => syncLog,
   getSyncId: () => 'LOCAL-MESH-NET',
+
+  setRole: (role: UserRole | null) => {
+      if (currentUserRole !== role) {
+          currentUserRole = role;
+          if (role === UserRole.Manager) {
+              addLog("Authenticated as Manager. Hub Mode Active.");
+          }
+      }
+  },
 
   subscribe: (callback: (store: AppStore) => void): () => void => {
     subscribers.add(callback);
@@ -212,6 +245,25 @@ export const stateSyncService = {
     
     // Broadcast change to other tabs/windows immediately
     broadcastUpdate(newState);
+  },
+  
+  requestBountyUpdate: (userId: string, amount: number) => {
+      if (currentUserRole === UserRole.Manager) {
+          // I am the Manager (Hub), apply directly
+          stateSyncService.updateStore(s => ({
+              ...s,
+              users: s.users.map(u => u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u)
+          }));
+          addLog(`Manager applied bounty +${amount}`);
+      } else {
+          // I am a Node, transmit to Manager
+          meshChannel.postMessage({ type: 'BOUNTY_UPDATE', payload: { userId, amount } });
+          // Optimistic local update for UI responsiveness (optional, but good UX)
+          // Ideally we wait for sync, but for bouncy numbers, immediate feedback is better.
+          // However, strict hub architecture implies we wait. Let's send only.
+          // But to prevent UI lag in this demo, we'll optimistically update store but NOT broadcast generic SYNC_UPDATE
+          // Actually, let's trust the mesh speed (it's fast).
+      }
   },
   
   initialize

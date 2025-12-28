@@ -158,6 +158,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
+  // Update sync service with current role for Hub Logic
+  useEffect(() => {
+      stateSyncService.setRole(currentUser?.role || null);
+  }, [currentUser]);
+
   // --- ACTIVITY & SESSION HEARTBEAT ---
   useEffect(() => {
       const handleUserActivity = () => {
@@ -262,20 +267,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const isActive = timeSinceLastActive < 40000; 
 
           if (isActive) {
-              updateStore(state => {
-                  const bountyIncrease = gear5Mode ? 100000 : 1000;
-                  const updatedUsers = state.users.map(u => 
-                      u.id === currentUser.id 
-                      ? { ...u, bounty: (u.bounty || 0) + bountyIncrease }
-                      : u
-                  );
-                  return { ...state, users: updatedUsers };
-              });
+              const bountyIncrease = gear5Mode ? 100000 : 1000;
+              
+              // Use the specific Hub-aware method
+              stateSyncService.requestBountyUpdate(currentUser.id, bountyIncrease);
           }
       }, 60000);
 
       return () => clearInterval(bountyInterval);
-  }, [currentUser, updateStore, gear5Mode]);
+  }, [currentUser, gear5Mode]);
 
 
   // --- Auth Logic ---
