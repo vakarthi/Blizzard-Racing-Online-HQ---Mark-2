@@ -79,35 +79,14 @@ const SupercomputerHUD = () => (
     </div>
 );
 
-// This overlay appears when the user is the only one online AND the sync state is ERROR.
-const VegapunkErrorOverlay = () => (
-    <div className="fixed inset-0 z-[9999] bg-brand-dark flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-      <div className="absolute inset-0 bg-red-500/5 pointer-events-none flex items-center justify-center">
-        <div className="text-[200px] font-black text-red-500/10 rotate-45 select-none">ISOLATION</div>
-      </div>
-      <SkullIcon className="w-20 h-20 text-red-500 mb-6 animate-pulse" />
-      <h1 className="text-4xl font-bold mb-2 text-red-500 font-display">PUNK RECORDS: CONNECTION SEVERED</h1>
-      <p className="text-brand-text-secondary mb-6 max-w-lg">
-        "It appears you are the sole satellite connected to the central Poneglyph. The data stream has been isolated. York may be behind this... The system will attempt to re-establish the sync protocol automatically."
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-8 py-3 bg-brand-accent text-brand-dark font-bold rounded-xl hover:bg-brand-accent-hover transition-colors shadow-glow-accent uppercase tracking-widest"
-      >
-        Force Re-Sync
-      </button>
-    </div>
-);
-
 const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const { announcement, teamLogoUrl, syncStatus } = useAppState();
-  const { punkRecords, activeSessions } = useData();
+  const { punkRecords } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const [gear5Mode, setGear5Mode] = useState(false);
-  const [showVegapunkError, setShowVegapunkError] = useState(false);
 
   // Bedtime Protocol: Check for 10 PM logout only
   useInactivityTimeout(logout);
@@ -124,20 +103,6 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   useCommandK(() => setPaletteOpen(p => !p));
   
-  // Vegapunk Error Logic: Trigger if user is alone and sync fails.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        if (activeSessions.length <= 1 && syncStatus === 'ERROR') {
-            setShowVegapunkError(true);
-        } else {
-            setShowVegapunkError(false);
-        }
-    }, 2000); // Small delay to prevent flashing on initial load.
-
-    return () => clearTimeout(timer);
-  }, [activeSessions, syncStatus]);
-
-
   const filteredNavItems = navItems.filter(item => !item.roles || (user && item.roles.includes(user.role)));
   
   const statusColors: Record<typeof syncStatus, string> = {
@@ -245,8 +210,6 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
        {isPaletteOpen && <CommandPalette onClose={() => setPaletteOpen(false)} />}
        
        {gear5Mode && <SupercomputerHUD />}
-       
-       {showVegapunkError && <VegapunkErrorOverlay />}
       
       {/* Mobile Sidebar Overlay */}
        <div className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)}></div>
