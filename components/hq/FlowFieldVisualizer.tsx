@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FlowFieldPoint, DesignParameters } from '../../types';
@@ -37,7 +37,7 @@ void main() {
   float fresnel = pow(1.0 - dot(viewDir, vNormal), 3.0);
 
   // Scanline Effect
-  float scanline = sin(vPosition.y * 50.0 + time * 5.0) * 0.1;
+  float scanline = sin(vPosition.y * 50.0 - time * 3.0) * 0.1;
   float pulse = sin(time * 2.0) * 0.2 + 0.8;
 
   // Grid / Wireframe feel
@@ -45,7 +45,8 @@ void main() {
   
   vec3 finalColor = color * (fresnel + grid * 0.5 + scanline) * pulse;
   
-  gl_FragColor = vec4(finalColor, fresnel * 0.8 + 0.1);
+  // Additive blending alpha
+  gl_FragColor = vec4(finalColor, fresnel * 0.8 + 0.15);
 }
 `;
 
@@ -61,7 +62,7 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
   const particlesRef = useRef<THREE.Points | null>(null);
   const frameIdRef = useRef<number>(0);
   
-  const particleCount = 4000;
+  const particleCount = 2000;
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -70,13 +71,15 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020617); // Brand Dark
     // Add grid floor
-    const gridHelper = new THREE.GridHelper(4, 40, 0x1E293B, 0x0F172A);
+    const gridHelper = new THREE.GridHelper(0.5, 20, 0x1E293B, 0x0F172A);
     scene.add(gridHelper);
 
     const w = mountRef.current.clientWidth;
     const h = mountRef.current.clientHeight;
-    const camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 20);
-    camera.position.set(-0.8, 0.5, 0.8);
+    
+    const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 10);
+    // Adjusted camera: Closer, looking down-ish
+    camera.position.set(0.35, 0.25, 0.35); 
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
@@ -88,21 +91,23 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.5;
+    controls.autoRotateSpeed = 1.0;
+    controls.minDistance = 0.1;
+    controls.maxDistance = 1.5;
 
-    // 2. Holographic Car Mesh (Procedural Box for demo, looks like FBX)
-    const carLen = parameters.totalLength / 1000;
-    const carWidth = parameters.totalWidth / 1000;
-    const carHeight = 0.06;
+    // 2. Holographic Car Mesh Construction
+    // Convert mm to meters for rendering scale (1 unit = 1 meter)
+    const carLen = (parameters.totalLength || 210) / 1000;
+    const carWidth = (parameters.totalWidth || 65) / 1000;
+    const fwSpan = (parameters.frontWingSpan || 75) / 1000;
+    const rwSpan = (parameters.rearWingSpan || 65) / 1000;
     
-    // Complex geometry to mimic an FBX model
-    const geometry = new THREE.BoxGeometry(carLen, carHeight, carWidth, 10, 4, 6);
     const material = new THREE.ShaderMaterial({
         vertexShader: HOLO_VERTEX_SHADER,
         fragmentShader: HOLO_FRAGMENT_SHADER,
         uniforms: {
             time: { value: 0 },
-            color: { value: new THREE.Color(0x00BFFF) } // Brand Accent
+            color: { value: new THREE.Color(0x00BFFF) } // Brand Accent Blue
         },
         transparent: true,
         side: THREE.DoubleSide,
@@ -110,26 +115,98 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
         blending: THREE.AdditiveBlending
     });
     carMaterialRef.current = material;
-    
-    const carMesh = new THREE.Mesh(geometry, material);
-    carMesh.position.set(0, carHeight/2, 0);
-    scene.add(carMesh);
 
-    // 3. Neural Particles (Flow Data)
+    const carGroup = new THREE.Group();
+
+    // --- ORIENTATION LOGIC ---
+    // Flow is usually +X (Left -> Right).
+    // Car should face the wind. Nose at -X (Left), Tail at +X (Right).
+
+    // A. Main Body (Fuselage)
+    // Cylinder along X axis
+    const bodyGeo = new THREE.CylinderGeometry(0.015, 0.015, carLen * 0.85, 16);
+    bodyGeo.rotateZ(Math.PI / 2); 
+    const body = new THREE.Mesh(bodyGeo, material);
+    carGroup.add(body);
+
+    // B. CO2 Chamber (Rear Block) - At Positive X
+    const chamberGeo = new THREE.BoxGeometry(0.05, 0.035, 0.03);
+    const chamber = new THREE.Mesh(chamberGeo, material);
+    chamber.position.set(carLen/2 - 0.01, 0.015, 0); // Tail end
+    carGroup.add(chamber);
+
+    // C. Sidepods (Boxes)
+    const podLen = carLen * 0.4;
+    const podGeo = new THREE.BoxGeometry(podLen, 0.025, carWidth * 0.25);
+    
+    const podLeft = new THREE.Mesh(podGeo, material);
+    podLeft.position.set(0, 0, carWidth/3.5);
+    carGroup.add(podLeft);
+    
+    const podRight = new THREE.Mesh(podGeo, material);
+    podRight.position.set(0, 0, -carWidth/3.5);
+    carGroup.add(podRight);
+
+    // D. Front Wing (Wide, thin) - At Negative X (Nose)
+    const fwGeo = new THREE.BoxGeometry(0.03, 0.005, fwSpan);
+    const fw = new THREE.Mesh(fwGeo, material);
+    fw.position.set(-carLen/2 + 0.015, -0.015, 0); // Nose end
+    carGroup.add(fw);
+
+    // E. Rear Wing (High, wide) - At Positive X (Tail)
+    const rwGeo = new THREE.BoxGeometry(0.03, 0.005, rwSpan);
+    const rw = new THREE.Mesh(rwGeo, material);
+    rw.position.set(carLen/2 - 0.015, 0.045, 0); // Tail end, raised
+    carGroup.add(rw);
+
+    // F. Wheels (4x Cylinders)
+    const wheelRad = 0.016; 
+    const wheelThick = 0.015;
+    const wheelGeo = new THREE.CylinderGeometry(wheelRad, wheelRad, wheelThick, 16);
+    wheelGeo.rotateX(Math.PI / 2); // Rolling direction
+
+    // Front Wheels (Near Nose / -X)
+    const wheelFL = new THREE.Mesh(wheelGeo, material);
+    wheelFL.position.set(-carLen/2 + 0.05, 0, carWidth/2);
+    carGroup.add(wheelFL);
+
+    const wheelFR = new THREE.Mesh(wheelGeo, material);
+    wheelFR.position.set(-carLen/2 + 0.05, 0, -carWidth/2);
+    carGroup.add(wheelFR);
+
+    // Rear Wheels (Near Tail / +X)
+    const wheelRL = new THREE.Mesh(wheelGeo, material);
+    wheelRL.position.set(carLen/2 - 0.05, 0, carWidth/2);
+    carGroup.add(wheelRL);
+
+    const wheelRR = new THREE.Mesh(wheelGeo, material);
+    wheelRR.position.set(carLen/2 - 0.05, 0, -carWidth/2);
+    carGroup.add(wheelRR);
+
+    // Lift car so wheels touch grid
+    carGroup.position.set(0, wheelRad, 0);
+    scene.add(carGroup);
+
+
+    // 3. Flow Particles
     const pGeo = new THREE.BufferGeometry();
     const pos = new Float32Array(particleCount * 3);
-    for(let i=0; i<particleCount * 3; i++) pos[i] = (Math.random() - 0.5) * 2;
+    for(let i=0; i<particleCount * 3; i+=3) {
+        pos[i] = (Math.random() - 0.5) * 0.6; // Spread along X
+        pos[i+1] = (Math.random()) * 0.2; // Height
+        pos[i+2] = (Math.random() - 0.5) * 0.3; // Width
+    }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     
     const pMat = new THREE.PointsMaterial({
         color: 0x4ADE80, // Green for "Neural" data
-        size: 0.005,
+        size: 0.002,
         transparent: true,
         opacity: 0.6,
         blending: THREE.AdditiveBlending
     });
     const particleSystem = new THREE.Points(pGeo, pMat);
-    particleSystem.visible = false; // Hidden by default
+    particleSystem.visible = false;
     scene.add(particleSystem);
     particlesRef.current = particleSystem;
 
@@ -154,6 +231,11 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
         window.removeEventListener('resize', handleResize);
         cancelAnimationFrame(frameIdRef.current);
         renderer.dispose();
+        // Geometry cleanup
+        bodyGeo.dispose(); chamberGeo.dispose(); podGeo.dispose();
+        fwGeo.dispose(); rwGeo.dispose(); wheelGeo.dispose();
+        pGeo.dispose();
+        
         if (mountRef.current) mountRef.current.innerHTML = '';
     };
   }, [parameters]);
@@ -166,7 +248,7 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
           carMaterialRef.current.uniforms.color.value.setHex(0x00BFFF); // Blue
           particlesRef.current.visible = false;
       } else if (visMode === 'neural-flow') {
-          carMaterialRef.current.uniforms.color.value.setHex(0x222222); // Dim car
+          carMaterialRef.current.uniforms.color.value.setHex(0x333333); // Dim car
           particlesRef.current.visible = true;
       } else if (visMode === 'scan') {
           carMaterialRef.current.uniforms.color.value.setHex(0xFF00FF); // Magenta scan
@@ -185,12 +267,14 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
       if (particlesRef.current && particlesRef.current.visible) {
           const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
           for(let i=0; i<particleCount; i++) {
-              // Simple flow simulation
-              positions[i*3] += 0.01; // X movement
-              if(positions[i*3] > 1) positions[i*3] = -1;
+              const idx = i*3;
+              // Flow moves +X (Left to Right)
+              positions[idx] += 0.008; 
+              // Reset if too far right
+              if(positions[idx] > 0.3) positions[idx] = -0.3;
               
-              // Wiggle
-              positions[i*3+1] += Math.sin(time + positions[i*3]*10) * 0.002;
+              // Slight turbulence wiggle
+              positions[idx+1] += Math.sin(time*5 + positions[idx]*10) * 0.0002;
           }
           particlesRef.current.geometry.attributes.position.needsUpdate = true;
       }
@@ -250,6 +334,11 @@ const FlowFieldVisualizer: React.FC<FlowFieldVisualizerProps> = ({ flowFieldData
                     <LayersIcon className="w-5 h-5 mb-1"/>
                     <span className="text-[9px] font-bold uppercase tracking-wider">Deep Scan</span>
                 </button>
+            </div>
+            
+            <div className="absolute bottom-4 right-6 text-[9px] text-brand-text-secondary/50 font-mono text-right">
+                <p>HOLOGRAPHIC RECONSTRUCTION</p>
+                <p>FROM SCAN DATA PARAMS</p>
             </div>
         </div>
     </div>

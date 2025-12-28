@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { SkullIcon } from './icons';
 
 interface Props {
@@ -14,18 +14,11 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-class ErrorBoundary extends React.Component<Props, State> {
-  // FIX: Switched from class properties to a constructor for state initialization and explicit method binding.
-  // This approach is more compatible with older build configurations that may not fully support
-  // class property syntax, addressing the 'property does not exist' errors.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
-    this.handleRetry = this.handleRetry.bind(this);
-  }
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
   static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
@@ -40,7 +33,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   /**
    * Resets the error state to allow the user to try again.
    */
-  handleRetry() {
+  handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
     window.location.reload();

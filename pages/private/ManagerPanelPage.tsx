@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import { UserRole, TaskStatus, SponsorTier, User, NewsPost, CarHighlight, CompetitionProgressItem, Protocol, Task } from '../../types';
-import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, WindIcon } from '../../components/icons';
+import { UsersIcon, DollarSignIcon, ClipboardListIcon, TrophyIcon, Settings2Icon, PieChartIcon, PlusCircleIcon, DownloadIcon, UploadIcon, NewspaperIcon, FlagIcon, FileCheckIcon, TrashIcon, BarChartIcon, AlertTriangleIcon, WindIcon, HistoryIcon } from '../../components/icons';
 import Modal from '../../components/shared/Modal';
 
 // --- EDIT TASK MODAL ---
@@ -91,12 +91,27 @@ const UserManagement: React.FC = () => {
         if (success) {
             setNewUser({ name: '', email: '', role: UserRole.DesignEngineer });
         }
-    }
+    };
+    
+    const handleResetAllBounties = () => {
+        if (window.confirm("WARNING: This will reset the bounty for ALL users to 0. This action cannot be undone. Are you sure you want to proceed?")) {
+            setUsers(prevUsers => prevUsers.map(u => ({ ...u, bounty: 0 })));
+        }
+    };
 
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-xl font-bold text-brand-text mb-4">Manage Team Members</h3>
+                 <div className="flex justify-between items-center mb-4">
+                     <h3 className="text-xl font-bold text-brand-text">Manage Team Members</h3>
+                     <button 
+                        onClick={handleResetAllBounties}
+                        className="flex items-center gap-2 bg-red-500/20 text-red-400 font-bold py-2 px-4 rounded-lg hover:bg-red-500/30 text-sm"
+                     >
+                        <HistoryIcon className="w-4 h-4" />
+                        Reset All Bounties
+                     </button>
+                </div>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                     {users.map(user => (
                         <div key={user.id} className="p-3 bg-brand-dark rounded-lg flex flex-col md:flex-row justify-between items-center gap-2 border border-brand-border">
