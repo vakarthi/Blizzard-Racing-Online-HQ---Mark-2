@@ -21,6 +21,7 @@ import CommandPalette from '../components/hq/CommandPalette';
 import PortalEditorPage from './private/PortalEditorPage';
 import LeadsPage from './private/LeadsPage';
 import NotificationManager from '../components/hq/NotificationManager';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface NavItem {
   path: string;
@@ -83,19 +84,13 @@ const HqLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, logout } = useAuth();
   const { announcement, teamLogoUrl, syncStatus } = useAppState();
   const { punkRecords } = useData();
+  const { gear5Mode } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
-  const [gear5Mode, setGear5Mode] = useState(false);
 
   // Bedtime Protocol: Check for 10 PM logout only
   useInactivityTimeout(logout);
-
-  // Trigger Gear 5
-  useKonamiCode(() => {
-      setGear5Mode(prev => !prev);
-      console.log("JOYBOY HAS RETURNED!");
-  });
 
   useEffect(() => {
     setIsMac(/Mac/i.test(navigator.platform));

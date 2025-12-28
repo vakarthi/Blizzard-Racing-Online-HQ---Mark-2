@@ -6,11 +6,23 @@ const nextFrame = () => new Promise(resolve => setTimeout(resolve, 0));
 
 type ProgressCallback = (update: { stage: string; progress: number; log?: string }) => void;
 
+// Helper to decode Base64 back to ArrayBuffer for the solver
+const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
+    const binary_string = window.atob(base64);
+    const len = binary_string.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+};
+
 // --- PHYSICS CONSTANTS ---
 const AIR_DENSITY = 1.225;
 const VISCOSITY = 1.81e-5;
-const CO2_MASS_KG = 0.008; 
-const CANISTER_EMPTY_TIME = 0.45; // seconds (conservative discharge time)
+// Real World F1S Specs
+const CARTRIDGE_MASS_KG = 0.032; // Full 8g canister (Cartridge + Gas)
+const MIN_TOTAL_MASS_KG = 0.050; // 50g minimum rule
 
 // --- 1. GEOMETRY DISCRETIZATION (VOXELIZATION) ---
 const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: number, bounds: {minX:number, maxX:number, minY:number, maxY:number, minZ:number, maxZ:number}): Float32Array => {
@@ -18,7 +30,7 @@ const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: 
     const grid = new Float32Array(width * height * depth).fill(0);
     
     const data = new DataView(buffer);
-    const isBinary = data.getUint32(80, true) > 0;
+    const isBinary = data.byteLength > 84 && data.getUint32(80, true) > 0;
     
     if (!isBinary) return grid;
 
@@ -29,13 +41,9 @@ const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: 
 
     let offset = 84;
     for (let i = 0; i < count; i++) {
-        // Read triangle vertices
-        // Normal (12 bytes) - skip
-        offset += 12; 
+        offset += 12; // Skip Normal
         const v1 = {x: data.getFloat32(offset, true), y: data.getFloat32(offset+4, true), z: data.getFloat32(offset+8, true)}; 
-        offset += 12;
-        // Skip v2/v3 for simple point cloud approx (Speed optimization)
-        // Ideally we rasterize triangles, but point sampling v1 is faster for JS and sufficient for high voxel counts
+        offset += 12; // Skip v2, v3 (Point Cloud approximation for speed)
         offset += 24; 
         offset += 2; // Attr
 
@@ -50,7 +58,7 @@ const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: 
     }
     
     // Dilate (Fill holes/gaps from point sampling)
-    // Simple 1-pass dilation
+    // Simple 1-pass dilation to create a "watertight-ish" boundary for the solver
     const dilated = new Float32Array(grid);
     const idx = (x:number, y:number, z:number) => x + y * width + z * width * height;
     
@@ -74,23 +82,26 @@ const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: 
 
 // --- 2. THE NEURAL KERNEL (Vegapunk AI) ---
 // Simulates an iterative genetic algorithm that attempts to optimize the drag coefficient
+// This mimics the "Unified Aerodynamic Equation Discovery" and "Auto-Improve Mode"
 const runNeuralOptimization = async (initialCd: number, params: DesignParameters, records: PunkRecordsState): Promise<NeuralCorrection> => {
     const epochs: OptimizationEpoch[] = [];
     let currentCd = initialCd;
-    const iterations = 5;
+    const iterations = 5; // Simulating 5 generational steps
     
-    // Base potential improvement on car class and current efficiency
-    // Improved by the "Accuracy Rating" of the Punk Records
+    // The "Intelligence" factor. Higher accuracy records = better optimization predictions.
     const accuracyMod = records.accuracyRating / 100;
-    // Realism limiter: It's hard to improve a 0.15 car, easier to improve a 0.40 car.
+    
+    // Base potential: Harder to improve already good cars (Cd < 0.15)
+    // Modeled as diminishing returns.
     const improvementPotential = Math.max(0.01, (initialCd - 0.11) * 0.3) * accuracyMod; 
 
     for(let i = 1; i <= iterations; i++) {
         await nextFrame();
-        // Simulate a "mutation"
-        const gain = improvementPotential * (Math.random() * 0.1 + 0.02); // Small incremental gains
+        // Genetic Mutation: Small gain based on potential
+        const gain = improvementPotential * (Math.random() * 0.1 + 0.02); 
         currentCd = currentCd * (1 - gain);
         
+        // Generate pseudo-scientific mutation names based on geometry
         const mutations = [];
         if (params.frontWingChord > 22) mutations.push('Front Wing Chord Reduction');
         if (params.rearWingHeight < 40) mutations.push('Rear Wing Clean Air Offset');
@@ -107,36 +118,36 @@ const runNeuralOptimization = async (initialCd: number, params: DesignParameters
         });
     }
 
-    const timeSave = (initialCd - currentCd) * 1.2; // Rough heuristic s/Cd
+    const timeSave = (initialCd - currentCd) * 1.2; // Crude approximation of time delta
 
     return {
         originalCd: initialCd,
         optimizedCd: currentCd,
         potentialTimeSave: timeSave,
-        confidence: records.accuracyRating, // Use the real accuracy from the brain
+        confidence: records.accuracyRating, 
         evolutionPath: epochs,
         suggestion: `Optimization complete via ${records.generationName} Logic. Suggested ${(timeSave * 1000).toFixed(0)}ms gain possible.`,
         appliedFormula: records.currentMasterFormula
     };
 };
 
-// --- 3. FINITE VOLUME SOLVER ---
+// --- 3. FINITE VOLUME SOLVER (Voxel-Based RANS Approximation) ---
 class VoxelSolver {
     private width: number;
     private height: number;
     private depth: number;
-    private u: Float32Array; // Velocity X
-    private v: Float32Array; // Velocity Y
-    private w: Float32Array; // Velocity Z
-    private p: Float32Array; // Pressure
-    private solid: Float32Array; // Solid mask
+    private u: Float32Array; 
+    private v: Float32Array; 
+    private w: Float32Array; 
+    private p: Float32Array; 
+    private solid: Float32Array; 
     
     constructor(width: number, height: number, depth: number) {
         this.width = width;
         this.height = height;
         this.depth = depth;
         const size = width * height * depth;
-        this.u = new Float32Array(size).fill(20.0); 
+        this.u = new Float32Array(size).fill(20.0); // Inlet velocity 20m/s
         this.v = new Float32Array(size).fill(0);
         this.w = new Float32Array(size).fill(0);
         this.p = new Float32Array(size).fill(0);
@@ -156,7 +167,8 @@ class VoxelSolver {
         const idx = (x:number, y:number, z:number) => x + y * this.width + z * this.width * this.height;
         let maxResidual = 0;
 
-        // Visual Flow Propagation (Simplified relaxation for UI feedback)
+        // Visual Flow Propagation (Simplified relaxation for UI feedback and UFT+V estimation)
+        // This is not a full Navier-Stokes solve, but a potential flow approximation for visual/estimation purposes.
         for (let z = 1; z < this.depth - 1; z++) {
             for (let y = 1; y < this.height - 1; y++) {
                 for (let x = 1; x < this.width - 1; x++) {
@@ -164,16 +176,16 @@ class VoxelSolver {
                     const oldU = this.u[i];
                     
                     if (this.solid[i] === 1) {
-                        this.u[i] = 0; this.v[i] = 0; this.w[i] = 0; 
-                        // Stagnation pressure buildup
+                        this.u[i] = 0; 
+                        // Stagnation pressure buildup at surface
                         if (this.p[i] < 1.0) this.p[i] += 0.05; 
                     } else {
                         // Advection / Diffusion proxy
                         const neighborU = this.u[idx(x-1, y, z)];
-                        const newU = oldU * 0.9 + neighborU * 0.1; // Smooth flow
+                        const newU = oldU * 0.9 + neighborU * 0.1; 
                         this.u[i] = newU;
                         
-                        // Pressure follows velocity inverse (Bernoulli-ish)
+                        // Bernoulli: High speed = Low pressure
                         this.p[i] = 1.0 - (newU / 25.0);
 
                         const diff = Math.abs(newU - oldU);
@@ -190,12 +202,10 @@ class VoxelSolver {
         let surfaceVoxels = 0;
         let separationScore = 0;
 
-        // 1. Projected Frontal Area (Y-Z plane)
         const frontalProjection = new Uint8Array(this.height * this.depth).fill(0);
         const idx = (x:number, y:number, z:number) => x + y * this.width + z * this.width * this.height;
 
-        // 2. Streamwise Area Distribution (for Form Drag / Separation)
-        const areaDistribution = new Float32Array(this.width).fill(0);
+        const rawAreaDistribution = new Float32Array(this.width).fill(0);
 
         for (let x = 0; x < this.width; x++) {
             let sliceCount = 0;
@@ -204,7 +214,6 @@ class VoxelSolver {
                     const i = idx(x, y, z);
                     if (this.solid[i] === 1) {
                         sliceCount++;
-                        // Project to frontal plane
                         frontalProjection[y + z * this.height] = 1;
 
                         // Wetted Surface Calculation (check 6 neighbors)
@@ -220,20 +229,52 @@ class VoxelSolver {
                     }
                 }
             }
-            areaDistribution[x] = sliceCount;
+            rawAreaDistribution[x] = sliceCount;
         }
 
-        // Sum frontal projection
         frontalVoxels = frontalProjection.reduce((a, b) => a + b, 0);
 
-        // Analyze Gradient for Separation (Bluff body detection)
-        // High negative gradient = steep drop off = separation = high pressure drag
+        // MARK 2 UPDATE: Adaptive Smoothing (UFT+V Geometry Tensor)
+        // High-res voxel grids (Accuracy Mode) create high-frequency noise ("staircasing") in the area distribution.
+        // This noise triggers false separation penalties. We apply a smoothing kernel proportional to grid density.
+        const smoothingWindow = this.width > 60 ? 5 : 3;
+        const areaDistribution = new Float32Array(this.width);
+        
+        for(let x=0; x<this.width; x++) {
+            let sum = 0;
+            let count = 0;
+            for(let k = -Math.floor(smoothingWindow/2); k <= Math.floor(smoothingWindow/2); k++) {
+                const neighbor = x + k;
+                if(neighbor >= 0 && neighbor < this.width) {
+                    sum += rawAreaDistribution[neighbor];
+                    count++;
+                }
+            }
+            areaDistribution[x] = sum / count;
+        }
+
+        let maxArea = 0;
+        for(let x=0; x<this.width; x++) if(areaDistribution[x] > maxArea) maxArea = areaDistribution[x];
+
+        // Gradient Analysis for Separation
         for (let x = 1; x < this.width; x++) {
             const delta = areaDistribution[x] - areaDistribution[x-1];
-            // Expansion (nose) adds some pressure
-            if (delta > 0) separationScore += delta * 0.1;
-            // Contraction (tail) adds more drag if sharp
-            if (delta < 0) separationScore += Math.abs(delta) * 0.5;
+            
+            if (delta > 0) {
+                // Expansion (ok)
+                separationScore += delta * 0.05; 
+            } else if (delta < 0) {
+                // Contraction
+                const drop = Math.abs(delta);
+                // If area drops too sharply (>5% of max per step), flow likely separates
+                const isSteep = drop > (maxArea * 0.05); 
+                
+                if (isSteep) {
+                    separationScore += drop * 0.8; // Separation penalty
+                } else {
+                    separationScore += drop * 0.02; // Friction penalty only
+                }
+            }
         }
 
         return { frontalVoxels, surfaceVoxels, separationScore };
@@ -241,7 +282,8 @@ class VoxelSolver {
 
     public getField(): FlowFieldPoint[] {
         const points: FlowFieldPoint[] = [];
-        const step = Math.max(1, Math.floor(this.width / 20)); // Adaptive step
+        // Adaptive subsampling for visualization
+        const step = Math.max(1, Math.floor(this.width / 20)); 
         const idx = (x:number, y:number, z:number) => x + y * this.width + z * this.width * this.height;
 
         for (let z = 0; z < this.depth; z+=step) {
@@ -277,53 +319,50 @@ const _runEmpiricalSim = async (
     cb({ stage: 'Physics Integration', progress: 98, log: 'Running temporal integration (dt=0.001s)...' });
     await nextFrame();
 
-    // Standard CO2 Thrust Curve (approximate)
-    // 8g cartridge provided approx 15-20N peak thrust depending on temperature
     const runSim = (massFactor: number, thrustFactor: number, frictionMu: number) => {
         let t = 0;
         let v = 0;
         let x = 0;
-        const dt = 0.001; // 1ms time step
+        const dt = 0.001; 
         
-        // MARK 2 PHYSICS CALIBRATION: "The 1-Second Adjuster"
-        // Previous models resulted in unphysically fast times (0.4s) due to missing inertial mass and ideal thrust.
-        // F1 in Schools cars are ~55g empty, but carry ~32g CO2 + Rotational Inertia of wheels.
-        const CARTRIDGE_MASS_KG = 0.032;
-        const ROTATIONAL_INERTIA = 1.1; // 10% adder for wheel inertia
-        const effectiveMass = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
+        // MARK 2 PHYSICS CALIBRATION: Inertial Mass & Rotational Energy
+        // Wheels store rotational energy. Effective mass is higher than static mass.
+        // F1S Approximation: Rotational Inertia adds ~5-10% to effective mass for linear acceleration calc.
+        const ROTATIONAL_INERTIA = 1.05; 
+        const totalMassKg = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
 
-        // Thrust Calibration:
-        // Theoretical max thrust (15N) produces sub-0.5s times.
-        // We apply a calibration factor to account for nozzle losses, real-world net force, and line drag.
-        // Scaling down to ~0.25 effective thrust yields ~1.3s-1.4s times, aligning with the user request.
-        const THRUST_CALIBRATION = 0.25;
+        // MARK 2 THRUST CALIBRATION
+        // CO2 Impulse is explosive (high peak, fast drop).
+        // Tuned scalar to align with ~1.05s - 1.10s world class times.
+        // 8g cartridge peak ~35N, average ~4-5N over 1s roughly.
+        const THRUST_SCALAR = 0.65; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;
-            // Ramp up
-            if (time < 0.05) return 15 * (time / 0.05) * thrustFactor * THRUST_CALIBRATION;
-            // Peak plateau
-            if (time < 0.15) return 15 * thrustFactor * THRUST_CALIBRATION;
-            // Decay curve
-            if (time < 0.5) return Math.max(0, 15 - (30 * (time - 0.15))) * thrustFactor * THRUST_CALIBRATION;
-            return 0; // Empty
+            // Phase 1: Explosion (0 - 0.05s) - Rapid rise to peak
+            if (time < 0.05) return 45 * (time / 0.05) * thrustFactor * THRUST_SCALAR;
+            // Phase 2: Sustain (0.05 - 0.1s) - Hold peak
+            if (time < 0.1) return 45 * thrustFactor * THRUST_SCALAR;
+            // Phase 3: Blowdown (0.1s - 0.6s) - Exponential decay as gas evacuates
+            if (time < 0.6) {
+                const decay = (time - 0.1) / 0.5;
+                return 45 * Math.exp(-3 * decay) * thrustFactor * THRUST_SCALAR;
+            }
+            return 0;
         };
-
-        const samples: MonteCarloPoint[] = [];
 
         while (x < 20 && t < 5.0) {
             const thrust = getThrust(t);
             const aeroDrag = 0.5 * AIR_DENSITY * frontalArea * cd * v * v;
-            const aeroLift = 0.5 * AIR_DENSITY * frontalArea * cl * v * v; // Cl defined as Lift (up). Downforce is negative.
+            const aeroLift = 0.5 * AIR_DENSITY * frontalArea * cl * v * v; 
             
-            // F_f = mu * N. 
-            // Normal Force N = Weight - Lift. (If Lift is negative (downforce), N increases).
-            // N must be >= 0.
-            const normalForce = Math.max(0, (effectiveMass * 9.81) - aeroLift); 
+            // F_f = mu * N
+            // Lift reduces Normal force (unless it's downforce/negative lift)
+            const normalForce = Math.max(0, (totalMassKg * 9.81) - aeroLift); 
             const friction = normalForce * frictionMu;
             
             const netForce = thrust - aeroDrag - friction;
-            const acceleration = netForce / effectiveMass;
+            const acceleration = netForce / totalMassKg;
             
             v += acceleration * dt;
             if (v < 0) v = 0;
@@ -334,18 +373,14 @@ const _runEmpiricalSim = async (
         return { time: t, finishSpeed: v };
     };
 
-    // Baseline Run
-    const baseline = runSim(1.0, 1.0, 0.015); 
-    
-    // Monte Carlo Analysis
     const iterations = isPremium ? 200 : 20;
     const results = [];
     
     for(let i=0; i<iterations; i++) {
-        // Apply stochastic variations to mass, thrust, and friction
-        const mF = 1.0 + (Math.random() - 0.5) * 0.01; // +/- 0.5% mass error
-        const tF = 1.0 + (Math.random() - 0.5) * 0.04; // +/- 2% thrust var
-        const mu = 0.015 + (Math.random() - 0.5) * 0.004; // +/- friction var
+        // Monte Carlo variations
+        const mF = 1.0 + (Math.random() - 0.5) * 0.01; 
+        const tF = 1.0 + (Math.random() - 0.5) * 0.04; 
+        const mu = 0.015 + (Math.random() - 0.5) * 0.004; 
         
         results.push(runSim(mF, tF, mu));
     }
@@ -364,17 +399,13 @@ const _runEmpiricalSim = async (
         bestFinishLineSpeed: Math.max(...speeds),
         worstFinishLineSpeed: Math.min(...speeds),
         averageFinishLineSpeed: avgSpeed,
-        
-        // Simulating start speed metrics (usually 5m split or similar, here we just use finish for simplicity in this model or 0)
         bestStartSpeed: 0, 
         worstStartSpeed: 0,
         averageStartSpeed: 0,
-        
         bestAverageSpeed: 20 / Math.min(...times),
         worstAverageSpeed: 20 / Math.max(...times),
         averageSpeed: 20 / avgTime,
-        
-        sampledPoints: results.map(r => ({ time: r.time, startSpeed: r.finishSpeed })), // Mapping startSpeed prop to finishSpeed for visualization compatibility
+        sampledPoints: results.map(r => ({ time: r.time, startSpeed: r.finishSpeed })),
         trustIndex: Math.min(100, 85 + (accuracyRating * 0.15)),
         isPhysical: true
     };
@@ -383,9 +414,7 @@ const _runEmpiricalSim = async (
 // --- EXPORTED FUNCTIONS ---
 
 const runFVM = async (params: DesignParameters, cb: ProgressCallback, carClass: CarClass, resolution: number, records: PunkRecordsState): Promise<Omit<AeroResult, 'id' | 'fileName'>> => {
-    // LOGIC INVERSION:
-    // If Complexity is HIGH (100), simulation is SLOW.
-    // If Complexity is LOW (1), simulation is INSTANT.
+    // Artificial delay based on "Complexity" to mimic deep thought
     const complexityDelay = Math.floor(records.complexityScore * 1.0); 
     
     cb({ stage: 'Punk Records Sync', progress: 0, log: `Applying Gen-${records.solverGeneration} Logic: ${records.currentMasterFormula.substring(0, 30)}...` });
@@ -394,51 +423,46 @@ const runFVM = async (params: DesignParameters, cb: ProgressCallback, carClass: 
     const w = resolution, h = Math.floor(resolution/2), d = Math.floor(resolution/2);
     const solver = new VoxelSolver(w, h, d);
     
-    if (params.rawBuffer) {
-        cb({ stage: 'Voxelization', progress: 5, log: 'Mapping Geometry to Scalar Field...' });
-        await solver.initialize(params.rawBuffer);
+    if (params.rawModelData) {
+        cb({ stage: 'Voxelization', progress: 5, log: `Mapping Geometry (${resolution}x${h}x${d})...` });
+        const buffer = base64ToArrayBuffer(params.rawModelData);
+        await solver.initialize(buffer);
     }
 
-    // Geometry Analysis (The Real Physics Engine)
     const geoStats = solver.analyzeGeometry();
     
-    // Scale factors based on resolution to normalize results
-    // Higher resolution = more voxels, need to scale down contributions
-    const volumeScale = 80 / resolution; // Reference resolution 80
-    const areaScale = volumeScale * volumeScale;
-
-    // Physical Constants Calibration
-    // Tuned to give reasonable F1 in Schools values (Cd 0.1 - 0.5)
-    // Cd = Friction + Form + Separation
-    const kFriction = 0.00008 / areaScale; 
-    const kForm = 0.00015 / areaScale;
-    const kSep = 0.00025 / areaScale;
-
-    const cdFriction = geoStats.surfaceVoxels * kFriction;
-    const cdForm = geoStats.frontalVoxels * kForm;
-    const cdSep = geoStats.separationScore * kSep;
-
-    let calculatedCd = 0.08 + cdFriction + cdForm + cdSep; // 0.08 base parasitic drag
+    const frontalVoxels = Math.max(1, geoStats.frontalVoxels); 
     
-    // Lift Logic: Very rough approximation based on surface area distribution
-    const calculatedCl = (geoStats.frontalVoxels * 0.0001) - (geoStats.surfaceVoxels * 0.00005);
+    // MARK 2 CALIBRATION: Manhattan Factor
+    // Voxel representations inherently overestimate surface area compared to smooth CAD.
+    // The Manhattan Factor normalizes this so high-res meshes don't artificially increase skin friction.
+    const MANHATTAN_FACTOR = 1.7; 
+    const ratioWet = (geoStats.surfaceVoxels / frontalVoxels) / MANHATTAN_FACTOR;
+    const ratioSep = geoStats.separationScore / frontalVoxels;
 
-    // Sanity Clamps
-    calculatedCd = Math.max(0.11, Math.min(0.85, calculatedCd));
+    // Physical Constants
+    const BaseCd = 0.04; 
+    const kSkin = 0.006; 
+    const kSep = 1.15; 
 
-    const baseIterations = 60;
+    // UFT+V Derived Cd
+    let calculatedCd = BaseCd + (ratioWet * kSkin) + (ratioSep * kSep);
+    
+    // Lift Estimate
+    const calculatedCl = (geoStats.frontalVoxels * 0.0001 / (resolution/40)) - (geoStats.surfaceVoxels * 0.00005 / (resolution/40));
+
+    // Clamps
+    calculatedCd = Math.max(0.11, Math.min(0.95, calculatedCd));
+
+    const baseIterations = resolution > 60 ? 100 : 60;
     const residualHistory: ResidualData[] = [];
     
-    // Run the solver loop for visual field generation
     for(let i=0; i<baseIterations; i++) {
         const error = solver.step();
         
-        // Use complexity to determine artificial delay (Simulating heavy formula parsing)
-        if (complexityDelay > 0 && i % 5 === 0) {
-             await new Promise(r => setTimeout(r, complexityDelay));
-        } else if (i % 10 === 0) {
-             await nextFrame();
-        }
+        // Simulate computational effort
+        if (complexityDelay > 0 && i % 5 === 0) await new Promise(r => setTimeout(r, complexityDelay));
+        else if (i % 10 === 0) await nextFrame();
 
         const predictedConvergence = error / (1 + (records.solverGeneration * 0.1));
 
@@ -461,17 +485,16 @@ const runFVM = async (params: DesignParameters, cb: ProgressCallback, carClass: 
 
     const field = solver.getField();
     
-    // --- NEURAL OPTIMIZATION STEP ---
     cb({ stage: 'Combinatorial Synthesis', progress: 85, log: 'Compiling results...' });
+    // Run the Neural Kernel Optimization (AI "Dreaming" of better shapes)
     const aiCorrection = await runNeuralOptimization(calculatedCd, params, records);
     
     cb({ stage: 'Finalizing', progress: 95, log: 'Synthesizing Report...' });
     
-    // Calculate physical frontal area in m^2 for race sim
-    const gridFrontalArea = w * d; 
-    const frontalAreaRatio = geoStats.frontalVoxels / (h * d); 
-    // Dynamic calculation approx based on bounding box
-    const calculatedPhysicalFrontalArea = Math.max(0.0015, (params.totalWidth/1000) * (params.rearWingHeight/1000) * frontalAreaRatio * 1.5);
+    const domainWidthM = 0.3;
+    const voxelSize = domainWidthM / w;
+    const faceArea = voxelSize * voxelSize;
+    const calculatedPhysicalFrontalArea = geoStats.frontalVoxels * faceArea;
 
     const racePrediction = await _runEmpiricalSim(
         params, 
@@ -495,10 +518,10 @@ const runFVM = async (params: DesignParameters, cb: ProgressCallback, carClass: 
         cl: parseFloat(calculatedCl.toFixed(5)),
         liftToDragRatio: parseFloat((calculatedCl / calculatedCd).toFixed(4)),
         dragBreakdown: { 
-            pressure: Math.round((cdForm + cdSep) / calculatedCd * 100), 
-            skinFriction: Math.round(cdFriction / calculatedCd * 100) 
+            pressure: Math.round(((BaseCd + ratioSep * kSep) / calculatedCd) * 100), 
+            skinFriction: Math.round(((ratioWet * kSkin) / calculatedCd) * 100) 
         },
-        aeroBalance: 52.5, // Placeholder
+        aeroBalance: 52.5, // Approx for now
         flowAnalysis: `Generated via ${records.generationName} Logic Engine. Formula Complexity: ${records.complexityScore.toFixed(1)}.`,
         timestamp: new Date().toISOString(),
         meshQuality: 100,

@@ -64,8 +64,8 @@ export interface DesignParameters {
       featureIdentification: string;
       rotationLog?: string;
   };
-  // Pass the raw geometry buffer for the FVM voxelizer
-  rawBuffer?: ArrayBuffer;
+  // Pass the raw geometry as Base64 string for FVM/Visualizer (Persists in LocalStorage)
+  rawModelData?: string;
 }
 
 export interface ScrutineeringItem {
@@ -341,8 +341,8 @@ export interface PublicPortalContent {
   car: {
     title: string;
     subtitle: string;
-    carModelFbx?: string | null;
-    isCarModelBlurred?: boolean;
+    carModelFbx: string | null;
+    isCarModelBlurred: boolean;
   };
   competition: {
     title: string;

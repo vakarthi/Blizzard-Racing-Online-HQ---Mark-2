@@ -46,7 +46,7 @@ const Icicle: React.FC<IcicleProps> = ({ gear5Mode }) => {
         }
     }, [isOpen, isAiCoreMode]);
 
-    // Easter Egg Trigger
+    // Easter Egg Trigger via clicks (alternate to Konami code)
     const handleIconClick = () => {
         if (!gear5Mode) {
             setClickCount(prev => {

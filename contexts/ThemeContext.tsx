@@ -120,10 +120,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [gear5Mode, setGear5Mode] = useState(false);
   const [locationHash, setLocationHash] = useState(window.location.hash);
 
-  // Easter Egg Trigger
+  // Easter Egg Trigger - Konami Code
   useKonamiCode(() => {
     setGear5Mode(prev => !prev);
-    console.log("JOYBOY HAS RETURNED!");
+    // Visual and Audio feedback would ideally trigger here
+    console.log("%c JOYBOY HAS RETURNED! ", "background: #9333EA; color: #FFF; font-size: 20px; font-weight: bold; border-radius: 5px; padding: 10px;");
   });
   
   const applyTheme = useCallback((themeToApply: Theme) => {
