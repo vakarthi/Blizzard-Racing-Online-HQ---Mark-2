@@ -414,4 +414,4 @@ export interface PunkRecordsState {
     accuracyRating: number; // 50% = Guess, 100% = Truth. Affects simulation QUALITY.
 }
 
-export type SyncStatus = 'OFFLINE' | 'CONNECTING' | 'SYNCED' | 'ERROR' | 'CONFLICT';
+export type SyncStatus = 'OFFLINE' | 'CONNECTING' | 'SYNCED' | 'ERROR' | 'CONFLICT' | 'SEARCHING' | 'HUB_ACTIVE';
