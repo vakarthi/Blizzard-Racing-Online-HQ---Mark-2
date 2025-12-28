@@ -35,20 +35,18 @@ export interface AppStore {
 }
 
 const STORAGE_KEY = 'brh-local-store';
-// The Sync ID is now a hardcoded constant for the entire application.
-const syncId: string = 'PONEGLYPH-BLIZZARD-HQ-MARK2';
+const BROADCAST_CHANNEL_NAME = 'punk_records_mesh_network';
 
 let store: AppStore;
 let syncStatus: SyncStatus = 'OFFLINE';
 let syncLog: string[] = [];
-let pollingInterval: number | null = null;
-let isPushing = false; // A lock to prevent concurrent pushes
+
+// BroadcastChannel allows simple communication between browsing contexts (tabs, windows, iframes) with the same origin.
+const meshChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
 
 const subscribers = new Set<(store: AppStore) => void>();
 const statusSubscribers = new Set<(status: SyncStatus) => void>();
 const logSubscribers = new Set<(log: string[]) => void>();
-
-const API_BASE = 'https://jsonblob.com/api/jsonBlob';
 
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZHRoPSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBhMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
 
@@ -86,7 +84,7 @@ const getInitialState = (): AppStore => {
             complexityScore: 100, 
             accuracyRating: 60.0 
         },
-        _version: 1, // Current app version. Used for migrations.
+        _version: 1, 
         _lastUpdatedBy: null,
     };
 
@@ -94,22 +92,14 @@ const getInitialState = (): AppStore => {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState) {
             let loadedState = JSON.parse(serializedState);
-
-            // Migration logic for bounty reset.
+            // Migration check
             if (!loadedState._version || loadedState._version < 1) {
-                if (loadedState.users && Array.isArray(loadedState.users)) {
-                    console.log("Migrating state to v1: Resetting all user bounties to 0.");
-                    loadedState.users.forEach((user: User) => {
-                        user.bounty = 0;
-                    });
-                }
                 loadedState._version = 1;
             }
-
             return { ...defaultState, ...loadedState };
         }
     } catch (e) {
-        console.error("Could not load state from localStorage, initializing with default.", e);
+        console.error("Failed to load state:", e);
     }
     return defaultState;
 };
@@ -122,14 +112,14 @@ const notifyStatusSubscribers = () => statusSubscribers.forEach(cb => cb(syncSta
 const notifyLogSubscribers = () => logSubscribers.forEach(cb => cb(syncLog));
 
 const addLog = (message: string) => {
-    syncLog = [`[${new Date().toLocaleTimeString()}] ${message}`, ...syncLog].slice(0, 20);
+    syncLog = [`[${new Date().toLocaleTimeString()}] ${message}`, ...syncLog].slice(0, 50);
     notifyLogSubscribers();
 }
 
 const setStatus = (newStatus: SyncStatus) => {
     if(syncStatus !== newStatus) {
         syncStatus = newStatus;
-        addLog(`Status changed to ${newStatus}`);
+        addLog(`Mesh Network Status: ${newStatus}`);
         notifyStatusSubscribers();
     }
 }
@@ -137,92 +127,50 @@ const setStatus = (newStatus: SyncStatus) => {
 const saveLocalState = (newState: AppStore) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-  } catch (e) { console.error("Failed to save state to localStorage:", e); }
+  } catch (e) { console.error("Failed to save state:", e); }
 };
 
-// --- Core Sync Logic ---
+// --- Broadcast Mesh Logic ---
 
-const _fetchRemoteState = async (): Promise<AppStore | null> => {
-    if (!syncId) return null;
-    try {
-        const res = await fetch(`${API_BASE}/${syncId}`);
-        if (!res.ok) throw new Error(`Network response was not ok: ${res.statusText}`);
-        return await res.json();
-    } catch (e) {
-        console.error("Fetch failed:", e);
-        setStatus('ERROR');
-        return null;
-    }
-};
-
-const _pushStateToCloud = async (stateToPush: AppStore) => {
-    if (!syncId || isPushing) return;
-    isPushing = true;
-    
-    try {
-        const remoteState = await _fetchRemoteState();
-        if (remoteState && remoteState._version > stateToPush._version - 1) {
-            addLog(`Conflict detected. Remote version (${remoteState._version}) > Local version (${stateToPush._version - 1}). Overwriting local.`);
+meshChannel.onmessage = (event) => {
+    if (event.data && event.data.type === 'SYNC_UPDATE') {
+        const remoteState = event.data.payload as AppStore;
+        
+        // Conflict Resolution Strategy: Highest Version Wins (LWW - Last Write Wins)
+        if (remoteState._version > store._version) {
             store = remoteState;
             saveLocalState(store);
             notifySubscribers();
-            setStatus('CONFLICT');
-            setTimeout(() => setStatus('SYNCED'), 2000);
-            isPushing = false;
-            return;
+            addLog(`Received update v${remoteState._version} from Mesh.`);
+        } else if (remoteState._version < store._version) {
+            // We have a newer version, broadcast it back to correct the sender
+            addLog(`Mesh peer has older version (v${remoteState._version}). Broadcasting v${store._version}.`);
+            meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
         }
-
-        const res = await fetch(`${API_BASE}/${syncId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-jsonblob': syncId },
-            body: JSON.stringify(stateToPush),
-        });
-
-        if (!res.ok) throw new Error(`Network response was not ok: ${res.statusText}`);
-        addLog(`Successfully pushed version ${stateToPush._version}.`);
-        setStatus('SYNCED');
-
-    } catch (e) {
-        console.error("Push failed:", e);
-        setStatus('ERROR');
-    } finally {
-        isPushing = false;
+    } else if (event.data && event.data.type === 'REQUEST_STATE') {
+        // A new tab opened and wants the current state
+        addLog('New Satellite requested state. Broadcasting...');
+        meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
     }
 };
 
-const pollForChanges = async () => {
-    const remoteState = await _fetchRemoteState();
-    if (remoteState && remoteState._version > store._version) {
-        addLog(`Pulled remote version ${remoteState._version}. Overwriting local version ${store._version}.`);
-        store = remoteState;
-        saveLocalState(store);
-        notifySubscribers();
-        setStatus('SYNCED');
-    }
+const broadcastUpdate = (newState: AppStore) => {
+    meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: newState });
+    setStatus('SYNCED');
 };
 
-const startSyncing = async () => {
-    if (pollingInterval) clearInterval(pollingInterval);
+const initialize = () => {
     setStatus('CONNECTING');
     
-    const remoteState = await _fetchRemoteState();
-    if (remoteState) {
-        if (remoteState._version > store._version) {
-            store = remoteState;
-        } else if (remoteState._version < store._version) {
-            await _pushStateToCloud(store);
-        }
+    // Simulate initial connection handshake
+    setTimeout(() => {
         setStatus('SYNCED');
-    } else {
-        await _pushStateToCloud(store);
-    }
-    
-    saveLocalState(store);
-    notifySubscribers();
-
-    pollingInterval = window.setInterval(pollForChanges, 10000);
+        addLog('Connected to Punk Records Mesh Network.');
+        
+        // Ask for latest state from network on startup (in case other tabs have newer data)
+        meshChannel.postMessage({ type: 'REQUEST_STATE' });
+    }, 500);
 };
-
 
 // --- Service Interface ---
 
@@ -230,7 +178,7 @@ export const stateSyncService = {
   getStore: (): AppStore => store,
   getSyncStatus: () => syncStatus,
   getSyncLog: () => syncLog,
-  getSyncId: () => syncId,
+  getSyncId: () => 'LOCAL-MESH-NET',
 
   subscribe: (callback: (store: AppStore) => void): () => void => {
     subscribers.add(callback);
@@ -252,6 +200,7 @@ export const stateSyncService = {
   updateStore: (updater: (currentStore: AppStore) => AppStore, updatedBy?: {userId: string, userName: string}) => {
     const newState = updater(store);
     
+    // Version increment for conflict resolution
     newState._version = (store._version || 0) + 1;
     if (updatedBy) {
         newState._lastUpdatedBy = updatedBy;
@@ -261,13 +210,12 @@ export const stateSyncService = {
     saveLocalState(newState);
     notifySubscribers(); 
     
-    _pushStateToCloud(newState);
+    // Broadcast change to other tabs/windows immediately
+    broadcastUpdate(newState);
   },
   
-  initialize: () => {
-      startSyncing();
-  }
+  initialize
 };
 
-// Always initialize sync on load.
+// Initialize on load
 stateSyncService.initialize();
