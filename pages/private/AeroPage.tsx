@@ -563,7 +563,7 @@ const AeroPage: React.FC = () => {
   const { gear5Mode } = useTheme();
   const [activeTab, setActiveTab] = useState<'setup' | 'results' | 'quicksim' | 'comparison' | 'history' | 'theory'>('setup');
   const [selectedResultId, setSelectedResultId] = useState<string | null>(aeroResults[0]?.id || null);
-  const [stlFiles, setStlFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [mode, setMode] = useState<'speed' | 'accuracy'>('accuracy');
   const [carClass, setCarClass] = useLocalStorage<CarClass>('aero-pref-class', 'Professional');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -579,7 +579,7 @@ const AeroPage: React.FC = () => {
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files) {
           const newFiles = Array.from(e.target.files);
-          setStlFiles(prev => {
+          setFiles(prev => {
               const combined = [...prev, ...newFiles];
               const unique = combined.filter((file, index, self) => 
                   index === self.findIndex((t) => t.name === file.name)
@@ -591,15 +591,15 @@ const AeroPage: React.FC = () => {
   };
 
   const removeFile = (fileName: string) => {
-      setStlFiles(prev => prev.filter(f => f.name !== fileName));
+      setFiles(prev => prev.filter(f => f.name !== fileName));
   };
 
   const handleSimulate = async () => {
-    if (stlFiles.length === 0) return;
-    stlFiles.forEach(file => {
+    if (files.length === 0) return;
+    files.forEach(file => {
         runSimulationTask(file, mode, carClass);
     });
-    setStlFiles([]);
+    setFiles([]);
     setActiveTab('setup');
   };
 
@@ -672,20 +672,20 @@ const AeroPage: React.FC = () => {
                                     Drop Geometry Files
                                 </h3>
                                 <p className="text-brand-text-secondary text-xs text-center">
-                                    Supports .STL (Stereolithography).
+                                    Supports .STL and .FBX formats.
                                     <br/>Geometry will be voxelized for Neural Analysis.
                                 </p>
-                                <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".stl" multiple className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileSelection} accept=".stl,.fbx" multiple className="hidden" />
                           </div>
 
-                          {stlFiles.length > 0 && (
+                          {files.length > 0 && (
                               <div className="mt-4 bg-brand-dark rounded-xl border border-brand-border overflow-hidden">
                                   <div className="p-3 bg-brand-dark-secondary border-b border-brand-border flex justify-between items-center">
-                                      <span className="text-xs font-bold text-brand-text-secondary uppercase">Execution Queue ({stlFiles.length})</span>
-                                      <button onClick={() => setStlFiles([])} className="text-xs text-red-400 hover:underline">Clear All</button>
+                                      <span className="text-xs font-bold text-brand-text-secondary uppercase">Execution Queue ({files.length})</span>
+                                      <button onClick={() => setFiles([])} className="text-xs text-red-400 hover:underline">Clear All</button>
                                   </div>
                                   <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                                      {stlFiles.map((file, idx) => (
+                                      {files.map((file, idx) => (
                                           <div key={`${file.name}-${idx}`} className="flex justify-between items-center p-2 rounded hover:bg-brand-surface group">
                                               <div className="flex items-center gap-2 overflow-hidden">
                                                   <span className="text-xs font-mono text-brand-accent">{idx + 1}.</span>
@@ -720,7 +720,7 @@ const AeroPage: React.FC = () => {
                                 <div className="md:col-span-2 flex items-end">
                                     <button
                                         onClick={handleSimulate}
-                                        disabled={stlFiles.length === 0 || runningSimulations.length > 0}
+                                        disabled={files.length === 0 || runningSimulations.length > 0}
                                         className="w-full bg-brand-accent text-brand-dark font-black py-4 rounded-xl hover:bg-brand-accent-hover transition-all disabled:opacity-30 disabled:cursor-not-allowed text-lg shadow-glow-accent group relative overflow-hidden"
                                     >
                                         <div className="relative z-10 flex items-center justify-center">
@@ -729,7 +729,7 @@ const AeroPage: React.FC = () => {
                                             ) : (
                                                 <>
                                                     <WindIcon className="w-6 h-6 mr-3" /> 
-                                                    {stlFiles.length > 1 ? `ENGAGE BATCH SOLVER (${stlFiles.length})` : 'ENGAGE EGGHEAD KERNEL'}
+                                                    {files.length > 1 ? `ENGAGE BATCH SOLVER (${files.length})` : 'ENGAGE EGGHEAD KERNEL'}
                                                 </>
                                             )}
                                         </div>
