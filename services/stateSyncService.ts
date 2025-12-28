@@ -37,17 +37,23 @@ export interface AppStore {
 const STORAGE_KEY = 'brh-local-store';
 const BROADCAST_CHANNEL_NAME = 'punk_records_mesh_network';
 
+// Unique ID for this specific tab/window instance
+const INSTANCE_ID = `NODE-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
 let store: AppStore;
 let syncStatus: SyncStatus = 'OFFLINE';
 let syncLog: string[] = [];
 let currentUserRole: UserRole | null = null; 
 
-// Hub Heartbeat Logic
+// Hub Logic State
 let hubHeartbeatInterval: any = null;
+let hubBroadcastInterval: any = null;
 let hubWatchdogTimeout: any = null;
-const HEARTBEAT_INTERVAL_MS = 1000;
-// Increased timeout to 5000ms to handle background tab throttling
-const HUB_TIMEOUT_MS = 5000; 
+let currentHubSessionId: string | null = null;
+
+const HEARTBEAT_INTERVAL_MS = 1000; 
+const BROADCAST_INTERVAL_MS = 2000; 
+const HUB_TIMEOUT_MS = 4000; 
 
 // BroadcastChannel
 const meshChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
@@ -119,6 +125,10 @@ const notifyStatusSubscribers = () => statusSubscribers.forEach(cb => cb(syncSta
 const notifyLogSubscribers = () => logSubscribers.forEach(cb => cb(syncLog));
 
 const addLog = (message: string) => {
+    // Deduplicate repetitive logs
+    if (syncLog.length > 0 && syncLog[0].includes(message) && message.includes('Heartbeat')) {
+        return; 
+    }
     syncLog = [`[${new Date().toLocaleTimeString()}] ${message}`, ...syncLog].slice(0, 50);
     notifyLogSubscribers();
 }
@@ -140,71 +150,105 @@ const saveLocalState = (newState: AppStore) => {
 
 const startHubService = () => {
     if (hubHeartbeatInterval) clearInterval(hubHeartbeatInterval);
+    if (hubBroadcastInterval) clearInterval(hubBroadcastInterval);
+    
+    // Generate a unique session ID for this Hub instance
+    // This allows nodes to detect if the Hub restarted
+    currentHubSessionId = `HUB-${INSTANCE_ID}-${Date.now()}`;
     
     setStatus('HUB_ACTIVE');
-    addLog('Taking command. Initializing Central Hub Service...');
+    addLog(`Initializing Hub Session: ${currentHubSessionId}`);
     
-    // Broadcast immediately to wake up any nodes stuck in SEARCHING
-    meshChannel.postMessage({ type: 'HUB_HEARTBEAT', timestamp: Date.now(), hubId: 'MANAGER' });
-    
+    // 1. Heartbeat - Lightweight "I am here"
     hubHeartbeatInterval = setInterval(() => {
-        meshChannel.postMessage({ type: 'HUB_HEARTBEAT', timestamp: Date.now(), hubId: 'MANAGER' });
+        meshChannel.postMessage({ 
+            type: 'HUB_HEARTBEAT', 
+            timestamp: Date.now(), 
+            hubId: currentHubSessionId 
+        });
     }, HEARTBEAT_INTERVAL_MS);
+
+    // 2. Broadcast - Heavyweight "Here is the data" (Aggressive Sync)
+    hubBroadcastInterval = setInterval(() => {
+        meshChannel.postMessage({ 
+            type: 'SYNC_UPDATE', 
+            payload: store, 
+            hubId: currentHubSessionId,
+            isPeriodic: true 
+        });
+    }, BROADCAST_INTERVAL_MS);
+
+    // Initial announce
+    meshChannel.postMessage({ type: 'HUB_HEARTBEAT', timestamp: Date.now(), hubId: currentHubSessionId });
+    meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store, hubId: currentHubSessionId, isPeriodic: true });
 };
 
 const stopHubService = () => {
-    if (hubHeartbeatInterval) {
-        clearInterval(hubHeartbeatInterval);
-        hubHeartbeatInterval = null;
-    }
+    if (hubHeartbeatInterval) clearInterval(hubHeartbeatInterval);
+    if (hubBroadcastInterval) clearInterval(hubBroadcastInterval);
+    hubHeartbeatInterval = null;
+    hubBroadcastInterval = null;
+    currentHubSessionId = null;
+    
     setStatus('SEARCHING');
 };
 
-const resetWatchdog = () => {
-    if (currentUserRole === UserRole.Manager) return; // Managers don't watch themselves
+const resetWatchdog = (receivedHubId: string) => {
+    if (currentUserRole === UserRole.Manager) return;
 
     if (hubWatchdogTimeout) clearTimeout(hubWatchdogTimeout);
     
     if (syncStatus !== 'SYNCED') {
         setStatus('SYNCED'); 
-        addLog('Connection established to Manager Hub.');
+        addLog(`Connected to Manager: ${receivedHubId}`);
+        // If we just connected, ask for state
+        meshChannel.postMessage({ type: 'REQUEST_STATE', senderId: INSTANCE_ID });
     }
 
     hubWatchdogTimeout = setTimeout(() => {
         setStatus('SEARCHING');
-        // addLog('Lost connection to Manager Hub.'); // Reduce log spam
+        addLog('Manager signal lost. Scanning...');
     }, HUB_TIMEOUT_MS);
 };
 
 // --- Broadcast Mesh Logic ---
 
-meshChannel.onmessage = (event) => {
+meshChannel.addEventListener('message', (event) => {
     if (!event.data) return;
-    const { type, payload } = event.data;
+    const { type, payload, hubId } = event.data;
 
     // 1. Heartbeat Handling
     if (type === 'HUB_HEARTBEAT') {
-        resetWatchdog();
+        resetWatchdog(hubId || 'UNKNOWN');
         return;
     }
 
     // 2. Data Sync Handling
     if (type === 'SYNC_UPDATE') {
+        if (currentUserRole === UserRole.Manager) return;
+
         const remoteState = payload as AppStore;
-        if (remoteState._version > store._version || currentUserRole !== UserRole.Manager) {
+        
+        // Always trust the Hub's version of truth if we are a node
+        // Simple version check to avoid jitter
+        if (remoteState._version >= store._version) {
             store = remoteState;
             saveLocalState(store);
             notifySubscribers();
-            if (remoteState._version - store._version > 1) {
-                addLog(`Synced to Hub State v${remoteState._version}`);
-            }
+            // Reset watchdog here too, as a data packet implies a hub is present
+            resetWatchdog(hubId || 'UNKNOWN');
         }
     } 
     
     // 3. New Node Request
     else if (type === 'REQUEST_STATE') {
+        // Only the Manager responds to state requests
         if (currentUserRole === UserRole.Manager) {
-            meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
+            meshChannel.postMessage({ 
+                type: 'SYNC_UPDATE', 
+                payload: store,
+                hubId: currentHubSessionId 
+            });
         }
     } 
     
@@ -212,7 +256,6 @@ meshChannel.onmessage = (event) => {
     else if (type === 'BOUNTY_REQUEST') {
         if (currentUserRole === UserRole.Manager) {
             const { userId, amount } = payload;
-            addLog(`Received Bounty Request: ${amount} for ${userId}`);
             
             const updatedUsers = store.users.map(u => 
                 u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u
@@ -225,19 +268,24 @@ meshChannel.onmessage = (event) => {
             saveLocalState(store);
             notifySubscribers();
             
-            // Broadcast the result back to everyone
-            meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
+            // Broadcast immediately
+            meshChannel.postMessage({ 
+                type: 'SYNC_UPDATE', 
+                payload: store,
+                hubId: currentHubSessionId 
+            });
         }
     }
-};
+});
 
 const initialize = () => {
     // Default state: Searching for a Hub
     setStatus('SEARCHING');
+    addLog(`Node Started: ${INSTANCE_ID}`);
     
-    // Ask if anyone is out there
+    // Ping to see if anyone is there
     setTimeout(() => {
-        meshChannel.postMessage({ type: 'REQUEST_STATE' });
+        meshChannel.postMessage({ type: 'REQUEST_STATE', senderId: INSTANCE_ID });
     }, 500);
 };
 
@@ -247,20 +295,19 @@ export const stateSyncService = {
   getStore: (): AppStore => store,
   getSyncStatus: () => syncStatus,
   getSyncLog: () => syncLog,
-  getSyncId: () => 'LOCAL-MESH-NET',
+  getSyncId: () => INSTANCE_ID,
 
   setRole: (role: UserRole | null) => {
       const prevRole = currentUserRole;
       currentUserRole = role;
       
-      if (role === UserRole.Manager) {
-          if (prevRole !== UserRole.Manager) {
-              startHubService();
-              // Force an immediate sync push to ensure everyone has latest data
-              meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store });
-          }
-      } else {
-          if (prevRole === UserRole.Manager) stopHubService();
+      // If switching TO manager
+      if (role === UserRole.Manager && prevRole !== UserRole.Manager) {
+          startHubService();
+      } 
+      // If switching FROM manager
+      else if (role !== UserRole.Manager && prevRole === UserRole.Manager) {
+          stopHubService();
       }
   },
 
@@ -291,7 +338,12 @@ export const stateSyncService = {
     saveLocalState(newState);
     notifySubscribers(); 
     
-    meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: newState });
+    // Broadcast change
+    meshChannel.postMessage({ 
+        type: 'SYNC_UPDATE', 
+        payload: newState,
+        hubId: currentHubSessionId || 'LOCAL_UPDATE' 
+    });
   },
   
   // Specific Hub-Routed Action
@@ -304,9 +356,7 @@ export const stateSyncService = {
           }));
       } else {
           // I am a Node, transmit request
-          // We allow sending even if 'SEARCHING' to account for race conditions where heartbeat was just missed
-          meshChannel.postMessage({ type: 'BOUNTY_REQUEST', payload: { userId, amount } });
-          // addLog(`Transmitted bounty request (+${amount}) to Hub.`);
+          meshChannel.postMessage({ type: 'BOUNTY_REQUEST', payload: { userId, amount }, senderId: INSTANCE_ID });
       }
   },
   
