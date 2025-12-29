@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { SkullIcon } from './icons';
 
 interface Props {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -14,22 +14,18 @@ interface State {
  * ErrorBoundary component to catch JavaScript errors anywhere in their child component tree,
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
   };
 
-  constructor(props: Props) {
-    super(props);
-  }
-
-  static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to an error reporting service if needed
     console.error("Uncaught error:", error, errorInfo);
   }
@@ -37,13 +33,13 @@ class ErrorBoundary extends React.Component<Props, State> {
   /**
    * Resets the error state to allow the user to try again.
    */
-  handleRetry = () => {
+  public handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
     // window.location.reload(); 
   }
 
-  render() {
+  public render() {
     // If the state indicates an error, render the fallback UI
     if (this.state.hasError) {
       return (

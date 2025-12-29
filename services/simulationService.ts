@@ -23,8 +23,10 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     // Physics constants
     const dt = 0.001;
     const maxTime = 2.0; // Race usually ~1s
-    const frontalArea = 0.003; // approx frontal area in m^2
+    // Physics Tuning: Increased effective frontal area and added scalar to emphasize drag differences
+    const frontalArea = 0.0045; 
     const rho = 1.225;
+    const dragScalar = 5.0; // WIDEN THE GAP: Artificial multiplier to make Cd have a much larger impact on time
     
     let t = 0;
     let x = 0;
@@ -33,7 +35,7 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     // Simple Euler integration
     while (x < 20 && t < maxTime) {
         const thrust = getThrust(t);
-        const drag = 0.5 * rho * v * v * cd * frontalArea;
+        const drag = 0.5 * rho * v * v * cd * frontalArea * dragScalar;
         const netForce = thrust - drag;
         const a = netForce / (mass / 1000); // mass in g to kg
         
