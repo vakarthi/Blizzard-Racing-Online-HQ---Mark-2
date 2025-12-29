@@ -331,11 +331,11 @@ const _runEmpiricalSim = async (
         const ROTATIONAL_INERTIA = 1.05; 
         const totalMassKg = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
 
-        // MARK 2 THRUST CALIBRATION
-        // CO2 Impulse is explosive (high peak, fast drop).
-        // Tuned scalar to align with ~1.05s - 1.10s world class times.
-        // 8g cartridge peak ~35N, average ~4-5N over 1s roughly.
-        const THRUST_SCALAR = 0.65; 
+        // MARK 3 PHYSICS UPDATE (Realism Patch)
+        // Previous THRUST_SCALAR of 0.65 produced ~30N peak thrust, accelerating cars to 20m in 0.4s (unrealistic).
+        // Real 8g CO2 cartridges have a total impulse of ~4-5 Ns.
+        // Adjusted curve peaks ~8.5N, aiming for 1.0s - 1.2s race times.
+        const THRUST_SCALAR = 0.19; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;

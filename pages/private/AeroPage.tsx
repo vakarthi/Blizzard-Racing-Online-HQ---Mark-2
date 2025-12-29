@@ -418,9 +418,11 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             
             const getThrust = (time: number) => {
                 if (time < 0) return 0;
-                if (time < 0.05) return 12 * (time / 0.05); 
-                if (time < 0.15) return 12 - (3 * (time - 0.05) / 0.1); 
-                if (time < 0.50) return 9 * (1 - ((time - 0.15) / 0.35)); 
+                // Updated Quick Sim Physics to match new global baseline
+                // Peak thrust lowered from 12N to ~8.5N to produce 1.1s times
+                if (time < 0.05) return 8.5 * (time / 0.05); 
+                if (time < 0.15) return 8.5 - (2.5 * (time - 0.05) / 0.1); 
+                if (time < 0.50) return 6 * (1 - ((time - 0.15) / 0.35)); 
                 return 0;
             };
             
