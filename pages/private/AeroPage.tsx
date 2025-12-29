@@ -412,27 +412,37 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             let v = 0; 
             let x = 0; 
             const points = [];
-            const massKg = massG / 1000;
+            const carMassKg = massG / 1000;
             const area = 0.0055; 
             const rho = 1.225;
             
+            const CARTRIDGE_EMPTY_KG = 0.024;
+            const PROPELLANT_KG = 0.008;
+
             const getThrust = (time: number) => {
                 if (time < 0) return 0;
                 // Updated Quick Sim Physics to match new global baseline
-                // Peak thrust increased to ~5.6N (0.125 scalar) for 1.05s times
-                if (time < 0.05) return 5.6 * (time / 0.05); 
-                if (time < 0.15) return 5.6 - (1.5 * (time - 0.05) / 0.1); 
-                if (time < 0.50) return 4.0 * (1 - ((time - 0.15) / 0.35)); 
+                // Peak thrust increased to ~7.0N (0.155 scalar) for 1.00s times
+                if (time < 0.05) return 7.0 * (time / 0.05); 
+                if (time < 0.15) return 7.0 - (1.5 * (time - 0.05) / 0.1); 
+                if (time < 0.50) return 5.0 * (1 - ((time - 0.15) / 0.35)); 
                 return 0;
             };
             
             while (x < 20 && t < 3.0) {
                 let thrust = getThrust(t);
+                
+                // DYNAMIC MASS (8g Loss)
+                let propellantMass = 0;
+                if (t < 0.5) propellantMass = PROPELLANT_KG * (1.0 - (t / 0.5));
+                
+                const currentTotalMass = (carMassKg + CARTRIDGE_EMPTY_KG + propellantMass) * 1.05; // 1.05 Rotational Inertia
+
                 const drag = 0.5 * rho * area * cdVal * v * v;
-                const frictionForce = (massKg * 9.81 * muVal) + (0.15 * Math.pow((v/15), 2)); 
+                const frictionForce = (currentTotalMass * 9.81 * muVal) + (0.15 * Math.pow((v/15), 2)); 
                 
                 const netForce = thrust - drag - frictionForce;
-                const a = netForce / massKg; 
+                const a = netForce / currentTotalMass; 
                 
                 v += a * dt;
                 if (v < 0) v = 0;
@@ -485,7 +495,7 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
                         <div className="p-4 bg-brand-dark rounded-xl border border-brand-border space-y-4">
                             <div>
                                 <div className="flex justify-between mb-1">
-                                    <label className="text-xs font-semibold text-brand-text-secondary">Total Mass (g)</label>
+                                    <label className="text-xs font-semibold text-brand-text-secondary">Car Mass (g)</label>
                                     <span className="text-xs font-mono font-bold text-brand-accent">{mass.toFixed(1)}g</span>
                                 </div>
                                 <input 

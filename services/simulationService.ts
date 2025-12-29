@@ -21,8 +21,10 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
 const AIR_DENSITY = 1.225;
 const VISCOSITY = 1.81e-5;
 // Real World F1S Specs
-const CARTRIDGE_MASS_KG = 0.032; // Full 8g canister (Cartridge + Gas)
-const MIN_TOTAL_MASS_KG = 0.050; // 50g minimum rule
+// Standard Cartridge: ~32g Total, ~8g CO2, ~24g Empty Shell
+const CARTRIDGE_INITIAL_KG = 0.032; 
+const CARTRIDGE_EMPTY_KG = 0.024;
+const PROPELLANT_KG = 0.008; // 8g of gas lost
 
 // --- 1. GEOMETRY DISCRETIZATION (VOXELIZATION) ---
 const voxelizeSTL = (buffer: ArrayBuffer, width: number, height: number, depth: number, bounds: {minX:number, maxX:number, minY:number, maxY:number, minZ:number, maxZ:number}): Float32Array => {
@@ -310,7 +312,7 @@ const _runEmpiricalSim = async (
     cl: number, 
     cb: ProgressCallback, 
     carClass: CarClass, 
-    massGrams: number, 
+    massGramsInput: number, 
     isPremium: boolean, 
     accuracyRating: number,
     frontalArea: number
@@ -318,6 +320,13 @@ const _runEmpiricalSim = async (
     
     cb({ stage: 'Physics Integration', progress: 98, log: 'Running temporal integration (dt=0.001s)...' });
     await nextFrame();
+
+    // CLASS SPECIFIC MASS OVERRIDES
+    // Enforce strict weight limits based on class
+    let baseCarMassGrams = massGramsInput;
+    if (carClass === 'Entry') baseCarMassGrams = 80;
+    else if (carClass === 'Development') baseCarMassGrams = 75;
+    else if (carClass === 'Professional') baseCarMassGrams = 70;
 
     const runSim = (massFactor: number, thrustFactor: number, frictionMu: number) => {
         let t = 0;
@@ -327,14 +336,14 @@ const _runEmpiricalSim = async (
         
         // MARK 2 PHYSICS CALIBRATION: Inertial Mass & Rotational Energy
         // Wheels store rotational energy. Effective mass is higher than static mass.
-        // F1S Approximation: Rotational Inertia adds ~5-10% to effective mass for linear acceleration calc.
+        // F1S Approximation: Rotational Inertia adds ~5-10% to effective mass.
         const ROTATIONAL_INERTIA = 1.05; 
-        const totalMassKg = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
+        const baseCarMassKg = baseCarMassGrams / 1000;
 
-        // MARK 3 PHYSICS UPDATE (Force Recalibration)
-        // 0.19 was too fast (~0.6s). 0.07 was too slow (~1.8s).
-        // 0.125 should yield ~5.6N peak force and ~1.1s times.
-        const THRUST_SCALAR = 0.125; 
+        // MARK 4 PHYSICS UPDATE (High Performance Mode)
+        // 0.125 yielded ~1.1s. Increasing to 0.155 to target ~1.00s.
+        // This corresponds to approx 7N peak force.
+        const THRUST_SCALAR = 0.155; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;
@@ -352,16 +361,28 @@ const _runEmpiricalSim = async (
 
         while (x < 20 && t < 5.0) {
             const thrust = getThrust(t);
+            
+            // DYNAMIC MASS LOSS (Propellant Expulsion)
+            // 8g of gas lost over the first ~0.5s of the run
+            let propellantMass = 0;
+            if (t < 0.5) {
+                propellantMass = PROPELLANT_KG * (1.0 - (t / 0.5));
+            } else {
+                propellantMass = 0;
+            }
+            
+            // Total Mass = Car (Fixed) + Cartridge Shell (Fixed) + Propellant (Dynamic)
+            const currentTotalMassKg = (baseCarMassKg + CARTRIDGE_EMPTY_KG + propellantMass) * ROTATIONAL_INERTIA * massFactor;
+
             const aeroDrag = 0.5 * AIR_DENSITY * frontalArea * cd * v * v;
             const aeroLift = 0.5 * AIR_DENSITY * frontalArea * cl * v * v; 
             
             // F_f = mu * N
-            // Lift reduces Normal force (unless it's downforce/negative lift)
-            const normalForce = Math.max(0, (totalMassKg * 9.81) - aeroLift); 
+            const normalForce = Math.max(0, (currentTotalMassKg * 9.81) - aeroLift); 
             const friction = normalForce * frictionMu;
             
             const netForce = thrust - aeroDrag - friction;
-            const acceleration = netForce / totalMassKg;
+            const acceleration = netForce / currentTotalMassKg;
             
             v += acceleration * dt;
             if (v < 0) v = 0;
