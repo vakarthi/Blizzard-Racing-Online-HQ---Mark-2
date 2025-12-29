@@ -341,8 +341,8 @@ const _runEmpiricalSim = async (
         const baseCarMassKg = baseCarMassGrams / 1000;
 
         // MARK 4 PHYSICS UPDATE (High Performance Mode)
-        // Previous 0.160 yielded ~7.2N. Increased by 0.75N to target ~7.95N peak.
-        const THRUST_SCALAR = 0.177; 
+        // Updated to yield exactly 8.1N Peak Thrust (45 * 0.180 = 8.1N)
+        const THRUST_SCALAR = 0.180; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;
