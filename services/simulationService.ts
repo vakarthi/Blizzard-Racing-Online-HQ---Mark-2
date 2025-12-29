@@ -332,12 +332,9 @@ const _runEmpiricalSim = async (
         const totalMassKg = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
 
         // MARK 3 PHYSICS UPDATE (Force Recalibration)
-        // Previous value of 0.19 produced ~0.65s times (unrealistic).
-        // 8g CO2 Cartridge Impulse is ~4-5Ns.
-        // To achieve realistic times of 1.1s - 1.3s for a 20m track with this mass,
-        // average net force must be around 2.5N.
-        // Peak thrust scalar adjusted to 0.07 (Peak ~3.15N).
-        const THRUST_SCALAR = 0.07; 
+        // 0.19 was too fast (~0.6s). 0.07 was too slow (~1.8s).
+        // 0.125 should yield ~5.6N peak force and ~1.1s times.
+        const THRUST_SCALAR = 0.125; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;
