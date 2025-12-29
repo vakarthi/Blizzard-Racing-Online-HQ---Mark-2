@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { SkullIcon } from './icons';
 
@@ -16,12 +15,13 @@ interface State {
  * log those errors, and display a fallback UI instead of the component tree that crashed.
  */
 class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
+
   constructor(props: Props) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-    };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -40,7 +40,7 @@ class ErrorBoundary extends Component<Props, State> {
   handleRetry = () => {
     this.setState({ hasError: false, error: null });
     // A full reload might be necessary if assets failed to load or if the app is in a broken state
-    window.location.reload();
+    // window.location.reload(); 
   }
 
   render() {
