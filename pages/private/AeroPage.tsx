@@ -1,134 +1,302 @@
-import React, { useCallback } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { UploadCloudIcon, WindIcon } from '../../components/icons';
+import { UploadCloudIcon, WindIcon, AlertTriangleIcon, CheckCircleIcon, PlusCircleIcon, BeakerIcon, TrashIcon, HistoryIcon, BotIcon, SparklesIcon, BrainCircuitIcon, LayersIcon, EyeIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
-import MonteCarloScatterPlot from '../../components/hq/MonteCarloScatterPlot';
 import ConvergenceGraph from '../../components/hq/ConvergenceGraph';
 import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
+import DashboardWidget from '../../components/hq/DashboardWidget';
+import { AeroResult, CarClass } from '../../types';
 
 const AeroPage: React.FC = () => {
-    const { aeroResults, runSimulationTask, backgroundTasks } = useData();
-    const latestResult = aeroResults[0];
+    const { aeroResults, runSimulationTask, backgroundTasks, deleteAeroResult } = useData();
+    const [dragActive, setDragActive] = useState(false);
+    const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            // Default to 'accuracy' mode for UI simplicity for now
-            runSimulationTask(e.target.files[0], 'accuracy', 'Professional');
+    const activeTasks = backgroundTasks.filter(t => t.status === 'running');
+    
+    const displayResult = selectedResultId 
+        ? aeroResults.find(r => r.id === selectedResultId) 
+        : aeroResults[0];
+
+    const handleDrag = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
         }
-    }, [runSimulationTask]);
+    };
 
-    const activeTask = backgroundTasks.find(t => t.status === 'running');
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+        }
+    };
+
+    const handleFile = (file: File) => {
+        runSimulationTask(file, 'accuracy', 'Professional');
+    };
+
+    const handleSelectResult = (id: string) => {
+        setSelectedResultId(id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     return (
-        <div className="space-y-8 animate-fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-brand-text">Egghead Aero Lab</h1>
-                    <p className="text-brand-text-secondary">Advanced CFD & Neural Physics Engine</p>
+        <div className="space-y-8 animate-fade-in max-w-7xl mx-auto font-sans">
+            {/* Egghead Header - Future Island Style */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-brand-dark-secondary to-[#0F172A] border border-brand-accent/30 p-8 shadow-[0_0_40px_rgba(14,165,233,0.1)]">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                    <BrainCircuitIcon className="w-64 h-64 text-brand-accent transform rotate-12" />
                 </div>
-                
-                <div className="flex gap-4">
-                    <label className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold cursor-pointer transition-all ${activeTask ? 'bg-brand-dark border border-brand-border text-brand-text-secondary cursor-not-allowed' : 'bg-brand-accent text-brand-dark hover:bg-brand-accent-hover shadow-glow-accent'}`}>
-                        {activeTask ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-brand-text-secondary border-t-transparent rounded-full animate-spin"></div>
-                                Simulating...
-                            </>
-                        ) : (
-                            <>
-                                <UploadCloudIcon className="w-5 h-5"/>
-                                Upload Geometry (STEP/STL)
-                                <input type="file" onChange={handleFileUpload} accept=".stl,.step,.stp" className="hidden" disabled={!!activeTask}/>
-                            </>
-                        )}
-                    </label>
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-4">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="px-2 py-1 rounded bg-brand-accent text-brand-dark font-egghead font-bold text-xs tracking-widest">EGGHEAD ISLAND</span>
+                            <span className="text-brand-accent/50 font-mono text-xs">LABOPHASE // SECTOR A</span>
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black text-brand-text mb-2 font-display tracking-tight">
+                            PUNK RECORDS <span className="text-brand-accent">AERO-LAYER</span>
+                        </h1>
+                        <p className="text-brand-text-secondary font-mono text-sm max-w-xl">
+                            Synchronizing with Satellite York for computational fluid dynamics. Upload geometry to the Frontier Dome for processing.
+                        </p>
+                    </div>
+                    
+                    {/* Active Task Hologram */}
+                    {activeTasks.length > 0 && (
+                        <div className="bg-black/40 backdrop-blur-md px-6 py-4 rounded-xl border border-brand-accent/50 shadow-[0_0_15px_rgba(14,165,233,0.3)] flex items-center gap-4 animate-pulse">
+                            <div className="relative">
+                                <BeakerIcon className="w-8 h-8 text-brand-accent spin-slow" />
+                                <div className="absolute inset-0 bg-brand-accent blur-xl opacity-40 animate-pulse"></div>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-brand-accent font-egghead tracking-wider mb-1">SIMULATION SEQUENCE ACTIVE</p>
+                                <p className="text-[10px] text-white font-mono">{activeTasks[0].stage}</p>
+                                <div className="w-32 bg-brand-dark/50 h-1 mt-2 rounded-full overflow-hidden">
+                                    <div className="bg-brand-accent h-full transition-all duration-300" style={{ width: `${activeTasks[0].progress}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {activeTask && (
-                <div className="bg-brand-dark-secondary p-4 rounded-xl border border-brand-border animate-pulse">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-brand-accent font-mono font-bold">{activeTask.stage}</span>
-                        <span className="text-brand-text font-mono">{activeTask.progress.toFixed(0)}%</span>
+            {/* Upload Terminal */}
+            <div 
+                className={`relative group border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-500 overflow-hidden ${dragActive ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]' : 'border-brand-border bg-brand-dark/30 hover:border-brand-accent/50'}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+            >
+                {/* Sci-Fi Grid Background */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(0deg, transparent 24%, var(--color-accent-default) 25%, var(--color-accent-default) 26%, transparent 27%, transparent 74%, var(--color-accent-default) 75%, var(--color-accent-default) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, var(--color-accent-default) 25%, var(--color-accent-default) 26%, transparent 27%, transparent 74%, var(--color-accent-default) 75%, var(--color-accent-default) 76%, transparent 77%, transparent)', backgroundSize: '50px 50px' }}></div>
+                
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                    <div className="p-5 bg-brand-dark/80 rounded-full border border-brand-accent/20 mb-6 shadow-[0_0_30px_rgba(14,165,233,0.15)] group-hover:scale-110 transition-transform duration-500">
+                        <UploadCloudIcon className="w-10 h-10 text-brand-accent" />
                     </div>
-                    <div className="w-full bg-brand-dark h-2 rounded-full overflow-hidden">
-                        <div className="h-full bg-brand-accent transition-all duration-300" style={{ width: `${activeTask.progress}%` }}></div>
-                    </div>
-                    <p className="text-xs text-brand-text-secondary mt-2 font-mono">{activeTask.latestLog}</p>
+                    <h3 className="text-xl font-bold text-brand-text font-display mb-2">Initialize Data Transfer</h3>
+                    <p className="text-sm text-brand-text-secondary font-mono mb-6">Drop .STL or .FBX geometry to begin Voxelization</p>
+                    <input type="file" ref={fileInputRef} className="hidden" onChange={handleChange} accept=".stl,.fbx" />
+                    <button 
+                        onClick={() => fileInputRef.current?.click()} 
+                        className="bg-brand-accent text-brand-dark font-black font-egghead tracking-widest py-3 px-8 rounded-lg hover:bg-brand-accent-hover transition-all shadow-[0_0_20px_rgba(14,165,233,0.4)] hover:shadow-[0_0_30px_rgba(14,165,233,0.6)] uppercase"
+                    >
+                        Select Source File
+                    </button>
                 </div>
-            )}
+            </div>
 
-            {latestResult ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Primary Metrics */}
-                    <div className="bg-brand-dark-secondary p-6 rounded-xl border border-brand-border shadow-lg">
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-text">{latestResult.parameters.carName}</h2>
-                                <span className="px-2 py-0.5 rounded bg-brand-accent/10 text-brand-accent text-xs font-bold border border-brand-accent/20 uppercase">{latestResult.tier} Solve</span>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-3xl font-mono font-bold text-brand-accent">{latestResult.cd.toFixed(4)}</p>
-                                <p className="text-xs text-brand-text-secondary uppercase tracking-wider">Drag Coefficient (Cd)</p>
-                            </div>
+            {/* Main Result Interface */}
+            {displayResult ? (
+                <div className="space-y-6 animate-slide-in-up">
+                    {/* Header Bar */}
+                    <div className="flex items-center justify-between border-b border-brand-border/50 pb-4">
+                        <h2 className="text-2xl font-black text-brand-text font-display flex items-center gap-3 uppercase">
+                            <span className="w-2 h-8 bg-brand-accent rounded-sm"></span>
+                            {displayResult.parameters.carName}
+                        </h2>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Analysis Timestamp</span>
+                            <span className="text-sm font-bold text-brand-accent font-egghead">{new Date(displayResult.timestamp).toLocaleString()}</span>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                <p className="text-brand-text-secondary text-xs uppercase">Lift (Cl)</p>
-                                <p className="text-xl font-bold text-brand-text">{latestResult.cl.toFixed(4)}</p>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                <p className="text-brand-text-secondary text-xs uppercase">L/D Ratio</p>
-                                <p className="text-xl font-bold text-green-400">{latestResult.liftToDragRatio.toFixed(3)}</p>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                <p className="text-brand-text-secondary text-xs uppercase">Race Time</p>
-                                <p className="text-xl font-bold text-yellow-400">{latestResult.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
-                            </div>
-                            <div className="p-3 bg-brand-dark rounded-lg border border-brand-border">
-                                <p className="text-brand-text-secondary text-xs uppercase">Balance</p>
-                                <p className="text-xl font-bold text-brand-text">{latestResult.aeroBalance.toFixed(1)}% <span className="text-xs font-normal text-brand-text-secondary">Front</span></p>
+                    </div>
+
+                    {/* KPI Holograms */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
+                            <div className="absolute top-0 right-0 p-2 opacity-20"><WindIcon className="w-12 h-12 text-brand-text"/></div>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Aerodynamic Resistance ($C_d$)</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.cd.toFixed(4)}</p>
+                            <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
+                                <div className="h-full bg-red-500" style={{ width: `${Math.min(100, (displayResult.cd / 0.3) * 100)}%` }}></div>
                             </div>
                         </div>
 
-                        {latestResult.suggestions && (
-                            <div className="bg-brand-dark p-4 rounded-lg border border-brand-border">
-                                <h3 className="font-bold text-brand-text mb-2 flex items-center gap-2">
-                                    <WindIcon className="w-4 h-4 text-brand-accent"/> AI Insight
-                                </h3>
-                                <div className="text-sm text-brand-text-secondary whitespace-pre-wrap leading-relaxed">
-                                    {latestResult.suggestions}
+                        <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
+                            <div className="absolute top-0 right-0 p-2 opacity-20"><LayersIcon className="w-12 h-12 text-brand-text"/></div>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Vertical Load Factor ($C_l$)</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.cl.toFixed(4)}</p>
+                            <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
+                                <div className="h-full bg-green-500" style={{ width: `${Math.min(100, (displayResult.cl / 1.0) * 100)}%` }}></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
+                            <div className="absolute top-0 right-0 p-2 opacity-20"><SparklesIcon className="w-12 h-12 text-brand-text"/></div>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Void Quotient ($L/D$)</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.liftToDragRatio.toFixed(2)}</p>
+                            <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (displayResult.liftToDragRatio / 6.0) * 100)}%` }}></div>
+                            </div>
+                        </div>
+
+                        <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
+                            <div className="absolute top-0 right-0 p-2 opacity-20"><HistoryIcon className="w-12 h-12 text-brand-text"/></div>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Predicted Event Time</p>
+                            <p className="text-4xl font-black text-brand-accent font-egghead tracking-tight">{displayResult.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
+                            <p className="text-[9px] font-mono text-brand-text-secondary mt-1">CONFIDENCE: {displayResult.raceTimePrediction?.trustIndex}%</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Graphs Column - "Visual Cortex" */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-brand-dark-secondary/40 rounded-xl border border-brand-border p-1 backdrop-blur-sm">
+                                <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-border/50 mb-1 flex items-center justify-between">
+                                    <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-brand-accent rounded-full animate-pulse"></div>
+                                        Visual Cortex // Performance
+                                    </h3>
+                                </div>
+                                <div className="p-4 space-y-8">
+                                    <PerformanceGraph results={[displayResult]} height={250} />
+                                    <SpeedTimeGraph result={displayResult} height={200} showTitle={true} />
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Flow Visualization */}
-                    <div className="flex flex-col gap-6">
-                        <FlowFieldVisualizer parameters={latestResult.parameters} flowFieldData={latestResult.flowFieldData} />
-                    </div>
-
-                    {/* Detailed Graphs - Full Width usually */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <PerformanceGraph results={[latestResult]} height={300} />
-                            <SpeedTimeGraph result={latestResult} height={300} />
+                            
+                            {/* Convergence (Technical) */}
+                            {displayResult.residualHistory && (
+                                <div className="bg-brand-dark-secondary/40 rounded-xl border border-brand-border p-1 backdrop-blur-sm">
+                                    <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-border/50 mb-1">
+                                        <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            Solver Convergence
+                                        </h3>
+                                    </div>
+                                    <div className="p-4">
+                                        <ConvergenceGraph history={displayResult.residualHistory} height={200} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        {latestResult.tier === 'premium' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <MonteCarloScatterPlot result={latestResult} height={300} />
-                                {latestResult.residualHistory && <ConvergenceGraph history={latestResult.residualHistory} height={300} />}
-                            </div>
-                        )}
+
+                        {/* Visuals & Insights Column - "Logic Lobe" */}
+                        <div className="space-y-6">
+                            {displayResult.parameters.rawModelData && (
+                                <div className="bg-brand-dark-secondary/40 rounded-xl border border-brand-border p-1 backdrop-blur-sm shadow-lg">
+                                    <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-border/50 mb-1">
+                                        <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
+                                            <EyeIcon className="w-4 h-4 text-brand-accent" />
+                                            Holo-Projection
+                                        </h3>
+                                    </div>
+                                    <FlowFieldVisualizer parameters={displayResult.parameters} flowFieldData={displayResult.flowFieldData} />
+                                </div>
+                            )}
+
+                            {displayResult.suggestions && (
+                                <div className="bg-gradient-to-br from-brand-dark-secondary to-[#1e1b4b] rounded-xl border border-brand-accent/20 p-1 shadow-[0_0_20px_rgba(76,29,149,0.1)]">
+                                    <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-accent/10 mb-1 flex items-center justify-between">
+                                        <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
+                                            <BotIcon className="w-4 h-4 text-brand-accent" />
+                                            Satellite Analysis (Shaka)
+                                        </h3>
+                                        <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded border border-brand-accent/20">LOGIC</span>
+                                    </div>
+                                    <div className="p-5">
+                                        <div className="prose prose-invert text-sm max-w-none">
+                                            <div className="whitespace-pre-wrap font-sans text-brand-text-secondary leading-relaxed">
+                                                {displayResult.suggestions}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center h-96 bg-brand-dark-secondary rounded-xl border border-brand-border border-dashed">
-                    <WindIcon className="w-16 h-16 text-brand-border mb-4"/>
-                    <h3 className="text-xl font-bold text-brand-text">No Simulation Data</h3>
-                    <p className="text-brand-text-secondary">Upload a 3D model to begin analysis.</p>
+                <div className="text-center py-24 bg-brand-dark-secondary/30 rounded-3xl border border-brand-border border-dashed backdrop-blur-sm">
+                    <div className="w-20 h-20 bg-brand-dark rounded-full flex items-center justify-center mx-auto mb-6 border border-brand-border shadow-inner">
+                        <WindIcon className="w-10 h-10 text-brand-text-secondary/50" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-brand-text font-display">Awaiting Input</h3>
+                    <p className="text-brand-text-secondary mt-2 font-mono text-sm">Upload geometry to initialize the Frontier Dome physics engine.</p>
+                </div>
+            )}
+
+            {/* History Section (Bottom) - "Poneglyph Archive" */}
+            {aeroResults.length > 1 && (
+                <div className="pt-12 border-t border-brand-border/50">
+                    <h3 className="text-xl font-bold text-brand-text mb-6 flex items-center gap-3 font-display">
+                        <HistoryIcon className="w-5 h-5 text-brand-accent" /> 
+                        PONEGLYPH ARCHIVE
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {aeroResults.map(result => (
+                            <div 
+                                key={result.id}
+                                onClick={() => handleSelectResult(result.id)}
+                                className={`group relative p-5 rounded-xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl overflow-hidden ${displayResult?.id === result.id ? 'bg-brand-accent/10 border-brand-accent ring-1 ring-brand-accent' : 'bg-brand-dark-secondary/50 border-brand-border hover:border-brand-accent/50'}`}
+                            >
+                                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-brand-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                <div className="flex justify-between items-start mb-4 relative z-10">
+                                    <p className="font-bold text-brand-text truncate pr-2 font-display">{result.parameters.carName}</p>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); deleteAeroResult(result.id); }} 
+                                        className="text-brand-text-secondary hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <TrashIcon className="w-4 h-4"/>
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center text-xs relative z-10">
+                                    <div className="bg-brand-dark p-2 rounded border border-brand-border/50">
+                                        <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Res. (Cd)</span>
+                                        <span className="font-bold font-egghead text-brand-text">{result.cd.toFixed(3)}</span>
+                                    </div>
+                                    <div className="bg-brand-dark p-2 rounded border border-brand-border/50">
+                                        <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Void (L/D)</span>
+                                        <span className="font-bold font-egghead text-brand-text">{result.liftToDragRatio.toFixed(2)}</span>
+                                    </div>
+                                    <div className="bg-brand-dark p-2 rounded border border-brand-border/50">
+                                        <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Time</span>
+                                        <span className="font-bold font-egghead text-brand-accent">{result.raceTimePrediction?.averageRaceTime.toFixed(3)}s</span>
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-brand-text-secondary mt-3 text-right font-mono opacity-60">
+                                    LOG: {new Date(result.timestamp).toLocaleDateString()} // ID: {result.id.slice(-4)}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
