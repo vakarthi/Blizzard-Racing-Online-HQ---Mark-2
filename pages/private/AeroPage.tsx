@@ -1,7 +1,7 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../contexts/AppContext';
-import { UploadCloudIcon, WindIcon, AlertTriangleIcon, CheckCircleIcon, PlusCircleIcon, BeakerIcon } from '../../components/icons';
+import { UploadCloudIcon, WindIcon, AlertTriangleIcon, CheckCircleIcon, PlusCircleIcon, BeakerIcon, TrashIcon, HistoryIcon } from '../../components/icons';
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import ConvergenceGraph from '../../components/hq/ConvergenceGraph';
@@ -12,11 +12,16 @@ import { AeroResult, CarClass } from '../../types';
 const AeroPage: React.FC = () => {
     const { aeroResults, runSimulationTask, backgroundTasks, deleteAeroResult } = useData();
     const [dragActive, setDragActive] = useState(false);
+    // Automatically select the most recent result (first in list)
     const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeTasks = backgroundTasks.filter(t => t.status === 'running');
-    const selectedResult = aeroResults.find(r => r.id === selectedResultId) || aeroResults[0];
+    
+    // Effectively the latest result if nothing manually selected
+    const displayResult = selectedResultId 
+        ? aeroResults.find(r => r.id === selectedResultId) 
+        : aeroResults[0];
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -45,160 +50,182 @@ const AeroPage: React.FC = () => {
     };
 
     const handleFile = (file: File) => {
-        // Default to 'speed' mode and 'Professional' class for now, could add UI for this
+        // Default to 'speed' mode and 'Professional' class for now
         runSimulationTask(file, 'accuracy', 'Professional');
     };
 
-    return (
-        <div className="space-y-8 animate-fade-in">
-            {/* Header / Upload Section */}
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="flex-grow">
-                    <h1 className="text-3xl font-bold text-brand-text mb-2">Aerotest Lab</h1>
-                    <p className="text-brand-text-secondary mb-6">Upload CAD geometry (.stl/.fbx) to run virtual wind tunnel simulations.</p>
-                    
-                    <div 
-                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${dragActive ? 'border-brand-accent bg-brand-accent/10' : 'border-brand-border bg-brand-dark hover:border-brand-accent/50'}`}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                    >
-                        <UploadCloudIcon className="w-12 h-12 text-brand-text-secondary mx-auto mb-4" />
-                        <p className="text-brand-text font-bold text-lg mb-1">Drag & Drop Geometry</p>
-                        <p className="text-brand-text-secondary text-sm mb-4">Supports STL and FBX files</p>
-                        <input type="file" ref={fileInputRef} className="hidden" onChange={handleChange} accept=".stl,.fbx" />
-                        <button onClick={() => fileInputRef.current?.click()} className="bg-brand-surface hover:bg-brand-border text-brand-text font-semibold py-2 px-6 rounded-lg transition-colors">
-                            Browse Files
-                        </button>
-                    </div>
-                </div>
+    const handleSelectResult = (id: string) => {
+        setSelectedResultId(id);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-                {/* Active Tasks Panel */}
-                <div className="w-full md:w-80 flex-shrink-0">
-                    <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-4 h-full">
-                        <h3 className="font-bold text-brand-text mb-4 flex items-center gap-2">
-                            <BeakerIcon className="w-5 h-5 text-brand-accent" /> Active Simulations
-                        </h3>
-                        <div className="space-y-3">
-                            {activeTasks.map(task => (
-                                <div key={task.id} className="bg-brand-dark p-3 rounded-lg border border-brand-border">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm font-semibold text-brand-text truncate w-2/3">{task.fileName}</span>
-                                        <span className="text-xs text-brand-accent font-mono">{task.progress.toFixed(0)}%</span>
-                                    </div>
-                                    <div className="w-full bg-brand-surface rounded-full h-1.5 mb-2">
-                                        <div className="bg-brand-accent h-1.5 rounded-full transition-all duration-300" style={{ width: `${task.progress}%` }}></div>
-                                    </div>
-                                    <p className="text-xs text-brand-text-secondary">{task.stage}</p>
-                                </div>
-                            ))}
-                            {activeTasks.length === 0 && (
-                                <p className="text-sm text-brand-text-secondary text-center py-8 italic">No active simulations.</p>
-                            )}
+    return (
+        <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b border-brand-border pb-6">
+                <div>
+                    <h1 className="text-3xl font-bold text-brand-text mb-2">Aerotest Lab</h1>
+                    <p className="text-brand-text-secondary">Advanced Computational Fluid Dynamics (CFD) Workbench</p>
+                </div>
+                {/* Active Task Indicator */}
+                {activeTasks.length > 0 && (
+                    <div className="bg-brand-dark-secondary px-4 py-2 rounded-lg border border-brand-accent/30 flex items-center gap-3 animate-pulse">
+                        <BeakerIcon className="w-5 h-5 text-brand-accent spin-slow" />
+                        <div>
+                            <p className="text-xs font-bold text-brand-accent">SIMULATION IN PROGRESS</p>
+                            <p className="text-[10px] text-brand-text-secondary">{activeTasks[0].stage} ({activeTasks[0].progress.toFixed(0)}%)</p>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Results Section */}
-            {aeroResults.length > 0 && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* List of Results */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <h3 className="font-bold text-brand-text text-xl">Recent Results</h3>
-                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                            {aeroResults.map(result => (
-                                <div 
-                                    key={result.id} 
-                                    onClick={() => setSelectedResultId(result.id)}
-                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedResult?.id === result.id ? 'bg-brand-accent/10 border-brand-accent' : 'bg-brand-dark border-brand-border hover:border-brand-text-secondary'}`}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p className="font-bold text-brand-text">{result.parameters.carName}</p>
-                                            <p className="text-xs text-brand-text-secondary">{new Date(result.timestamp).toLocaleString()}</p>
-                                        </div>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteAeroResult(result.id); }} className="text-red-400 hover:bg-red-500/10 p-1 rounded">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-brand-surface rounded p-1">
-                                            <p className="text-[10px] text-brand-text-secondary uppercase">Cd</p>
-                                            <p className="font-mono font-bold text-brand-text">{result.cd.toFixed(3)}</p>
-                                        </div>
-                                        <div className="bg-brand-surface rounded p-1">
-                                            <p className="text-[10px] text-brand-text-secondary uppercase">L/D</p>
-                                            <p className="font-mono font-bold text-brand-text">{result.liftToDragRatio.toFixed(2)}</p>
-                                        </div>
-                                        <div className="bg-brand-surface rounded p-1">
-                                            <p className="text-[10px] text-brand-text-secondary uppercase">Time</p>
-                                            <p className="font-mono font-bold text-brand-text">{result.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+            {/* Upload Area */}
+            <div 
+                className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${dragActive ? 'border-brand-accent bg-brand-accent/10 scale-[1.01]' : 'border-brand-border bg-brand-dark/50 hover:border-brand-accent/50'}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+            >
+                <div className="flex flex-col items-center justify-center pointer-events-none">
+                    <div className="p-4 bg-brand-dark rounded-full border border-brand-border mb-4 shadow-lg">
+                        <UploadCloudIcon className="w-8 h-8 text-brand-accent" />
+                    </div>
+                    <p className="text-lg font-bold text-brand-text">Drop CAD Geometry Here</p>
+                    <p className="text-sm text-brand-text-secondary mt-1 mb-4">Accepts .STL (Binary/ASCII) and .FBX</p>
+                </div>
+                <input type="file" ref={fileInputRef} className="hidden" onChange={handleChange} accept=".stl,.fbx" />
+                <button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="relative z-10 bg-brand-surface hover:bg-brand-border text-brand-text font-semibold py-2 px-6 rounded-lg transition-colors border border-brand-border shadow-sm"
+                >
+                    Browse Files
+                </button>
+            </div>
+
+            {/* Main Result View */}
+            {displayResult ? (
+                <div className="space-y-6 animate-slide-in-up">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-brand-text flex items-center gap-3">
+                            <span className="bg-brand-accent/20 text-brand-accent px-3 py-1 rounded text-sm font-mono border border-brand-accent/30">LATEST</span>
+                            {displayResult.parameters.carName}
+                        </h2>
+                        <span className="text-sm text-brand-text-secondary">{new Date(displayResult.timestamp).toLocaleString()}</span>
                     </div>
 
-                    {/* Detail View */}
-                    {selectedResult && (
+                    {/* KPI Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <DashboardWidget title="Drag Coeff. (Cd)" icon={<WindIcon className="w-4 h-4"/>}>
+                            <p className="text-4xl font-black text-brand-text">{displayResult.cd.toFixed(4)}</p>
+                            <p className="text-xs text-brand-text-secondary mt-1">Target: &lt; 0.1500</p>
+                        </DashboardWidget>
+                        <DashboardWidget title="Downforce (Cl)" icon={<WindIcon className="w-4 h-4"/>}>
+                            <p className="text-4xl font-black text-brand-text">{displayResult.cl.toFixed(4)}</p>
+                            <p className="text-xs text-brand-text-secondary mt-1">Target: &gt; 0.5000</p>
+                        </DashboardWidget>
+                        <DashboardWidget title="Efficiency (L/D)" icon={<WindIcon className="w-4 h-4"/>}>
+                            <p className="text-4xl font-black text-brand-text">{displayResult.liftToDragRatio.toFixed(2)}</p>
+                            <p className="text-xs text-brand-text-secondary mt-1">Target: &gt; 4.0</p>
+                        </DashboardWidget>
+                        <DashboardWidget title="Est. Race Time" icon={<WindIcon className="w-4 h-4"/>}>
+                            <p className="text-4xl font-black text-brand-accent">{displayResult.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
+                            <p className="text-xs text-brand-text-secondary mt-1">@ 20 Meters</p>
+                        </DashboardWidget>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Graphs Column */}
                         <div className="lg:col-span-2 space-y-6">
-                            {/* Key Metrics */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <DashboardWidget title="Drag Coeff." icon={<WindIcon className="w-4 h-4"/>}>
-                                    <p className="text-3xl font-black text-brand-text">{selectedResult.cd.toFixed(4)}</p>
-                                </DashboardWidget>
-                                <DashboardWidget title="Downforce (Cl)" icon={<WindIcon className="w-4 h-4"/>}>
-                                    <p className="text-3xl font-black text-brand-text">{selectedResult.cl.toFixed(4)}</p>
-                                </DashboardWidget>
-                                <DashboardWidget title="Efficiency" icon={<WindIcon className="w-4 h-4"/>}>
-                                    <p className="text-3xl font-black text-brand-text">{selectedResult.liftToDragRatio.toFixed(2)}</p>
-                                </DashboardWidget>
-                                <DashboardWidget title="Pred. Time" icon={<WindIcon className="w-4 h-4"/>}>
-                                    <p className="text-3xl font-black text-brand-text">{selectedResult.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
-                                </DashboardWidget>
-                            </div>
-
-                            {/* Graphs */}
-                            <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6">
-                                <h3 className="font-bold text-brand-text mb-4">Performance Analysis</h3>
+                            <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6 shadow-sm">
+                                <h3 className="font-bold text-brand-text mb-4">Performance Curves</h3>
                                 <div className="space-y-8">
-                                    <PerformanceGraph results={[selectedResult]} />
-                                    <SpeedTimeGraph result={selectedResult} />
+                                    <PerformanceGraph results={[displayResult]} height={250} />
+                                    <SpeedTimeGraph result={displayResult} height={200} />
                                 </div>
                             </div>
-
-                            {/* Visualization */}
-                            {selectedResult.parameters.rawModelData && (
-                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6">
-                                    <h3 className="font-bold text-brand-text mb-4">Flow Visualization</h3>
-                                    <FlowFieldVisualizer parameters={selectedResult.parameters} flowFieldData={selectedResult.flowFieldData} />
-                                </div>
-                            )}
-
-                            {/* Convergence */}
-                            {selectedResult.residualHistory && (
-                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6">
+                            
+                            {/* Convergence (Technical) */}
+                            {displayResult.residualHistory && (
+                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6 shadow-sm">
                                     <h3 className="font-bold text-brand-text mb-4">Solver Convergence</h3>
-                                    <ConvergenceGraph history={selectedResult.residualHistory} />
+                                    <ConvergenceGraph history={displayResult.residualHistory} height={200} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Visuals & Insights Column */}
+                        <div className="space-y-6">
+                            {displayResult.parameters.rawModelData && (
+                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6 shadow-sm">
+                                    <h3 className="font-bold text-brand-text mb-4">Flow Visualization</h3>
+                                    <FlowFieldVisualizer parameters={displayResult.parameters} flowFieldData={displayResult.flowFieldData} />
                                 </div>
                             )}
 
-                            {/* Suggestions */}
-                            {selectedResult.suggestions && (
-                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6">
+                            {displayResult.suggestions && (
+                                <div className="bg-brand-dark-secondary rounded-xl border border-brand-border p-6 shadow-sm">
                                     <h3 className="font-bold text-brand-text mb-4 flex items-center gap-2">
-                                        <AlertTriangleIcon className="w-5 h-5 text-yellow-400" /> AI Suggestions
+                                        <AlertTriangleIcon className="w-5 h-5 text-yellow-400" /> AI Engineer Analysis
                                     </h3>
-                                    <div className="prose prose-invert text-sm max-w-none">
-                                        <pre className="whitespace-pre-wrap font-sans text-brand-text-secondary">{selectedResult.suggestions}</pre>
+                                    <div className="prose prose-invert text-sm max-w-none bg-brand-dark p-4 rounded-lg border border-brand-border">
+                                        <div className="whitespace-pre-wrap font-sans text-brand-text-secondary">{displayResult.suggestions}</div>
                                     </div>
                                 </div>
                             )}
                         </div>
-                    )}
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-brand-dark-secondary rounded-xl border border-brand-border border-dashed">
+                    <WindIcon className="w-16 h-16 text-brand-border mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-brand-text">No Results Yet</h3>
+                    <p className="text-brand-text-secondary mt-2">Upload a geometry file to start your first simulation.</p>
+                </div>
+            )}
+
+            {/* History Section (Bottom) */}
+            {aeroResults.length > 1 && (
+                <div className="pt-12 border-t border-brand-border">
+                    <h3 className="text-xl font-bold text-brand-text mb-6 flex items-center gap-2">
+                        <HistoryIcon className="w-5 h-5 text-brand-text-secondary" /> Simulation History
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {aeroResults.map(result => (
+                            <div 
+                                key={result.id}
+                                onClick={() => handleSelectResult(result.id)}
+                                className={`group p-4 rounded-xl border cursor-pointer transition-all hover:shadow-lg ${displayResult?.id === result.id ? 'bg-brand-accent/5 border-brand-accent ring-1 ring-brand-accent' : 'bg-brand-dark-secondary border-brand-border hover:border-brand-text-secondary'}`}
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <p className="font-bold text-brand-text truncate pr-2">{result.parameters.carName}</p>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); deleteAeroResult(result.id); }} 
+                                        className="text-brand-text-secondary hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <TrashIcon className="w-4 h-4"/>
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                    <div className="bg-brand-dark p-2 rounded">
+                                        <span className="text-brand-text-secondary block mb-1">Cd</span>
+                                        <span className="font-bold">{result.cd.toFixed(3)}</span>
+                                    </div>
+                                    <div className="bg-brand-dark p-2 rounded">
+                                        <span className="text-brand-text-secondary block mb-1">L/D</span>
+                                        <span className="font-bold">{result.liftToDragRatio.toFixed(2)}</span>
+                                    </div>
+                                    <div className="bg-brand-dark p-2 rounded">
+                                        <span className="text-brand-text-secondary block mb-1">Time</span>
+                                        <span className="font-bold text-brand-accent">{result.raceTimePrediction?.averageRaceTime.toFixed(3)}s</span>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-brand-text-secondary mt-3 text-right">
+                                    {new Date(result.timestamp).toLocaleDateString()}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
