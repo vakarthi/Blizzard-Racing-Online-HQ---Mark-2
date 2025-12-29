@@ -121,7 +121,7 @@ const DetailedAnalysisContent: React.FC<{ result: AeroResult; gear5Mode: boolean
                             </div>
                             <div className="text-center">
                                 <p className="text-xs text-brand-text-secondary mb-1">Safety Floor</p>
-                                <p className="text-xl font-bold font-mono">0.500s</p>
+                                <p className="text-xl font-bold font-mono">1.050s</p>
                             </div>
                         </div>
                     </div>
@@ -419,10 +419,10 @@ const QuickSimTab: React.FC<{ aeroResults: AeroResult[] }> = ({ aeroResults }) =
             const getThrust = (time: number) => {
                 if (time < 0) return 0;
                 // Updated Quick Sim Physics to match new global baseline
-                // Peak thrust lowered from 12N to ~8.5N to produce 1.1s times
-                if (time < 0.05) return 8.5 * (time / 0.05); 
-                if (time < 0.15) return 8.5 - (2.5 * (time - 0.05) / 0.1); 
-                if (time < 0.50) return 6 * (1 - ((time - 0.15) / 0.35)); 
+                // Peak thrust lowered to ~3.15N to produce 1.1s - 1.3s times
+                if (time < 0.05) return 3.15 * (time / 0.05); 
+                if (time < 0.15) return 3.15 - (1.0 * (time - 0.05) / 0.1); 
+                if (time < 0.50) return 2.2 * (1 - ((time - 0.15) / 0.35)); 
                 return 0;
             };
             

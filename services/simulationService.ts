@@ -331,11 +331,13 @@ const _runEmpiricalSim = async (
         const ROTATIONAL_INERTIA = 1.05; 
         const totalMassKg = ((massGrams / 1000) + CARTRIDGE_MASS_KG) * ROTATIONAL_INERTIA * massFactor;
 
-        // MARK 3 PHYSICS UPDATE (Realism Patch)
-        // Previous THRUST_SCALAR of 0.65 produced ~30N peak thrust, accelerating cars to 20m in 0.4s (unrealistic).
-        // Real 8g CO2 cartridges have a total impulse of ~4-5 Ns.
-        // Adjusted curve peaks ~8.5N, aiming for 1.0s - 1.2s race times.
-        const THRUST_SCALAR = 0.19; 
+        // MARK 3 PHYSICS UPDATE (Force Recalibration)
+        // Previous value of 0.19 produced ~0.65s times (unrealistic).
+        // 8g CO2 Cartridge Impulse is ~4-5Ns.
+        // To achieve realistic times of 1.1s - 1.3s for a 20m track with this mass,
+        // average net force must be around 2.5N.
+        // Peak thrust scalar adjusted to 0.07 (Peak ~3.15N).
+        const THRUST_SCALAR = 0.07; 
 
         const getThrust = (time: number) => {
             if (time < 0) return 0;
