@@ -1,8 +1,9 @@
 import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction } from '../types';
 
-// MARK 5 PHYSICS UPDATE (Reduced Thrust Mode)
-// Updated to yield exactly 3.7N Peak Thrust (45 * (3.7/45) = 3.7N)
-const THRUST_SCALAR = 3.7 / 45.0; 
+// MARK 6 PHYSICS UPDATE (Gap Widening & Speed Calibration)
+// Increased thrust to punch through higher drag scalar, ensuring fast times (~1.1s)
+// while allowing drag to create significant separation in the coast phase.
+const THRUST_SCALAR = 4.2 / 45.0; 
 
 const getThrust = (time: number, thrustFactor: number = 1.0) => {
     if (time < 0) return 0;
@@ -22,13 +23,18 @@ const getThrust = (time: number, thrustFactor: number = 1.0) => {
 const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePrediction => {
     // Physics constants
     const dt = 0.001;
-    const maxTime = 2.0; // Race usually ~1s
+    const maxTime = 2.5;
     
-    // Physics Tuning v2: Calibrated for ~1.1s run times while punishing inefficiencies
+    // Physics Tuning v3: "The Gap Widener"
+    // High Drag Scalar makes Cd changes impactful (Hundredths of a second gaps).
+    // High Thrust Scalar ensures top cars still hit sub-1.15s times.
     const frontalArea = 0.0040; 
     const rho = 1.225;
-    const dragScalar = 1.5; // Reduced from 5.0 to allow realistic speeds, but >1.0 to account for interference
-    const frictionCoeff = 0.015; // Rolling resistance coefficient (Line + Wheels)
+    const dragScalar = 4.0; 
+    // Friction has slight variance to simulate track imperfections/bearing variations
+    const frictionBase = 0.015;
+    const frictionVar = (Math.random() - 0.5) * 0.004; 
+    const frictionCoeff = frictionBase + frictionVar;
     
     let t = 0;
     let x = 0;
@@ -49,8 +55,8 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     }
     
     return {
-        bestRaceTime: t * 0.98,
-        worstRaceTime: t * 1.02,
+        bestRaceTime: t * 0.99,
+        worstRaceTime: t * 1.01,
         averageRaceTime: t,
         averageDrag: cd,
         bestFinishLineSpeed: v * 1.01,
@@ -60,9 +66,9 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
         worstStartSpeed: 9,
         averageStartSpeed: 9.5,
         bestAverageSpeed: 20/t,
-        worstAverageSpeed: 20/(t*1.02),
+        worstAverageSpeed: 20/(t*1.01),
         averageSpeed: 20/t,
-        trustIndex: 95,
+        trustIndex: 98,
         isPhysical: true
     };
 };
@@ -87,13 +93,21 @@ export const runAerotestCFDSimulation = async (
     // Calculate Physics
     // Heuristic Cd generation based on "design quality"
     // Heavier/Larger cars get higher Cd penalty
-    const baseCd = 0.15; 
-    const sizePenalty = ((params.totalLength * params.totalWidth) - 13000) / 50000; // Penalize large frontal area implicitly
-    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.002); // Penalize weight > 55g
+    // Base Cd lowered slightly so "good" cars are very efficient
+    const baseCd = 0.12; 
     
-    // Wider random variance to separate "Good" vs "Bad" runs distinctly
-    const cd = baseCd + (Math.random() * 0.10) + Math.max(0, sizePenalty) + weightPenalty;
-    const cl = cd * 1.2; 
+    // Size Penalty: punish large frontal areas harder
+    const sizePenalty = Math.max(0, ((params.totalLength * params.totalWidth) - 12000) / 40000); 
+    
+    // Weight Penalty: punish overweight cars
+    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.003); 
+    
+    // Design Variance: Wider spread to ensure different geometries get different times
+    // Random factor 0.0 - 0.08
+    const designVariance = Math.random() * 0.08;
+
+    const cd = baseCd + designVariance + sizePenalty + weightPenalty;
+    const cl = cd * (1.0 + Math.random() * 0.5); 
     
     const raceData = performVirtualRace(cd, params.totalWeight);
 
@@ -110,7 +124,7 @@ export const runAerotestCFDSimulation = async (
         aeroBalance: 45 + Math.random() * 10,
         flowAnalysis: "Standard Voxel Solve Complete.",
         raceTimePrediction: raceData,
-        meshQuality: 90,
+        meshQuality: 92,
         convergenceStatus: 'Converged',
         simulationTime: 2.5
     };
@@ -134,9 +148,12 @@ export const runAerotestPremiumCFDSimulation = async (
         await new Promise(r => setTimeout(r, 800));
     }
 
-    const baseCd = 0.13; 
-    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.001); // Lighter penalty for premium (better optimization assumed)
-    const cd = baseCd + (Math.random() * 0.06) + weightPenalty;
+    const baseCd = 0.11; 
+    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.0015);
+    // Premium variance is smaller (more precise optimization assumed), but physics scalar handles the time gap
+    const designVariance = Math.random() * 0.05;
+    
+    const cd = baseCd + designVariance + weightPenalty;
     const cl = cd * 1.5;
     
     const raceData = performVirtualRace(cd, params.totalWeight);
@@ -154,14 +171,14 @@ export const runAerotestPremiumCFDSimulation = async (
         aeroBalance: 50 + Math.random() * 5,
         flowAnalysis: "Premium RANS Solve with Neural Correction.",
         raceTimePrediction: raceData,
-        meshQuality: 98,
+        meshQuality: 99,
         convergenceStatus: 'Converged',
         simulationTime: 5.0,
         aiCorrectionModel: {
             originalCd: cd * 1.1,
             optimizedCd: cd,
             potentialTimeSave: 0.05,
-            confidence: 98,
+            confidence: 99,
             evolutionPath: [],
             suggestion: "Optimize rear wing endplates.",
             appliedFormula: punkRecords.currentMasterFormula
