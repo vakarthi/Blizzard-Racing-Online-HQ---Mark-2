@@ -1,8 +1,8 @@
 import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction } from '../types';
 
 // MARK 5 PHYSICS UPDATE (Reduced Thrust Mode)
-// Updated to yield exactly 8.0N Peak Thrust (45 * (8/45) = 8.0N)
-const THRUST_SCALAR = 8.0 / 45.0; 
+// Updated to yield exactly 6.0N Peak Thrust (45 * (6/45) = 6.0N)
+const THRUST_SCALAR = 6.0 / 45.0; 
 
 const getThrust = (time: number, thrustFactor: number = 1.0) => {
     if (time < 0) return 0;
