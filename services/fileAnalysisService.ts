@@ -153,14 +153,11 @@ export const analyzeStepFile = async (file: File): Promise<DesignParameters> => 
         triangles = result.triangles;
     }
     
-    // Always normalize to Binary STL for the physics engine and visualizer
-    const finalBuffer = convertToSTLBuffer(vertices);
-    
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     let minZ = Infinity, maxZ = -Infinity;
     
-    // 1. Spatial Scan
+    // 1. Spatial Scan (Raw Vertices)
     for (let i = 0; i < vertices.length; i += 3) {
         const x = vertices[i];
         const y = vertices[i+1];
@@ -171,36 +168,58 @@ export const analyzeStepFile = async (file: File): Promise<DesignParameters> => 
         if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
     }
 
-    // 2. Unit Scaling
+    // 2. Unit Scaling & Normalization
     const rawLen = maxX - minX;
     let scale = 1.0;
     if (rawLen < 0.5) scale = 1000.0; // Meters -> mm
     if (rawLen > 500) scale = 0.1; 
 
+    // Calculate shifts to center geometry in the Solver's domain
+    // Solver Domain: X[-50, 250], Y[-50, 50], Z[0, 100]
+    // We target: X start at 0, Y centered at 0, Z floor at 0
+    const shiftX = -minX; 
+    const shiftY = -(minY + (maxY - minY) / 2);
+    const shiftZ = -minZ;
+
+    // 3. Create Normalized Geometry for Physics
+    const scaledVertices = new Float32Array(vertices.length);
+    for (let i = 0; i < vertices.length; i += 3) {
+        scaledVertices[i] = (vertices[i] + shiftX) * scale;
+        scaledVertices[i+1] = (vertices[i+1] + shiftY) * scale;
+        scaledVertices[i+2] = (vertices[i+2] + shiftZ) * scale;
+    }
+
+    // 4. Generate Physics-Ready Buffer
+    const finalBuffer = convertToSTLBuffer(scaledVertices);
+
     const length = (maxX - minX) * scale;
     const width = (maxY - minY) * scale;
     const height = (maxZ - minZ) * scale;
 
-    // 3. Feature Detection
+    // 5. Feature Detection (Using raw relative coordinates works, but checking scale is safer)
+    // We use the scaled dimensions relative to the known good F1S size constraints
     let helmetPoints = 0;
-    const cockpitZoneY = [minY + ((maxY-minY) * 0.3), maxY - ((maxY-minY) * 0.3)];
-    const cockpitZoneX = [minX + ((maxX-minX) * 0.4), minX + ((maxX-minX) * 0.6)];
+    // Zones based on scaled/centered geometry
+    // Y is centered at 0. Width is total width.
+    const cockpitZoneY = [-width * 0.15, width * 0.15]; 
+    // X is 0 to Length. Cockpit roughly 40-60% down the car?
+    const cockpitZoneX = [length * 0.4, length * 0.6];
     
-    for (let i = 0; i < vertices.length; i+=3) {
-        const x = vertices[i];
-        const y = vertices[i+1];
-        const z = vertices[i+2];
+    for (let i = 0; i < scaledVertices.length; i+=3) {
+        const x = scaledVertices[i];
+        const y = scaledVertices[i+1];
+        const z = scaledVertices[i+2];
         
         if (x > cockpitZoneX[0] && x < cockpitZoneX[1] && 
             y > cockpitZoneY[0] && y < cockpitZoneY[1] &&
-            z > (maxZ * 0.7)) {
+            z > (height * 0.6)) {
             helmetPoints++;
         }
     }
     
     const hasVirtualCargo = helmetPoints > (triangles * 0.005);
 
-    // 4. Complexity & Mass
+    // 6. Complexity & Mass
     const boundingVolCm3 = (length * width * height) / 1000;
     const estimatedMass = Math.max(50, boundingVolCm3 * 0.4 * 0.165); 
 
@@ -228,8 +247,8 @@ export const analyzeStepFile = async (file: File): Promise<DesignParameters> => 
             originalOrientation: 'Auto-Detected',
             correctionApplied: scale !== 1.0,
             featureIdentification: `${triangles.toLocaleString()} triangles. Source: ${isFbx ? 'FBX' : 'STL'}.`,
-            rotationLog: `Scale Factor: ${scale}`
+            rotationLog: `Scale: ${scale}x. Centered for Solver.`
         },
-        rawModelData: arrayBufferToBase64(finalBuffer) // Serialize for persistent storage
+        rawModelData: arrayBufferToBase64(finalBuffer) // Now contains properly scaled/centered mesh
     };
 };
