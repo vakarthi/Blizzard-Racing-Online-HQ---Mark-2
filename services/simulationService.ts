@@ -23,10 +23,12 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     // Physics constants
     const dt = 0.001;
     const maxTime = 2.0; // Race usually ~1s
-    // Physics Tuning: Increased effective frontal area and added scalar to emphasize drag differences
-    const frontalArea = 0.0045; 
+    
+    // Physics Tuning v2: Calibrated for ~1.1s run times while punishing inefficiencies
+    const frontalArea = 0.0040; 
     const rho = 1.225;
-    const dragScalar = 5.0; // WIDEN THE GAP: Artificial multiplier to make Cd have a much larger impact on time
+    const dragScalar = 1.5; // Reduced from 5.0 to allow realistic speeds, but >1.0 to account for interference
+    const frictionCoeff = 0.015; // Rolling resistance coefficient (Line + Wheels)
     
     let t = 0;
     let x = 0;
@@ -36,7 +38,9 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     while (x < 20 && t < maxTime) {
         const thrust = getThrust(t);
         const drag = 0.5 * rho * v * v * cd * frontalArea * dragScalar;
-        const netForce = thrust - drag;
+        const friction = (mass / 1000) * 9.81 * frictionCoeff;
+        
+        const netForce = thrust - drag - friction;
         const a = netForce / (mass / 1000); // mass in g to kg
         
         v += a * dt;
@@ -81,11 +85,15 @@ export const runAerotestCFDSimulation = async (
     await new Promise(r => setTimeout(r, 500));
 
     // Calculate Physics
-    // Base Cd on complexity and dimensions (mock calculation)
+    // Heuristic Cd generation based on "design quality"
+    // Heavier/Larger cars get higher Cd penalty
     const baseCd = 0.15; 
-    const complexityFactor = (params.totalLength * params.totalWidth) / 20000; // Arbitrary
-    const cd = baseCd + (Math.random() * 0.05) - (complexityFactor * 0.01);
-    const cl = cd * 1.2; // Arbitrary lift relationship
+    const sizePenalty = ((params.totalLength * params.totalWidth) - 13000) / 50000; // Penalize large frontal area implicitly
+    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.002); // Penalize weight > 55g
+    
+    // Wider random variance to separate "Good" vs "Bad" runs distinctly
+    const cd = baseCd + (Math.random() * 0.10) + Math.max(0, sizePenalty) + weightPenalty;
+    const cl = cd * 1.2; 
     
     const raceData = performVirtualRace(cd, params.totalWeight);
 
@@ -127,7 +135,8 @@ export const runAerotestPremiumCFDSimulation = async (
     }
 
     const baseCd = 0.13; 
-    const cd = baseCd + (Math.random() * 0.03);
+    const weightPenalty = Math.max(0, (params.totalWeight - 55) * 0.001); // Lighter penalty for premium (better optimization assumed)
+    const cd = baseCd + (Math.random() * 0.06) + weightPenalty;
     const cl = cd * 1.5;
     
     const raceData = performVirtualRace(cd, params.totalWeight);
