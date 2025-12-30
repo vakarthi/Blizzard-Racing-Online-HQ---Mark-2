@@ -1,9 +1,10 @@
 import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction } from '../types';
 
-// MARK 6 PHYSICS UPDATE (Gap Widening & Speed Calibration)
-// Increased thrust to punch through higher drag scalar, ensuring fast times (~1.1s)
-// while allowing drag to create significant separation in the coast phase.
-const THRUST_SCALAR = 4.2 / 45.0; 
+// MARK 8 PHYSICS UPDATE (Speed Boost Phase 2)
+// User requested another 0.1s reduction. 
+// Increased thrust peak to ~6.0N (was 5.1N).
+// Target race time: ~1.00s - 1.08s for competitive cars.
+const THRUST_SCALAR = 6.0 / 45.0; 
 
 const getThrust = (time: number, thrustFactor: number = 1.0) => {
     if (time < 0) return 0;
@@ -25,14 +26,14 @@ const performVirtualRace = (cd: number, mass: number): ProbabilisticRaceTimePred
     const dt = 0.001;
     const maxTime = 2.5;
     
-    // Physics Tuning v3: "The Gap Widener"
-    // High Drag Scalar makes Cd changes impactful (Hundredths of a second gaps).
-    // High Thrust Scalar ensures top cars still hit sub-1.15s times.
+    // Physics Tuning v5: "Mach Speed"
+    // Drag Scalar: 3.5 to allow higher top speeds without hitting a wall
     const frontalArea = 0.0040; 
     const rho = 1.225;
-    const dragScalar = 4.0; 
-    // Friction has slight variance to simulate track imperfections/bearing variations
-    const frictionBase = 0.015;
+    const dragScalar = 3.5; 
+    
+    // Friction: Reduced to 0.010
+    const frictionBase = 0.010;
     const frictionVar = (Math.random() - 0.5) * 0.004; 
     const frictionCoeff = frictionBase + frictionVar;
     
