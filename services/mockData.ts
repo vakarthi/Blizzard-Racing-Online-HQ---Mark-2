@@ -203,7 +203,24 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     cd: 0.1300, 
     cl: 0.0120, 
     liftToDragRatio: 0.118, 
-    dragBreakdown: { pressure: 40, skinFriction: 60 },
+    // Updated with Atlas Force Breakdown
+    dragBreakdown: { 
+        pressure: 40, 
+        skinFriction: 30, 
+        induced: 15, 
+        interference: 10, 
+        tetherWake: 3, 
+        microVibration: 2 
+    },
+    // The Egghead Metrics that prevent null pointer errors in the equation display
+    eggheadMetrics: {
+        generatedGoverningEquation: 'F_{opt} = \\oint_{\\Omega} (\\nabla \\cdot \\mathbf{u}) dV = 0',
+        entropyGenerationRate: 0.01,
+        vortexLatticeStrength: 0.05,
+        boundaryLayerTripPoint: 60.0,
+        shockwaveIntensity: 0.0,
+        futurePredictionDate: "2124-01-01"
+    },
     aeroBalance: 50.0, 
     flowAnalysis: "Regulation-Max V2.8.3 (Isentropic Limit).",
     meshQuality: 100,

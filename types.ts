@@ -170,6 +170,26 @@ export interface NeuralCorrection {
     appliedFormula: string; // The specific formula string used
 }
 
+// NEW: Egghead Omega Metrics
+export interface EggheadMetrics {
+    generatedGoverningEquation: string; // LaTeX string
+    entropyGenerationRate: number; // J/K
+    vortexLatticeStrength: number; // Circulation Gamma
+    boundaryLayerTripPoint: number; // % chord
+    shockwaveIntensity: number; // Mach number equivalent
+    futurePredictionDate: string; // "2124-05-12"
+}
+
+// Atlas Force Breakdown (Vegapunk Standard)
+export interface AtlasForceBreakdown {
+    pressure: number;       // %
+    skinFriction: number;   // %
+    induced: number;        // %
+    interference: number;   // %
+    tetherWake: number;     // %
+    microVibration: number; // %
+}
+
 export interface AeroResult {
   id: string;
   timestamp: string;
@@ -185,10 +205,10 @@ export interface AeroResult {
   cd: number; // Coefficient of Drag
   cl: number; // Coefficient of Lift
   liftToDragRatio: number;
-  dragBreakdown: {
-    pressure: number;
-    skinFriction: number;
-  };
+  
+  // Updated for Atlas Force Breakdown
+  dragBreakdown: AtlasForceBreakdown;
+  
   aeroBalance: number; // % front
   flowAnalysis: string;
   
@@ -222,6 +242,7 @@ export interface AeroResult {
   
   // THE OMEGA UPDATE
   aiCorrectionModel?: NeuralCorrection;
+  eggheadMetrics?: EggheadMetrics; // The new 100-year future metrics
   
   auditLog?: string;
   

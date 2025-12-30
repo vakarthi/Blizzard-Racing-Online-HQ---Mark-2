@@ -13,6 +13,7 @@ const AeroPage: React.FC = () => {
     const { aeroResults, runSimulationTask, backgroundTasks, deleteAeroResult } = useData();
     const [dragActive, setDragActive] = useState(false);
     const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+    const [realityMode, setRealityMode] = useState<'actual' | 'perfect' | 'chaos'>('actual');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeTasks = backgroundTasks.filter(t => t.status === 'running');
@@ -127,23 +128,54 @@ const AeroPage: React.FC = () => {
             {displayResult ? (
                 <div className="space-y-6 animate-slide-in-up">
                     {/* Header Bar */}
-                    <div className="flex items-center justify-between border-b border-brand-border/50 pb-4">
-                        <h2 className="text-2xl font-black text-brand-text font-display flex items-center gap-3 uppercase">
-                            <span className="w-2 h-8 bg-brand-accent rounded-sm"></span>
-                            {displayResult.parameters.carName}
-                        </h2>
-                        <div className="flex flex-col items-end">
-                            <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Analysis Timestamp</span>
-                            <span className="text-sm font-bold text-brand-accent font-egghead">{new Date(displayResult.timestamp).toLocaleString()}</span>
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-brand-border/50 pb-4 gap-4">
+                        <div>
+                            <h2 className="text-2xl font-black text-brand-text font-display flex items-center gap-3 uppercase">
+                                <span className="w-2 h-8 bg-brand-accent rounded-sm"></span>
+                                {displayResult.parameters.carName}
+                            </h2>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mt-1 pl-5">
+                                GENERATION: {displayResult.eggheadMetrics?.futurePredictionDate || 'CURRENT'}
+                            </p>
+                        </div>
+                        
+                        {/* Multi-Reality Selector */}
+                        <div className="flex items-center gap-2 p-1 bg-brand-dark rounded-lg border border-brand-border">
+                            <button onClick={() => setRealityMode('actual')} className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${realityMode === 'actual' ? 'bg-brand-accent text-brand-dark shadow-glow-accent' : 'text-brand-text-secondary hover:text-brand-text'}`}>
+                                Reality: Actual
+                            </button>
+                            <button onClick={() => setRealityMode('perfect')} className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${realityMode === 'perfect' ? 'bg-green-500 text-brand-dark shadow-glow-accent' : 'text-brand-text-secondary hover:text-brand-text'}`}>
+                                Reality: Ideal
+                            </button>
+                            <button onClick={() => setRealityMode('chaos')} className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase transition-all ${realityMode === 'chaos' ? 'bg-red-500 text-brand-dark shadow-glow-accent' : 'text-brand-text-secondary hover:text-brand-text'}`}>
+                                Reality: Chaos
+                            </button>
                         </div>
                     </div>
+
+                    {/* EGGHEAD OMEGA EQUATION DISPLAY */}
+                    {displayResult.eggheadMetrics && (
+                        <div className="relative p-6 rounded-xl bg-black border border-brand-accent/40 shadow-[0_0_30px_rgba(14,165,233,0.1)] overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 text-[10px] font-egghead text-brand-accent/50 tracking-widest uppercase flex items-center gap-2">
+                                <BrainCircuitIcon className="w-3 h-3" />
+                                SYNTHESIZED GOVERNING EQUATION
+                            </div>
+                            <div className="font-serif italic text-xl md:text-2xl text-center text-white/90 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">
+                                $${displayResult.eggheadMetrics.generatedGoverningEquation}$$
+                            </div>
+                            {/* Decorative Equation Glitch */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-scanline pointer-events-none"></div>
+                        </div>
+                    )}
 
                     {/* KPI Holograms */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
                             <div className="absolute top-0 right-0 p-2 opacity-20"><WindIcon className="w-12 h-12 text-brand-text"/></div>
                             <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Aerodynamic Resistance ($C_d$)</p>
-                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.cd.toFixed(4)}</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">
+                                {(displayResult.cd * (realityMode === 'chaos' ? 1.2 : realityMode === 'perfect' ? 0.9 : 1)).toFixed(4)}
+                            </p>
                             <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
                                 <div className="h-full bg-red-500" style={{ width: `${Math.min(100, (displayResult.cd / 0.3) * 100)}%` }}></div>
                             </div>
@@ -151,33 +183,81 @@ const AeroPage: React.FC = () => {
 
                         <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
                             <div className="absolute top-0 right-0 p-2 opacity-20"><LayersIcon className="w-12 h-12 text-brand-text"/></div>
-                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Vertical Load Factor ($C_l$)</p>
-                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.cl.toFixed(4)}</p>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Entropy Generation (EGU)</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">
+                                {displayResult.eggheadMetrics ? (displayResult.eggheadMetrics.entropyGenerationRate * (realityMode === 'chaos' ? 1.5 : 1)).toFixed(2) : "N/A"}
+                            </p>
                             <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-500" style={{ width: `${Math.min(100, (displayResult.cl / 1.0) * 100)}%` }}></div>
+                                <div className="h-full bg-yellow-500" style={{ width: `${Math.min(100, ((displayResult.eggheadMetrics?.entropyGenerationRate || 0) / 5) * 100)}%` }}></div>
                             </div>
                         </div>
 
                         <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
                             <div className="absolute top-0 right-0 p-2 opacity-20"><SparklesIcon className="w-12 h-12 text-brand-text"/></div>
-                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Void Quotient ($L/D$)</p>
-                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">{displayResult.liftToDragRatio.toFixed(2)}</p>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Vortex Strength ($\Gamma$)</p>
+                            <p className="text-4xl font-black text-brand-text font-egghead tracking-tight group-hover:text-brand-accent transition-colors">
+                                {displayResult.eggheadMetrics ? displayResult.eggheadMetrics.vortexLatticeStrength.toFixed(3) : "N/A"}
+                            </p>
                             <div className="w-full bg-brand-dark h-1 mt-3 rounded-full overflow-hidden">
-                                <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (displayResult.liftToDragRatio / 6.0) * 100)}%` }}></div>
+                                <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, ((displayResult.eggheadMetrics?.vortexLatticeStrength || 0) / 0.1) * 100)}%` }}></div>
                             </div>
                         </div>
 
                         <div className="bg-brand-dark-secondary/60 backdrop-blur-sm border border-brand-border p-5 rounded-xl relative overflow-hidden group hover:border-brand-accent/50 transition-colors">
                             <div className="absolute top-0 right-0 p-2 opacity-20"><HistoryIcon className="w-12 h-12 text-brand-text"/></div>
-                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Predicted Event Time</p>
-                            <p className="text-4xl font-black text-brand-accent font-egghead tracking-tight">{displayResult.raceTimePrediction?.averageRaceTime.toFixed(3)}s</p>
-                            <p className="text-[9px] font-mono text-brand-text-secondary mt-1">CONFIDENCE: {displayResult.raceTimePrediction?.trustIndex}%</p>
+                            <p className="text-[10px] font-mono text-brand-text-secondary uppercase mb-1">Predicted Event Time (RK4)</p>
+                            <p className="text-4xl font-black text-brand-accent font-egghead tracking-tight">
+                                {displayResult.raceTimePrediction ? (displayResult.raceTimePrediction.averageRaceTime * (realityMode === 'chaos' ? 1.05 : realityMode === 'perfect' ? 0.98 : 1)).toFixed(3) : "0.000"}s
+                            </p>
+                            <p className="text-[9px] font-mono text-brand-text-secondary mt-1">CONFIDENCE: {displayResult.raceTimePrediction?.trustIndex || 0}%</p>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Graphs Column - "Visual Cortex" */}
                         <div className="lg:col-span-2 space-y-6">
+                            
+                            {/* ATLAS FORCE BREAKDOWN */}
+                            <div className="bg-brand-dark-secondary/40 rounded-xl border border-brand-border p-1 backdrop-blur-sm">
+                                <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-border/50 mb-1 flex items-center justify-between">
+                                    <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
+                                        <LayersIcon className="w-4 h-4 text-brand-accent" />
+                                        Atlas Force Breakdown
+                                    </h3>
+                                    <span className="text-[9px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded border border-brand-accent/20">COMPONENT ANALYSIS</span>
+                                </div>
+                                <div className="p-6 space-y-4">
+                                    {Object.entries(displayResult.dragBreakdown || {}).map(([key, value]) => {
+                                        let color = 'bg-brand-accent';
+                                        if (key === 'pressure') color = 'bg-red-500';
+                                        if (key === 'skinFriction') color = 'bg-blue-500';
+                                        if (key === 'induced') color = 'bg-purple-500';
+                                        if (key === 'tetherWake') color = 'bg-orange-500';
+                                        
+                                        const displayValue = (value as number) * (realityMode === 'chaos' ? 1.2 : 1);
+
+                                        return (
+                                            <div key={key} className="relative">
+                                                <div className="flex justify-between items-end mb-1 text-xs uppercase font-bold text-brand-text-secondary">
+                                                    <span>{key.replace(/([A-Z])/g, ' $1')}</span>
+                                                    <span>{displayValue.toFixed(1)}%</span>
+                                                </div>
+                                                <div className="w-full bg-brand-dark h-3 rounded-full overflow-hidden border border-white/5 relative">
+                                                    {/* Glowing Bar */}
+                                                    <div 
+                                                        className={`h-full ${color} shadow-[0_0_10px_currentColor] transition-all duration-700 ease-out`} 
+                                                        style={{ width: `${Math.min(100, displayValue)}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                    {(!displayResult.dragBreakdown || Object.keys(displayResult.dragBreakdown).length === 0) && (
+                                        <p className="text-center text-xs text-brand-text-secondary italic py-4">Force component analysis unavailable for this model.</p>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="bg-brand-dark-secondary/40 rounded-xl border border-brand-border p-1 backdrop-blur-sm">
                                 <div className="bg-brand-dark/50 rounded-lg p-3 border-b border-brand-border/50 mb-1 flex items-center justify-between">
                                     <h3 className="font-bold text-brand-text font-egghead uppercase tracking-widest flex items-center gap-2">
@@ -283,12 +363,12 @@ const AeroPage: React.FC = () => {
                                         <span className="font-bold font-egghead text-brand-text">{result.cd.toFixed(3)}</span>
                                     </div>
                                     <div className="bg-brand-dark p-2 rounded border border-brand-border/50">
-                                        <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Void (L/D)</span>
-                                        <span className="font-bold font-egghead text-brand-text">{result.liftToDragRatio.toFixed(2)}</span>
+                                        <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Chaos (EGU)</span>
+                                        <span className="font-bold font-egghead text-brand-text">{result.eggheadMetrics?.entropyGenerationRate.toFixed(1) || '-'}</span>
                                     </div>
                                     <div className="bg-brand-dark p-2 rounded border border-brand-border/50">
                                         <span className="text-[9px] text-brand-text-secondary block mb-1 uppercase font-bold">Time</span>
-                                        <span className="font-bold font-egghead text-brand-accent">{result.raceTimePrediction?.averageRaceTime.toFixed(3)}s</span>
+                                        <span className="font-bold font-egghead text-brand-accent">{result.raceTimePrediction ? result.raceTimePrediction.averageRaceTime.toFixed(3) : "-"}s</span>
                                     </div>
                                 </div>
                                 <p className="text-[9px] text-brand-text-secondary mt-3 text-right font-mono opacity-60">
