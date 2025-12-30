@@ -1,10 +1,10 @@
 import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction } from '../types';
 
-// MARK 9 PHYSICS UPDATE (Precision Calibration)
-// User requested decrease of 0.6N from previous Mark 8 (6.0N).
-// New Peak Thrust: ~5.4N.
-// Target race time: ~1.08s - 1.15s (Balanced Speed).
-const THRUST_SCALAR = 5.4 / 45.0; 
+// MARK 13 PHYSICS UPDATE (Fine Tuning)
+// User requested decrease of 0.2N from previous Mark 12 (4.4N).
+// New Peak Thrust: ~4.2N.
+// Target race time: ~1.30s - 1.40s.
+const THRUST_SCALAR = 4.2 / 45.0; 
 
 const getThrust = (time: number, thrustFactor: number = 1.0) => {
     if (time < 0) return 0;
