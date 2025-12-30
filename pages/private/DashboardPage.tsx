@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useData, useAppState } from '../../contexts/AppContext';
 import DashboardWidget from '../../components/hq/DashboardWidget';

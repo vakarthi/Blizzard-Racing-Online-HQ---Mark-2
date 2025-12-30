@@ -1,4 +1,3 @@
-
 import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction, EggheadMetrics, AtlasForceBreakdown, PhysicsDomain, EnvironmentPreset, MultiverseTimeline } from '../types';
 
 /**
@@ -37,24 +36,28 @@ const generateMultiverseData = (params: DesignParameters, factors: any, domain: 
     const timelines: MultiverseTimeline[] = [];
     const baseValue = domain === 'FLUID_DYNAMICS' ? 20 : 100; // Base scalar for the "signal"
     
+    // Create a seed based on params to make graphs deterministic
+    const paramSum = params.totalLength + params.totalWidth + (params.frontWingSpan || 0);
+    const seed = Math.sin(paramSum) * 1000;
+
     // Timeline 1: Reality Prime (Baseline)
     const points1 = [];
     for (let i = 0; i <= 20; i++) {
-        points1.push({ x: i, y: baseValue * Math.log(i + 1) * factors.rho });
+        points1.push({ x: i, y: baseValue * Math.log(i + 1) * factors.rho * (1 + Math.sin(i * 0.5 + seed) * 0.05) });
     }
     timelines.push({ id: 'univ-1', name: 'Universe A (Prime)', color: '#0EA5E9', convergenceScore: 99.9, dataPoints: points1 });
 
     // Timeline 2: Golden Future (Optimistic)
     const points2 = [];
     for (let i = 0; i <= 20; i++) {
-        points2.push({ x: i, y: (baseValue * 1.2) * Math.log(i + 1) * factors.rho });
+        points2.push({ x: i, y: (baseValue * 1.2) * Math.log(i + 1) * factors.rho * (1 + Math.cos(i * 0.3 + seed) * 0.08) });
     }
     timelines.push({ id: 'univ-2', name: 'Universe B (Golden)', color: '#F59E0B', convergenceScore: 94.2, dataPoints: points2 });
 
     // Timeline 3: Void Century (Chaos)
     const points3 = [];
     for (let i = 0; i <= 20; i++) {
-        const chaos = Math.sin(i) * 5;
+        const chaos = Math.sin(i * 2 + seed) * 15;
         points3.push({ x: i, y: (baseValue * 0.8) * Math.log(i + 1) * factors.rho + chaos });
     }
     timelines.push({ id: 'univ-3', name: 'Universe C (Chaos)', color: '#EF4444', convergenceScore: 88.5, dataPoints: points3 });
@@ -203,9 +206,31 @@ export const runUniversalSimulation = async (
         futurePredictionDate: "2124-05-12"
     };
 
-    // Physics Calculation
-    const cd = (domain === 'FLUID_DYNAMICS') ? 0.12 * envFactors.rho : 0.05;
-    const cl = (domain === 'FLUID_DYNAMICS') ? 0.15 * envFactors.rho : 0.01;
+    // Physics Calculation - REALISTIC HEURISTIC MODEL
+    // Calculate Cd based on car parameters (slenderness, wing span, weight)
+    // 1. Length Factor: Ideal length around 210mm. Penalty for deviation or short cars.
+    const lengthFactor = params.totalLength ? (210 - params.totalLength) * 0.001 : 0; 
+    // 2. Width Factor: Wider cars have more frontal area drag
+    const widthFactor = params.totalWidth ? params.totalWidth * 0.0005 : 0; 
+    // 3. Weight Factor: Heavier cars often implies bulkier geometry (surface area proxy)
+    const weightFactor = params.totalWeight ? (params.totalWeight - 50) * 0.0002 : 0; 
+    
+    // Hash based variation for uniqueness
+    const nameHash = params.carName.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    const uniqueChaos = Math.sin(nameHash + (params.totalLength || 0)) * 0.02;
+
+    let calculatedCd = 0.12 + lengthFactor + widthFactor + weightFactor + uniqueChaos;
+    // Clamp to realistic F1S values (usually 0.15 - 0.4)
+    calculatedCd = Math.max(0.12, Math.min(0.5, calculatedCd));
+    
+    // Calculate Cl (Lift/Downforce)
+    // Front wing span increases downforce (negative lift)
+    const wingFactor = (params.frontWingSpan || 0) * 0.002 + (params.rearWingSpan || 0) * 0.003;
+    let calculatedCl = 0.05 + wingFactor + (uniqueChaos * 0.5);
+
+    // Apply Environment Scaling
+    const cd = (domain === 'FLUID_DYNAMICS') ? calculatedCd * envFactors.rho : 0.05;
+    const cl = (domain === 'FLUID_DYNAMICS') ? calculatedCl * envFactors.rho : 0.01;
     
     // Run Physics Engine (RK4)
     const raceData = performRK4Race(cd, params.totalWeight, eggheadMetrics, envFactors);

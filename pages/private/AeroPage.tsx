@@ -227,7 +227,7 @@ const AeroPage: React.FC = () => {
                             { label: 'Primary Scalar (Cd)', value: displayResult.cd.toFixed(4), color: 'text-brand-accent', border: 'border-brand-accent' },
                             { label: 'Secondary Scalar (Cl)', value: displayResult.cl.toFixed(4), color: 'text-green-400', border: 'border-green-500' },
                             { label: 'Efficiency Index', value: displayResult.liftToDragRatio.toFixed(2), color: 'text-purple-400', border: 'border-purple-500' },
-                            { label: 'Chaos Entropy', value: ((displayResult.eggheadMetrics?.entropyGenerationRate ?? 0) as number).toFixed(2), color: 'text-red-400', border: 'border-red-500' }
+                            { label: 'Chaos Entropy', value: Number(displayResult.eggheadMetrics?.entropyGenerationRate ?? 0).toFixed(2), color: 'text-red-400', border: 'border-red-500' }
                         ].map((stat, i) => (
                             <div key={i} className={`bg-[#020617] relative p-6 rounded-xl border-l-4 ${stat.border} shadow-lg overflow-hidden group hover:bg-[#0F172A] transition-colors`}>
                                 <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
