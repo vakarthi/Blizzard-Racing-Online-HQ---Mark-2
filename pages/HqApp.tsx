@@ -1,3 +1,4 @@
+
 import React, { useState, ReactNode, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useAuth, useAppState, useData } from '../contexts/AppContext';
@@ -7,7 +8,6 @@ import { useCommandK } from '../hooks/useCommandK';
 import { useKonamiCode } from '../hooks/useKonamiCode';
 import useInactivityTimeout from '../hooks/useInactivityTimeout';
 import DashboardPage from './private/DashboardPage';
-import AeroPage from './private/AeroPage';
 import AeroEducationPage from './private/AeroEducationPage';
 import ProjectsPage from './private/ProjectsPage';
 import ManagerPanelGate from './private/ManagerPanelGate';
@@ -31,7 +31,6 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '', name: 'The Bridge', icon: <AnchorIcon className="w-5 h-5" /> },
-  { path: 'aero', name: 'Egghead Lab', icon: <WindIcon className="w-5 h-5" />, roles: [UserRole.Manager, UserRole.DesignEngineer, UserRole.ManufacturingEngineer] },
   { path: 'aero-academy', name: 'Ohara Library', icon: <GraduationCapIcon className="w-5 h-5" />, roles: [UserRole.Manager, UserRole.DesignEngineer, UserRole.ManufacturingEngineer] },
   { path: 'projects', name: 'Shipwright Dock', icon: <ClipboardListIcon className="w-5 h-5" /> },
   { path: 'comms', name: 'Den Den Mushi', icon: <MessagesSquareIcon className="w-5 h-5" /> },
@@ -305,7 +304,6 @@ const HqApp: React.FC = () => {
         <HqLayout>
             <Routes>
                 <Route index element={<DashboardPage />} />
-                <Route path="aero" element={<AeroPage />} />
                 <Route path="aero-academy" element={<AeroEducationPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="comms" element={<CommunicationsPage />} />

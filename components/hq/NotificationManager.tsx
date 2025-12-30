@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../../contexts/AppContext';
 import { BackgroundTask } from '../../types';
@@ -13,6 +14,7 @@ interface Notification {
 }
 
 const NotificationToast: React.FC<{ notification: Notification; onDismiss: (id: string) => void; }> = ({ notification, onDismiss }) => {
+    // navigate is no longer used for aero redirect, but kept in case needed for other redirects later
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -23,9 +25,7 @@ const NotificationToast: React.FC<{ notification: Notification; onDismiss: (id: 
     }, [notification.id, onDismiss]);
 
     const handleClick = () => {
-        if (notification.type === 'completed') {
-            navigate('/hq/aero');
-        }
+        // Redirect logic removed as AeroPage is deprecated
         onDismiss(notification.id);
     };
 

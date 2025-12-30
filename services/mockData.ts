@@ -2,6 +2,7 @@
 import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent, AeroResult } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
+// ... (Existing Users, Tasks, Finances, Sponsors, News, Highlights, Threads, Progress, Protocols, PublicPortalContent remain unchanged)
 export const MOCK_USERS_DATA = [
   { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager, bounty: 0 },
   { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.ManufacturingEngineer, bounty: 0 },
@@ -189,8 +190,11 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         visibilityScore: 100,
         hasVirtualCargo: true
     },
+    // Vegapunk Defaults
+    domain: 'FLUID_DYNAMICS',
+    environment: 'EARTH_STD',
     solverSettings: {
-        solverType: 'FVM',
+        solverType: 'OMEGA-NEURAL',
         solver: 'Coupled Implicit',
         precision: 'Double',
         spatialDiscretization: {
@@ -200,24 +204,22 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         },
         turbulenceModel: 'Detached Eddy Simulation (DES)'
     },
-    cd: 0.1300, 
-    cl: 0.0120, 
-    liftToDragRatio: 0.118, 
-    // Updated with Atlas Force Breakdown
+    cd: 0.0001, // Near zero drag
+    cl: 5.0, 
+    liftToDragRatio: 5000, 
     dragBreakdown: { 
-        pressure: 40, 
-        skinFriction: 30, 
-        induced: 15, 
-        interference: 10, 
-        tetherWake: 3, 
-        microVibration: 2 
+        pressure: 0, 
+        skinFriction: 0, 
+        induced: 0, 
+        interference: 0, 
+        tetherWake: 0, 
+        microVibration: 0 
     },
-    // The Egghead Metrics that prevent null pointer errors in the equation display
     eggheadMetrics: {
         generatedGoverningEquation: 'F_{opt} = \\oint_{\\Omega} (\\nabla \\cdot \\mathbf{u}) dV = 0',
-        entropyGenerationRate: 0.01,
-        vortexLatticeStrength: 0.05,
-        boundaryLayerTripPoint: 60.0,
+        entropyGenerationRate: 0.00,
+        vortexLatticeStrength: 0.00,
+        boundaryLayerTripPoint: 100.0,
         shockwaveIntensity: 0.0,
         futurePredictionDate: "2124-01-01"
     },
@@ -233,19 +235,24 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
     convergenceStatus: 'Converged',
     simulationTime: 0,
     raceTimePrediction: {
-        bestRaceTime: 1.115, // Corrected for realistic 20m sprint time (~19m/s top speed)
-        worstRaceTime: 1.130,
-        averageRaceTime: 1.122, 
-        averageDrag: 0.1300,
-        bestFinishLineSpeed: 19.8, // ~71.2 km/h
-        worstFinishLineSpeed: 19.5,
-        averageFinishLineSpeed: 19.65,
-        bestStartSpeed: 15.5,
-        worstStartSpeed: 15.2,
-        averageStartSpeed: 15.3,
-        bestAverageSpeed: 17.9,
-        worstAverageSpeed: 17.6,
-        averageSpeed: 17.82,
+        // God Mode Physics
+        bestRaceTime: 0.001,
+        worstRaceTime: 0.002,
+        averageRaceTime: 0.0015, 
+        averageDrag: 0.0001,
+        
+        bestFinishLineSpeed: 999, 
+        worstFinishLineSpeed: 998,
+        averageFinishLineSpeed: 998.5,
+        
+        bestStartSpeed: 500,
+        worstStartSpeed: 499,
+        averageStartSpeed: 499.5,
+        
+        bestAverageSpeed: 800,
+        worstAverageSpeed: 790,
+        averageSpeed: 795,
+        
         trustIndex: 100,
         isPhysical: true
     }

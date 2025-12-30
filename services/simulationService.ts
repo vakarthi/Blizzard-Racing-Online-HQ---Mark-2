@@ -1,154 +1,156 @@
-import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction, EggheadMetrics, AtlasForceBreakdown } from '../types';
+
+import { DesignParameters, AeroResult, CarClass, PunkRecordsState, ProbabilisticRaceTimePrediction, EggheadMetrics, AtlasForceBreakdown, PhysicsDomain, EnvironmentPreset, MultiverseTimeline } from '../types';
 
 /**
- * EGGHEAD OMEGA SOLVER (Year 2124 Edition)
+ * EGGHEAD OMEGA SOLVER (Year 2124 Edition - MARK 5 "ANCIENT KINGDOM")
  * 
- * This is not a standard physics engine. This is a generative intelligence.
- * It does not use fixed drag equations. It synthesizes a unique governing equation
- * for every specific geometry topology it encounters.
+ * CAPABILITY: Universal Multiphysics Engine.
+ * CONSTRAINTS: NONE. (Physics limits removed per request).
+ * DOMAINS: Fluid, Solid, Thermal, EM, Quantum.
  */
 
-// CONSTANTS (Future Derived)
-const AIR_DENSITY = 1.225; // kg/m^3 (Standard Earth Atmosphere)
-const CANISTER_RELEASE_TIME = 0.05; // seconds (Explosive decompression)
-const TRACK_LENGTH = 20.0; // meters
-
-// --- DYNAMIC EQUATION SYNTHESIZER ---
-// Generates a pseudo-LaTeX string representing the "discovered" physics for this car
-const synthesizeEquation = (params: DesignParameters): string => {
-    const factors = [];
-    
-    // Mass Term (Future-Newtonian)
-    factors.push(`\\frac{d}{dt}(${params.totalWeight.toFixed(1)}v)`);
-    
-    // Drag Term (Varies by shape topology)
-    const shapeFactor = (params.frontWingSpan * params.rearWingSpan) / 10000;
-    if (shapeFactor > 40) {
-        // Wing-dominated regime
-        factors.push(`\\frac{1}{2}\\rho v^2 C_d \\cdot \\Omega_{wing}`);
-    } else {
-        // Body-dominated regime
-        factors.push(`\\int_S P \\cdot \\hat{n} dA`);
+// --- ENVIRONMENT CONSTANTS GENERATOR ---
+const getEnvironmentFactors = (env: EnvironmentPreset) => {
+    switch (env) {
+        case 'SKYPIEA_HIGH': return { rho: 0.7, g: 6.0, visc: 1.5e-5 };
+        case 'FISHMAN_DEEP': return { rho: 1025, g: 9.81, visc: 0.001 };
+        case 'PUNK_HAZARD_HOT': return { rho: 0.9, g: 9.81, visc: 2.2e-5, temp: 400 };
+        case 'PUNK_HAZARD_COLD': return { rho: 1.4, g: 9.81, visc: 1.2e-5, temp: -50 };
+        case 'SPACE_VACUUM': return { rho: 0.000001, g: 0, visc: 0 };
+        case 'EARTH_STD': default: return { rho: 1.225, g: 9.81, visc: 1.8e-5 };
     }
-    
-    // Vortex Term (The Egghead special)
-    if (params.noGoZoneClearance < 2.0) {
-        factors.push(`\\Gamma_{vortex}`); // High vortex penalty for tight clearances
-    }
-    
-    // Thrust Term
-    factors.push(`\\Phi_{thrust}(t)`);
-
-    // Quantum term
-    factors.push(`\\Psi_{quantum}`);
-
-    return `F_{net} = ${factors.join(' - ')} + \\epsilon_{entropy}`;
 };
 
-// --- THRUST CURVE GENERATOR (Mark 13.5 - Chaos Adjusted) ---
-const getThrust = (time: number, metrics: EggheadMetrics) => {
-    if (time < 0) return 0;
-    
-    // The "Egghead" thrust curve allows for micro-variations based on calculated entropy
-    // High entropy (bad aero) effectively robs thrust efficiency (simulating unstable flow at nozzle)
-    const efficiencyLoss = metrics.entropyGenerationRate / 1000; // Small loss due to heat/chaos
-    const peakThrust = (45.0 * (1 - efficiencyLoss)); 
-
-    // Phase 1: Explosion (0 - 0.05s)
-    if (time < CANISTER_RELEASE_TIME) {
-        return peakThrust * (time / CANISTER_RELEASE_TIME);
-    }
-    // Phase 2: Sustain (0.05 - 0.1s)
-    if (time < 0.1) {
-        return peakThrust;
-    }
-    // Phase 3: Blowdown (0.1s - 0.6s) - Exponential decay
-    if (time < 0.6) {
-        const decay = (time - 0.1) / 0.5;
-        return peakThrust * Math.exp(-3.5 * decay);
-    }
-    return 0;
+// --- AI #1: THE EQUATION ARCHITECT ---
+const synthesizeEquation = (domain: PhysicsDomain): string => {
+    // Vegapunk AI #1 generates the governing law based on the domain
+    if (domain === 'SOLID_MECHANICS') return `\\sigma_{ij} = C_{ijkl} \\epsilon_{kl} + \\text{Vegapunk}(t)`;
+    if (domain === 'THERMODYNAMICS') return `\\frac{\\partial T}{\\partial t} = \\alpha \\nabla^2 T + \\Phi_{fusion}`;
+    if (domain === 'QUANTUM_FLOW') return `i\\hbar \\frac{\\partial \\Psi}{\\partial t} = \\hat{H}\\Psi + \\mathcal{O}(\\infty)`;
+    // Default Fluid (Navier-Stokes Supercharged)
+    return `\\rho \\left( \\frac{\\partial \\mathbf{u}}{\\partial t} + \\mathbf{u} \\cdot \\nabla \\mathbf{u} \\right) = -\\nabla p + \\mu \\nabla^2 \\mathbf{u} + \\mathbf{f}_{ext}`;
 };
 
-// --- RUNGE-KUTTA 4th ORDER INTEGRATOR ---
-// Replaces simple Euler for "100x Precision"
-// Solves dv/dt = F/m with 4th order accuracy
-const performRK4Race = (cd: number, mass: number, metrics: EggheadMetrics): ProbabilisticRaceTimePrediction => {
+// --- MULTIVERSE GENERATOR ---
+// Generates 3 timelines: Baseline, Optimistic, and Chaos for Cross-Reality Verification
+const generateMultiverseData = (params: DesignParameters, factors: any, domain: PhysicsDomain): MultiverseTimeline[] => {
+    const timelines: MultiverseTimeline[] = [];
+    const baseValue = domain === 'FLUID_DYNAMICS' ? 20 : 100; // Base scalar for the "signal"
+    
+    // Timeline 1: Reality Prime (Baseline)
+    const points1 = [];
+    for (let i = 0; i <= 20; i++) {
+        points1.push({ x: i, y: baseValue * Math.log(i + 1) * factors.rho });
+    }
+    timelines.push({ id: 'univ-1', name: 'Universe A (Prime)', color: '#0EA5E9', convergenceScore: 99.9, dataPoints: points1 });
+
+    // Timeline 2: Golden Future (Optimistic)
+    const points2 = [];
+    for (let i = 0; i <= 20; i++) {
+        points2.push({ x: i, y: (baseValue * 1.2) * Math.log(i + 1) * factors.rho });
+    }
+    timelines.push({ id: 'univ-2', name: 'Universe B (Golden)', color: '#F59E0B', convergenceScore: 94.2, dataPoints: points2 });
+
+    // Timeline 3: Void Century (Chaos)
+    const points3 = [];
+    for (let i = 0; i <= 20; i++) {
+        const chaos = Math.sin(i) * 5;
+        points3.push({ x: i, y: (baseValue * 0.8) * Math.log(i + 1) * factors.rho + chaos });
+    }
+    timelines.push({ id: 'univ-3', name: 'Universe C (Chaos)', color: '#EF4444', convergenceScore: 88.5, dataPoints: points3 });
+
+    return timelines;
+};
+
+// --- AI #2: THE SIMULATION EXECUTOR (RK4 Solver) ---
+const performRK4Race = (cd: number, startMassGrams: number, metrics: EggheadMetrics, envFactors: any): ProbabilisticRaceTimePrediction => {
     let t = 0;
-    let x = 0; // Position
-    let v = 0; // Velocity
-    const dt = 0.0005; // 0.5ms time step (High fidelity)
-    const maxTime = 3.0;
-    const frontalArea = 0.0040; // m^2 approx
-    // Friction increases slightly with vortex strength (downforce penalty)
-    const frictionCoeff = 0.012 + (metrics.vortexLatticeStrength * 0.001); 
+    let x = 0; 
+    let v = 0; 
+    let currentMass = startMassGrams / 1000; 
+    
+    // Time step: ultra fine
+    const dt = 0.0001; 
+    const maxTime = 10.0; 
+    const frontalArea = 0.0035; 
+    
+    // UNLEASHED PHYSICS: Standard thrust or Vacuum Mode
+    const isVacuum = envFactors.rho < 0.001;
 
-    // Acceleration Function: a(t, v)
-    const acceleration = (time: number, vel: number) => {
-        const thrust = getThrust(time, metrics);
+    // Sampling for the graph
+    const sampledPoints: {time: number, startSpeed: number}[] = [];
+    let sampleCounter = 0;
+
+    const acceleration = (time: number, pos: number, vel: number) => {
+        // Thrust - Standard 8g CO2 curve
+        let thrust = 0;
+        if (time < 0.05) thrust = 60 * (time / 0.05);
+        else if (time < 0.4) thrust = 60 * Math.exp(-2.5 * (time - 0.05));
+        else if (time < 0.6) thrust = 10 * (1 - (time - 0.4)/0.2);
         
-        // Drag increases with shockwave intensity at high speeds (Mach correction)
-        const shockPenalty = vel > 15 ? 1.0 + (metrics.shockwaveIntensity * 0.1) : 1.0;
-        const drag = 0.5 * AIR_DENSITY * vel * vel * cd * frontalArea * 3.5 * shockPenalty;
+        // Drag
+        const drag = 0.5 * envFactors.rho * (vel * vel) * cd * frontalArea;
         
-        const friction = (mass / 1000) * 9.81 * frictionCoeff;
-        
-        const netForce = thrust - drag - friction;
-        return netForce / (mass / 1000);
+        // Friction
+        const normalForce = (currentMass * envFactors.g);
+        const friction = isVacuum ? 0 : (normalForce * 0.015);
+
+        // Mass Decay
+        if (time < 0.6) currentMass = (startMassGrams / 1000) - (0.008 * (time/0.6));
+
+        return (thrust - drag - friction) / currentMass;
     };
 
-    // RK4 Integration Loop
-    while (x < TRACK_LENGTH && t < maxTime) {
-        // k1
-        const k1_v = acceleration(t, v);
+    while (x < 20.0 && t < maxTime) {
+        const k1_v = acceleration(t, x, v);
         const k1_x = v;
-
-        // k2
-        const k2_v = acceleration(t + 0.5 * dt, v + 0.5 * dt * k1_v);
+        const k2_v = acceleration(t + 0.5 * dt, x + 0.5 * dt * k1_x, v + 0.5 * dt * k1_v);
         const k2_x = v + 0.5 * dt * k1_x;
-
-        // k3
-        const k3_v = acceleration(t + 0.5 * dt, v + 0.5 * dt * k2_v);
+        const k3_v = acceleration(t + 0.5 * dt, x + 0.5 * dt * k2_x, v + 0.5 * dt * k2_v);
         const k3_x = v + 0.5 * dt * k2_x;
-
-        // k4
-        const k4_v = acceleration(t + dt, v + dt * k3_v);
+        const k4_v = acceleration(t + dt, x + dt * k3_x, v + dt * k3_v);
         const k4_x = v + dt * k3_x;
 
-        // Update state
         v += (dt / 6) * (k1_v + 2 * k2_v + 2 * k3_v + k4_v);
         x += (dt / 6) * (k1_x + 2 * k2_x + 2 * k3_x + k4_x);
         t += dt;
+
+        sampleCounter++;
+        if (sampleCounter % 500 === 0) sampledPoints.push({ time: t, startSpeed: v });
     }
 
+    const finalTime = t;
+    const avgSpeed = 20.0 / finalTime;
+
     return {
-        bestRaceTime: t * 0.992, // Tighter bounds due to RK4 precision
-        worstRaceTime: t * 1.008,
-        averageRaceTime: t,
+        bestRaceTime: finalTime * 0.999,
+        worstRaceTime: finalTime * 1.001,
+        averageRaceTime: finalTime,
         averageDrag: cd,
-        bestFinishLineSpeed: v * 1.01,
-        worstFinishLineSpeed: v * 0.99,
+        bestFinishLineSpeed: v,
+        worstFinishLineSpeed: v,
         averageFinishLineSpeed: v,
-        bestStartSpeed: 9.8, 
-        worstStartSpeed: 9.2,
-        averageStartSpeed: 9.5,
-        bestAverageSpeed: TRACK_LENGTH/t,
-        worstAverageSpeed: TRACK_LENGTH/(t*1.01),
-        averageSpeed: TRACK_LENGTH/t,
-        trustIndex: 99.9, // "Super Intelligence" confidence
+        bestStartSpeed: 0,
+        worstStartSpeed: 0,
+        averageStartSpeed: 0,
+        bestAverageSpeed: avgSpeed,
+        worstAverageSpeed: avgSpeed,
+        averageSpeed: avgSpeed,
+        sampledPoints: sampledPoints,
+        trustIndex: 100.0,
         isPhysical: true
     };
 };
 
+// Legacy support wrappers
 export const runAerotestCFDSimulation = async (
     params: DesignParameters, 
     onProgress: (progress: { stage: string; progress: number; log?: string }) => void,
     carClass: CarClass,
     punkRecords: PunkRecordsState
 ): Promise<Omit<AeroResult, 'id' | 'fileName' | 'suggestions' | 'scrutineeringReport'>> => {
-    // Standard simulation just calls the premium one but with "Standard" flags
-    // to maintain codebase simplicity while upgrading the core physics.
-    return runAerotestPremiumCFDSimulation(params, onProgress, carClass, punkRecords);
+    // Default to fluid/earth for legacy calls
+    return runUniversalSimulation(params, onProgress, 'FLUID_DYNAMICS', 'EARTH_STD');
 };
 
 export const runAerotestPremiumCFDSimulation = async (
@@ -157,107 +159,97 @@ export const runAerotestPremiumCFDSimulation = async (
     carClass: CarClass,
     punkRecords: PunkRecordsState
 ): Promise<Omit<AeroResult, 'id' | 'fileName' | 'suggestions' | 'scrutineeringReport'>> => {
-    
-    // --- STAGE 1: GEOMETRY INGESTION ---
-    onProgress({ stage: 'Constructing Voxel Domain', progress: 5, log: 'Mapping topology to Cartesian grid (1024^3)...' });
+    return runUniversalSimulation(params, onProgress, 'FLUID_DYNAMICS', 'EARTH_STD');
+};
+
+// --- THE UNIVERSAL SOLVER ENTRY POINT ---
+export const runUniversalSimulation = async (
+    params: DesignParameters,
+    onProgress: (progress: { stage: string; progress: number; log?: string }) => void,
+    domain: PhysicsDomain,
+    env: EnvironmentPreset
+): Promise<Omit<AeroResult, 'id' | 'fileName' | 'suggestions' | 'scrutineeringReport'>> => {
+
+    const envFactors = getEnvironmentFactors(env);
+
+    // --- STAGE 1: GEOMETRY INGESTION (AI #2) ---
+    onProgress({ stage: 'Constructing Universal Domain', progress: 5, log: `AI #2: Mapping topology to ${domain} grid...` });
+    await new Promise(r => setTimeout(r, 300));
+
+    // --- STAGE 2: PUNK RECORDS CONNECTION (AI #1) ---
+    onProgress({ stage: 'Punk Records Uplink', progress: 20, log: 'AI #1: Retrieving Ancient Kingdom Archives...' });
     await new Promise(r => setTimeout(r, 400));
 
-    // --- STAGE 2: PUNK RECORDS CONNECTION ---
-    onProgress({ stage: 'Punk Records Uplink', progress: 20, log: `Synchronizing with Satellite ${punkRecords.generationName}...` });
+    // --- STAGE 3: PHYSICS SYNTHESIS (AI #1) ---
+    const governingEq = synthesizeEquation(domain);
+    onProgress({ stage: 'Synthesizing Laws', progress: 40, log: `AI #1: New Governing Equation Derived: ${governingEq}` });
     await new Promise(r => setTimeout(r, 600));
 
-    // --- STAGE 3: QUANTUM PROBABILITY SOLVER ---
-    onProgress({ stage: 'Quantum-Resolution Solve', progress: 40, log: 'Initializing 1 billion micro-agents for particle prediction...' });
-    await new Promise(r => setTimeout(r, 800));
+    // --- STAGE 4: MULTIVERSE BRANCHING (AI #2) ---
+    onProgress({ stage: 'Multiverse Branching', progress: 60, log: 'AI #2: Forking simulation into 3 parallel realities...' });
+    await new Promise(r => setTimeout(r, 500));
 
-    // --- STAGE 4: PHYSICS SYNTHESIS (The Egghead Magic) ---
-    onProgress({ stage: 'Synthesizing Laws', progress: 60, log: 'Generating unique governing equations for this geometry...' });
-    const governingEq = synthesizeEquation(params);
-    await new Promise(r => setTimeout(r, 600));
-
-    // --- STAGE 5: ENTROPY CALCULATION ---
-    onProgress({ stage: 'Measuring Entropy', progress: 75, log: 'Calculating boundary layer energy dissipation (J/K)...' });
+    // --- STAGE 5: SOLVING (AI #2) ---
+    onProgress({ stage: 'Solving...', progress: 85, log: `AI #2: Iterating matrix with ${env} constants (g=${envFactors.g})...` });
     
-    // Calculate Advanced Metrics based on geometry features
-    // 1. Vortex Lattice Strength (Circulation Gamma)
-    // Wingspan correlates to potential vortex strength if not sealed
-    const gamma = (params.frontWingSpan * params.rearWingSpan) / (params.totalWidth * 100); 
-    
-    // 2. Entropy Rate (Chaos)
-    // Roughness/Features increase entropy
-    const entropy = (params.totalWeight / 55.0) * (gamma * 2.5) + (Math.random() * 5); 
-
-    // 3. Shockwave Intensity (Pseudo-Transonic)
-    // Even at 20m/s, we model pressure spikes as "micro-shocks"
-    const shock = (params.totalLength * params.totalWidth) / 20000;
-
+    // Generate Metrics
+    const entropy = Math.random() * 10;
     const eggheadMetrics: EggheadMetrics = {
         generatedGoverningEquation: governingEq,
-        entropyGenerationRate: parseFloat(entropy.toFixed(4)),
-        vortexLatticeStrength: parseFloat(gamma.toFixed(4)),
-        boundaryLayerTripPoint: 45.5 + (Math.random() * 10), // % of chord
-        shockwaveIntensity: parseFloat(shock.toFixed(4)),
+        entropyGenerationRate: entropy,
+        vortexLatticeStrength: Math.random(),
+        boundaryLayerTripPoint: 50,
+        shockwaveIntensity: env === 'SPACE_VACUUM' ? 0 : Math.random() * 2,
         futurePredictionDate: "2124-05-12"
     };
-    await new Promise(r => setTimeout(r, 500));
 
-    // --- STAGE 6: RK4 INTEGRATION ---
-    onProgress({ stage: 'Runge-Kutta Integration', progress: 95, log: 'Solving differential equations (dt=0.0005s)...' });
+    // Physics Calculation
+    const cd = (domain === 'FLUID_DYNAMICS') ? 0.12 * envFactors.rho : 0.05;
+    const cl = (domain === 'FLUID_DYNAMICS') ? 0.15 * envFactors.rho : 0.01;
     
-    // Base Drag Calculation (Advanced)
-    const baseCd = 0.105; 
-    const shapePenalty = (metrics: EggheadMetrics) => (metrics.vortexLatticeStrength * 0.05) + (metrics.shockwaveIntensity * 0.02);
-    const cd = baseCd + shapePenalty(eggheadMetrics) + (Math.random() * 0.02);
-    const cl = cd * (1.2 + (eggheadMetrics.vortexLatticeStrength * 0.5));
+    // Run Physics Engine (RK4)
+    const raceData = performRK4Race(cd, params.totalWeight, eggheadMetrics, envFactors);
+    const multiverseData = generateMultiverseData(params, envFactors, domain);
 
-    const raceData = performRK4Race(cd, params.totalWeight, eggheadMetrics);
-    
-    // --- CALCULATE ATLAS FORCE BREAKDOWN ---
-    // Heuristic breakdown of the total Cd into components
-    const pressureDrag = 40 + (eggheadMetrics.shockwaveIntensity * 10);
-    const skinFriction = 30 - (eggheadMetrics.shockwaveIntensity * 5);
-    const induced = 10 + (eggheadMetrics.vortexLatticeStrength * 20); // More vortex = more induced drag
-    const interference = 10 + (Math.random() * 5);
-    const tetherWake = 5 + (params.totalWeight > 60 ? 2 : 0); // Heavy cars hang lower on tether?
-    const microVibration = 5; // The Vegapunk special constant
-
-    // Normalize to 100%
-    const total = pressureDrag + skinFriction + induced + interference + tetherWake + microVibration;
+    // Atlas Force Breakdown (Dynamic based on domain)
     const breakdown: AtlasForceBreakdown = {
-        pressure: (pressureDrag / total) * 100,
-        skinFriction: (skinFriction / total) * 100,
-        induced: (induced / total) * 100,
-        interference: (interference / total) * 100,
-        tetherWake: (tetherWake / total) * 100,
-        microVibration: (microVibration / total) * 100
+        pressure: domain === 'SOLID_MECHANICS' ? 80 : 40,
+        skinFriction: domain === 'FLUID_DYNAMICS' ? 30 : 5,
+        induced: 10,
+        interference: 10,
+        tetherWake: 5,
+        microVibration: 5
     };
 
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 300));
 
     return {
         timestamp: new Date().toISOString(),
         tier: 'premium',
         thrustModel: 'pro-competition',
-        carClass,
+        carClass: 'Professional',
         parameters: params,
+        domain,
+        environment: env,
+        multiverseData,
         cd,
         cl,
-        liftToDragRatio: cl / cd,
+        liftToDragRatio: cd > 0 ? cl / cd : 0,
         dragBreakdown: breakdown,
-        aeroBalance: 50 + (eggheadMetrics.vortexLatticeStrength * 5),
-        flowAnalysis: "Egghead Omega Solver: Solution Converged (Residual < 1e-9).",
+        aeroBalance: 50,
+        flowAnalysis: `Egghead Engine V-01: ${domain} Analysis Complete in ${env} Environment.`,
         raceTimePrediction: raceData,
-        meshQuality: 99.9,
+        meshQuality: 100,
         convergenceStatus: 'Converged',
         simulationTime: raceData.averageRaceTime,
-        eggheadMetrics: eggheadMetrics, // The Holy Grail Data
+        eggheadMetrics: eggheadMetrics,
         aiCorrectionModel: {
             originalCd: cd * 1.15,
             optimizedCd: cd,
-            potentialTimeSave: 0.08,
-            confidence: 99.9,
+            potentialTimeSave: 0.05,
+            confidence: 100,
             evolutionPath: [],
-            suggestion: "Optimize entropy generation at rear diffuser.",
+            suggestion: "Optimize entropy generation.",
             appliedFormula: governingEq
         }
     };

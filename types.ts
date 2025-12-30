@@ -190,6 +190,18 @@ export interface AtlasForceBreakdown {
     microVibration: number; // %
 }
 
+// --- VEGAPUNK ENGINE TYPES ---
+export type PhysicsDomain = 'FLUID_DYNAMICS' | 'SOLID_MECHANICS' | 'THERMODYNAMICS' | 'ELECTROMAGNETICS' | 'QUANTUM_FLOW';
+export type EnvironmentPreset = 'EARTH_STD' | 'SKYPIEA_HIGH' | 'FISHMAN_DEEP' | 'PUNK_HAZARD_HOT' | 'PUNK_HAZARD_COLD' | 'SPACE_VACUUM';
+
+export interface MultiverseTimeline {
+    id: string;
+    name: string;
+    color: string;
+    convergenceScore: number; // 0-100 match with reality
+    dataPoints: { x: number; y: number }[]; // Generic X/Y for graphing
+}
+
 export interface AeroResult {
   id: string;
   timestamp: string;
@@ -198,11 +210,16 @@ export interface AeroResult {
   thrustModel?: 'standard' | 'competition' | 'pro-competition';
   carClass?: CarClass;
   
+  // Vegapunk Engine Settings
+  domain: PhysicsDomain;
+  environment: EnvironmentPreset;
+  multiverseData?: MultiverseTimeline[];
+  
   // Input parameters
   parameters: DesignParameters;
 
   // Simulation Outputs
-  cd: number; // Coefficient of Drag
+  cd: number; // Coefficient of Drag (or main scalar for other domains)
   cl: number; // Coefficient of Lift
   liftToDragRatio: number;
   
@@ -362,8 +379,8 @@ export interface PublicPortalContent {
   car: {
     title: string;
     subtitle: string;
-    carModelFbx: string | null;
-    isCarModelBlurred: boolean;
+    carModelFbx?: string | null;
+    isCarModelBlurred?: boolean;
   };
   competition: {
     title: string;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData, useAuth } from '../../contexts/AppContext';
-import { HomeIcon, WindIcon, ClipboardListIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, UsersIcon, BotIcon, LogOutIcon, Settings2Icon } from '../icons';
+import { HomeIcon, WindIcon, ClipboardListIcon, MessageSquareIcon, MessagesSquareIcon, WrenchIcon, SettingsIcon, UsersIcon, BotIcon, LogOutIcon, Settings2Icon, GraduationCapIcon } from '../icons';
 import { UserRole } from '../../types';
 
 interface Command {
@@ -37,7 +37,7 @@ const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const commandList: Command[] = [
         // Navigation
         { id: 'nav-dash', type: 'Navigation', title: 'Go to Dashboard', icon: <HomeIcon className="w-5 h-5"/>, action: () => navigate('/') },
-        { id: 'nav-aero', type: 'Navigation', title: 'Go to Aero Testing', icon: <WindIcon className="w-5 h-5"/>, action: () => navigate('/aero') },
+        { id: 'nav-academy', type: 'Navigation', title: 'Go to Ohara Library', icon: <GraduationCapIcon className="w-5 h-5"/>, action: () => navigate('/aero-academy') },
         { id: 'nav-projects', type: 'Navigation', title: 'Go to Projects', icon: <ClipboardListIcon className="w-5 h-5"/>, action: () => navigate('/projects') },
         { id: 'nav-comms', type: 'Navigation', title: 'Go to Comms Hub', icon: <MessagesSquareIcon className="w-5 h-5"/>, action: () => navigate('/comms') },
         { id: 'nav-socials', type: 'Navigation', title: 'Go to Socials', icon: <MessageSquareIcon className="w-5 h-5"/>, action: () => navigate('/socials') },
