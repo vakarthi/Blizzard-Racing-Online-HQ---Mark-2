@@ -34,7 +34,8 @@ export interface AppStore {
   _lastUpdatedBy: { userId: string, userName: string } | null;
 }
 
-const STORAGE_KEY = 'brh-local-store';
+// CHANGED: New Key to abandon old cache completely
+const STORAGE_KEY = 'brh-storage-v101';
 const BROADCAST_CHANNEL_NAME = 'punk_records_mesh_network';
 
 // Unique ID for this specific tab/window instance
@@ -66,8 +67,7 @@ const logSubscribers = new Set<(log: string[]) => void>();
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZDEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDBGMEZGO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzRUI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjI0MCIgZmlsbD0iIzAyMDYxNyIHN0cm9rZT0idXJsKCNncmFkMSkiIHN0cm9rZS13aWR0aD0iMTUiLz4KICA8cGF0aCBkPSJNMTI4IDE5MiBDIDE2MCAxMjAgMzUwIDEyMCAzODQgMTkyIEMgNDIwIDI2MCA0MjAgMzQwIDI1NiA0NDggQyA5MiAzNDAgOTIgMjYwIDEyOCAxOTIgWiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSJ1cmwoI2dyYWQxKSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPHBhdGggZD0iTTI1NiAxNjAgTCAzMjAgMjQwIEwgMTkyIDI0MCBaIiBmaWxsPSJ1cmwoI2dyYWQxKSIvPgogIDxwYXRoIGQ9Ik0xNjAgMjYwIEwgMjEwIDI4MCBMIDI1NiAzNTAgTCAzMDAgMjgwIEwgMzUwIDI2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==';
 
 // === SYSTEM VERSION ===
-// Bumped to 100 to trigger the "Buster Call" on old LocalStorage data
-const CURRENT_VERSION = 100; 
+const CURRENT_VERSION = 101; 
 
 const getInitialState = (): AppStore => {
     const defaultState: AppStore = {
@@ -112,18 +112,13 @@ const getInitialState = (): AppStore => {
         if (serializedState) {
             let loadedState = JSON.parse(serializedState);
             
-            // --- CRITICAL MIGRATION LOGIC (BUSTER CALL) ---
-            // If the user's data is older than version 100, we OVERWRITE
-            // their Users, Date, and Sponsors with the fresh code.
+            // --- CRITICAL MIGRATION LOGIC ---
+            // Force overwrite critical fields if version is old OR if we just want to enforce defaults
             if (!loadedState._version || loadedState._version < CURRENT_VERSION) {
                 console.log("System Update Detected: Flushing cache to apply fixes.");
-                
-                // Force update these specific fields
                 loadedState.users = defaultState.users; 
                 loadedState.competitionDate = defaultState.competitionDate;
                 loadedState.sponsors = defaultState.sponsors;
-                
-                // Update version
                 loadedState._version = CURRENT_VERSION;
             }
             
@@ -143,7 +138,6 @@ const notifyStatusSubscribers = () => statusSubscribers.forEach(cb => cb(syncSta
 const notifyLogSubscribers = () => logSubscribers.forEach(cb => cb(syncLog));
 
 const addLog = (message: string) => {
-    // Deduplicate repetitive logs
     if (syncLog.length > 0 && syncLog[0].includes(message) && message.includes('Heartbeat')) {
         return; 
     }
@@ -170,14 +164,10 @@ const startHubService = () => {
     if (hubHeartbeatInterval) clearInterval(hubHeartbeatInterval);
     if (hubBroadcastInterval) clearInterval(hubBroadcastInterval);
     
-    // Generate a unique session ID for this Hub instance
-    // This allows nodes to detect if the Hub restarted
     currentHubSessionId = `HUB-${INSTANCE_ID}-${Date.now()}`;
-    
     setStatus('HUB_ACTIVE');
     addLog(`Initializing Hub Session: ${currentHubSessionId}`);
     
-    // 1. Heartbeat - Lightweight "I am here"
     hubHeartbeatInterval = setInterval(() => {
         meshChannel.postMessage({ 
             type: 'HUB_HEARTBEAT', 
@@ -186,7 +176,6 @@ const startHubService = () => {
         });
     }, HEARTBEAT_INTERVAL_MS);
 
-    // 2. Broadcast - Heavyweight "Here is the data" (Aggressive Sync)
     hubBroadcastInterval = setInterval(() => {
         meshChannel.postMessage({ 
             type: 'SYNC_UPDATE', 
@@ -196,7 +185,6 @@ const startHubService = () => {
         });
     }, BROADCAST_INTERVAL_MS);
 
-    // Initial announce
     meshChannel.postMessage({ type: 'HUB_HEARTBEAT', timestamp: Date.now(), hubId: currentHubSessionId });
     meshChannel.postMessage({ type: 'SYNC_UPDATE', payload: store, hubId: currentHubSessionId, isPeriodic: true });
 };
@@ -207,7 +195,6 @@ const stopHubService = () => {
     hubHeartbeatInterval = null;
     hubBroadcastInterval = null;
     currentHubSessionId = null;
-    
     setStatus('SEARCHING');
 };
 
@@ -219,7 +206,6 @@ const resetWatchdog = (receivedHubId: string) => {
     if (syncStatus !== 'SYNCED') {
         setStatus('SYNCED'); 
         addLog(`Connected to Manager: ${receivedHubId}`);
-        // If we just connected, ask for state
         meshChannel.postMessage({ type: 'REQUEST_STATE', senderId: INSTANCE_ID });
     }
 
@@ -235,32 +221,23 @@ meshChannel.addEventListener('message', (event) => {
     if (!event.data) return;
     const { type, payload, hubId } = event.data;
 
-    // 1. Heartbeat Handling
     if (type === 'HUB_HEARTBEAT') {
         resetWatchdog(hubId || 'UNKNOWN');
         return;
     }
 
-    // 2. Data Sync Handling
     if (type === 'SYNC_UPDATE') {
         if (currentUserRole === UserRole.Manager) return;
-
         const remoteState = payload as AppStore;
-        
-        // Always trust the Hub's version of truth if we are a node
-        // Simple version check to avoid jitter
         if (remoteState._version >= store._version) {
             store = remoteState;
             saveLocalState(store);
             notifySubscribers();
-            // Reset watchdog here too, as a data packet implies a hub is present
             resetWatchdog(hubId || 'UNKNOWN');
         }
     } 
     
-    // 3. New Node Request
     else if (type === 'REQUEST_STATE') {
-        // Only the Manager responds to state requests
         if (currentUserRole === UserRole.Manager) {
             meshChannel.postMessage({ 
                 type: 'SYNC_UPDATE', 
@@ -270,23 +247,17 @@ meshChannel.addEventListener('message', (event) => {
         }
     } 
     
-    // 4. Write Requests (Routed to Manager)
     else if (type === 'BOUNTY_REQUEST') {
         if (currentUserRole === UserRole.Manager) {
             const { userId, amount } = payload;
-            
             const updatedUsers = store.users.map(u => 
                 u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u
             );
-            
             const newState = { ...store, users: updatedUsers };
             newState._version = (store._version || 0) + 1;
-            
             store = newState;
             saveLocalState(store);
             notifySubscribers();
-            
-            // Broadcast immediately
             meshChannel.postMessage({ 
                 type: 'SYNC_UPDATE', 
                 payload: store,
@@ -297,11 +268,8 @@ meshChannel.addEventListener('message', (event) => {
 });
 
 const initialize = () => {
-    // Default state: Searching for a Hub
     setStatus('SEARCHING');
     addLog(`Node Started: ${INSTANCE_ID}`);
-    
-    // Ping to see if anyone is there
     setTimeout(() => {
         meshChannel.postMessage({ type: 'REQUEST_STATE', senderId: INSTANCE_ID });
     }, 500);
@@ -318,13 +286,9 @@ export const stateSyncService = {
   setRole: (role: UserRole | null) => {
       const prevRole = currentUserRole;
       currentUserRole = role;
-      
-      // If switching TO manager
       if (role === UserRole.Manager && prevRole !== UserRole.Manager) {
           startHubService();
-      } 
-      // If switching FROM manager
-      else if (role !== UserRole.Manager && prevRole === UserRole.Manager) {
+      } else if (role !== UserRole.Manager && prevRole === UserRole.Manager) {
           stopHubService();
       }
   },
@@ -346,7 +310,6 @@ export const stateSyncService = {
       return () => logSubscribers.delete(callback);
   },
 
-  // General Update (Local Only or Manager Broadcast)
   updateStore: (updater: (currentStore: AppStore) => AppStore, updatedBy?: {userId: string, userName: string}) => {
     const newState = updater(store);
     newState._version = (store._version || 0) + 1;
@@ -356,7 +319,6 @@ export const stateSyncService = {
     saveLocalState(newState);
     notifySubscribers(); 
     
-    // Broadcast change
     meshChannel.postMessage({ 
         type: 'SYNC_UPDATE', 
         payload: newState,
@@ -364,16 +326,13 @@ export const stateSyncService = {
     });
   },
   
-  // Specific Hub-Routed Action
   requestBountyUpdate: (userId: string, amount: number) => {
       if (currentUserRole === UserRole.Manager) {
-          // I am the Hub, execute immediately
           stateSyncService.updateStore(s => ({
               ...s,
               users: s.users.map(u => u.id === userId ? { ...u, bounty: (u.bounty || 0) + amount } : u)
           }));
       } else {
-          // I am a Node, transmit request
           meshChannel.postMessage({ type: 'BOUNTY_REQUEST', payload: { userId, amount }, senderId: INSTANCE_ID });
       }
   },
@@ -381,5 +340,4 @@ export const stateSyncService = {
   initialize
 };
 
-// Initialize on load
 stateSyncService.initialize();
