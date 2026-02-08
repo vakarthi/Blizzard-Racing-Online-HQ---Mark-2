@@ -87,7 +87,7 @@ const getInitialState = (): AppStore => {
         backgroundTasks: [],
         activeSessions: [],
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
-        competitionDate: '2026-03-24T09:00:00', // Updated: Tuesday, March 24, 2026
+        competitionDate: '2026-03-24T09:00:00', // Updated to Tuesday, March 24, 2026
         teamLogoUrl: DEFAULT_LOGO,
         simulationRunCount: 0,
         punkRecords: {

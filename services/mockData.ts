@@ -43,7 +43,7 @@ export const MOCK_USERS_DATA = [
       role: UserRole.DesignEngineer, 
       bounty: 850,
       // Replaced picture with "Consent Not Given" placeholder
-      customAvatar: 'https://placehold.co/600x800/000000/FFFFFF/png?text=Consent+Not+Given&font=roboto'
+      customAvatar: 'https://placehold.co/600x800/1a1a1a/ffffff?text=Consent+Not+Given&font=roboto'
   },
 ];
 
