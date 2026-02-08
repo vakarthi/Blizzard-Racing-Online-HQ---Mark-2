@@ -6,7 +6,7 @@ import { generateAvatar } from '../utils/avatar';
 export const MOCK_USERS_DATA = [
   { 
       id: 'user-1', 
-      name: 'Shrivatsa K', 
+      name: 'Shrivatsa Karthi', // Corrected name
       email: 'shrivatsakarth.kart@saintolaves.net', 
       role: UserRole.Manager, 
       bounty: 1200,
@@ -43,7 +43,7 @@ export const MOCK_USERS_DATA = [
       role: UserRole.DesignEngineer, 
       bounty: 850,
       // Replaced picture with "Consent Not Given" placeholder
-      customAvatar: 'https://placehold.co/600x800/1a1a1a/ffffff?text=Consent+Not+Given&font=roboto'
+      customAvatar: 'https://placehold.co/600x800/000000/FFFFFF/png?text=Consent+Not+Given&font=roboto'
   },
 ];
 
