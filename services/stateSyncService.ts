@@ -65,8 +65,9 @@ const logSubscribers = new Set<(log: string[]) => void>();
 // Stylized Eagle Logo (SVG Data URI)
 const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZDEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDBGMEZGO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzRUI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjI0MCIgZmlsbD0iIzAyMDYxNyIHN0cm9rZT0idXJsKCNncmFkMSkiIHN0cm9rZS13aWR0aD0iMTUiLz4KICA8cGF0aCBkPSJNMTI4IDE5MiBDIDE2MCAxMjAgMzUwIDEyMCAzODQgMTkyIEMgNDIwIDI2MCA0MjAgMzQwIDI1NiA0NDggQyA5MiAzNDAgOTIgMjYwIDEyOCAxOTIgWiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSJ1cmwoI2dyYWQxKSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPHBhdGggZD0iTTI1NiAxNjAgTCAzMjAgMjQwIEwgMTkyIDI0MCBaIiBmaWxsPSJ1cmwoI2dyYWQxKSIvPgogIDxwYXRoIGQ9Ik0xNjAgMjYwIEwgMjEwIDI4MCBMIDI1NiAzNTAgTCAzMDAgMjgwIEwgMzUwIDI2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==';
 
-// CURRENT SYSTEM VERSION - BUMPED TO FORCE UPDATE
-const CURRENT_VERSION = 5;
+// === SYSTEM VERSION ===
+// Bumped to 100 to trigger the "Buster Call" on old LocalStorage data
+const CURRENT_VERSION = 100; 
 
 const getInitialState = (): AppStore => {
     const defaultState: AppStore = {
@@ -90,7 +91,7 @@ const getInitialState = (): AppStore => {
         backgroundTasks: [],
         activeSessions: [],
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
-        competitionDate: '2026-03-24T09:00:00', // Updated: Tuesday, March 24, 2026
+        competitionDate: '2026-03-24T09:00:00', // Correct Date: Tuesday, March 24, 2026
         teamLogoUrl: DEFAULT_LOGO,
         simulationRunCount: 0,
         punkRecords: {
@@ -111,14 +112,18 @@ const getInitialState = (): AppStore => {
         if (serializedState) {
             let loadedState = JSON.parse(serializedState);
             
-            // --- CRITICAL MIGRATION LOGIC ---
-            // If the saved version is older than CURRENT_VERSION, force overwrite 
-            // specific fields (like users and dates) to ensure the fixes apply.
+            // --- CRITICAL MIGRATION LOGIC (BUSTER CALL) ---
+            // If the user's data is older than version 100, we OVERWRITE
+            // their Users, Date, and Sponsors with the fresh code.
             if (!loadedState._version || loadedState._version < CURRENT_VERSION) {
-                console.log("Applying System Update: Overwriting outdated local data.");
-                loadedState.users = defaultState.users; // Force update users (for images)
-                loadedState.competitionDate = defaultState.competitionDate; // Force update date
-                loadedState.teamLogoUrl = defaultState.teamLogoUrl;
+                console.log("System Update Detected: Flushing cache to apply fixes.");
+                
+                // Force update these specific fields
+                loadedState.users = defaultState.users; 
+                loadedState.competitionDate = defaultState.competitionDate;
+                loadedState.sponsors = defaultState.sponsors;
+                
+                // Update version
                 loadedState._version = CURRENT_VERSION;
             }
             

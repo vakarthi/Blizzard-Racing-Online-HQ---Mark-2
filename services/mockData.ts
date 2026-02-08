@@ -10,7 +10,7 @@ export const MOCK_USERS_DATA = [
       email: 'shrivatsakarth.kart@saintolaves.net', 
       role: UserRole.Manager, 
       bounty: 1200,
-      customAvatar: '/shrivatsa.jpg' // Explicit filename
+      customAvatar: '/shrivatsa.jpg' // User file (1)
   },
   { 
       id: 'user-2', 
@@ -18,7 +18,7 @@ export const MOCK_USERS_DATA = [
       email: 'anish.ghosh@saintolaves.net', 
       role: UserRole.ManufacturingEngineer, 
       bounty: 950,
-      customAvatar: '/anish.png' // Explicit filename
+      customAvatar: '/anish.png' // User file (microsoftTeams-image.png)
   },
   { 
       id: 'user-3', 
@@ -26,7 +26,7 @@ export const MOCK_USERS_DATA = [
       email: 'hadinabeel.siddiqui@saintolaves.net', 
       role: UserRole.Marketing, 
       bounty: 800,
-      customAvatar: '/hadi.jpg' // Explicit filename
+      customAvatar: '/hadi.jpg' // User file (b7...)
   },
   { 
       id: 'user-4', 
@@ -34,7 +34,7 @@ export const MOCK_USERS_DATA = [
       email: 'Raiyan.Haider@saintolaves.net', 
       role: UserRole.Resource, 
       bounty: 750,
-      customAvatar: '/raiyan.jpg' // Explicit filename
+      customAvatar: '/raiyan.jpg' // User file (3)
   },
   { 
       id: 'user-5', 
@@ -42,7 +42,7 @@ export const MOCK_USERS_DATA = [
       email: 'Aarav.Gupta-Cure@saintolaves.net', 
       role: UserRole.DesignEngineer, 
       bounty: 850,
-      // High contrast placeholder
+      // Replaced picture with "Consent Not Given" placeholder - High Contrast
       customAvatar: 'https://placehold.co/600x800/000000/FFFFFF/png?text=Consent+Not+Given&font=roboto'
   },
 ];
