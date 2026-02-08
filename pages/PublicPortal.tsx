@@ -1,83 +1,154 @@
 
-import React, { useState, useEffect, useMemo, useRef, DragEvent } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, NavLink, Link } from 'react-router-dom';
 import { useData, useAppState } from '../contexts/AppContext';
-import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, ExternalLinkIcon, InfoIcon, FlagIcon, SparklesIcon, UploadCloudIcon, WindIcon, StopwatchIcon, BeakerIcon, LightbulbIcon, FileTextIcon, CheckSquareIcon } from '../components/icons';
+import { HomeIcon, UsersIcon, CarIcon, NewspaperIcon, MailIcon, TrophyIcon, MenuIcon, XIcon, InfoIcon, SparklesIcon, WindIcon, CheckSquareIcon } from '../components/icons';
 import FbxViewer from '../components/shared/FbxViewer';
-import ErrorBoundary from '../components/ErrorBoundary';
 
+// --- Custom Components ---
 
-// --- Components for Public Pages ---
+const BlizzardLogo = ({ className = "w-12 h-12" }: { className?: string }) => {
+    const { teamLogoUrl } = useAppState();
+    return (
+        <div className={`${className} relative`}>
+            <img 
+                src={teamLogoUrl} 
+                alt="Blizzard Racing Eagle" 
+                className="w-full h-full object-contain drop-shadow-md rounded-full bg-brand-dark border-2 border-brand-accent/20 p-1"
+            />
+        </div>
+    );
+};
+
+const SectionTitle = ({ title, subtitle }: { title: string, subtitle?: string }) => (
+    <div className="text-center mb-16">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-brand-text mb-4 uppercase tracking-tight">{title}</h2>
+        {subtitle && <div className="w-24 h-1 bg-brand-accent mx-auto rounded-full mb-6"></div>}
+        {subtitle && <p className="text-brand-text-secondary text-lg max-w-2xl mx-auto font-light">{subtitle}</p>}
+    </div>
+);
+
+// --- Pages ---
 
 const PublicHomePage: React.FC = () => {
-    const { news } = useData();
     const { publicPortalContent } = useData();
-    const { home: homeContent } = publicPortalContent;
-    const latestNews = news.filter(n => n.isPublic).slice(0, 1)[0];
+    const { home } = publicPortalContent;
 
     return (
-        <div className="animate-fade-in">
+        <div className="animate-fade-in font-sans">
             {/* Hero Section */}
             <section 
-                className="relative bg-cover bg-center h-[60vh] text-brand-text flex items-center justify-center text-center"
-                style={{backgroundImage: `url('${homeContent.heroBackgroundImage}')`}}
+                className="relative h-[85vh] flex items-center justify-center text-center overflow-hidden"
             >
-                <div className="absolute inset-0 bg-black bg-opacity-60"></div>
-                <div className="relative z-10 p-4">
-                    <h1 className="text-4xl md:text-6xl font-extrabold mb-4 animate-slide-in-up">{homeContent.heroTitle}</h1>
-                    <p className="text-lg md:text-2xl mb-8 animate-slide-in-up [animation-delay:0.2s]">{homeContent.heroSubtitle}</p>
-                    <Link to="/sponsors" className="bg-brand-accent text-brand-dark font-bold py-3 px-8 rounded-full text-lg hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block animate-slide-in-up [animation-delay:0.4s]">
-                        {homeContent.heroCtaText}
-                    </Link>
+                <div className="absolute inset-0 bg-[#020617]">
+                    {/* Abstract Blue/Purple/Gold Gradient Background */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_#1e1b4b_0%,_#020617_50%)]"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#020617] to-transparent"></div>
+                </div>
+                
+                <div className="relative z-10 container mx-auto px-6 flex flex-col items-center">
+                    <div className="mb-8 animate-slide-in-up">
+                        <BlizzardLogo className="w-32 h-32 md:w-48 md:h-48 border-4 border-white/10 rounded-full bg-white/5 p-4 backdrop-blur-sm" />
+                    </div>
+                    <h1 className="text-5xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-brand-text-secondary mb-6 tracking-tighter uppercase drop-shadow-2xl animate-slide-in-up [animation-delay:0.1s]">
+                        Blizzard<br/><span className="text-brand-accent">Racing</span>
+                    </h1>
+                    <p className="text-xl md:text-2xl text-brand-text-secondary mb-10 max-w-2xl font-light tracking-wide animate-slide-in-up [animation-delay:0.2s] italic">
+                        "{home.heroSubtitle}"
+                    </p>
+                    <div className="flex gap-4 animate-slide-in-up [animation-delay:0.3s]">
+                        <Link to="/about" className="bg-brand-accent hover:bg-white text-brand-dark font-bold py-4 px-10 rounded-full text-lg transition-all shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_50px_rgba(255,255,255,0.5)]">
+                            Our Mission
+                        </Link>
+                        <Link to="/sponsors" className="bg-transparent border border-brand-text-secondary text-brand-text hover:bg-white/5 font-bold py-4 px-10 rounded-full text-lg transition-all">
+                            Partner With Us
+                        </Link>
+                    </div>
                 </div>
             </section>
-
-            {/* Latest News Section */}
-            {latestNews && (
-                <section className="py-16 bg-brand-dark-secondary">
-                    <div className="container mx-auto px-6 max-w-4xl">
-                        <h2 className="text-3xl font-bold text-center text-brand-text mb-2">Latest News</h2>
-                        <div className="text-center mb-8 text-brand-text-secondary">From the Track and the Factory</div>
-                        <div className="bg-brand-dark rounded-lg shadow-lg overflow-hidden border border-brand-border">
-                            <div className="p-8">
-                                <h3 className="text-2xl font-bold text-brand-text mb-3">{latestNews.title}</h3>
-                                <p className="text-brand-text-secondary mb-6 line-clamp-3">{latestNews.content}</p>
-                                <Link to="/news" className="font-semibold text-brand-accent hover:text-brand-accent-hover">
-                                    Read More &rarr;
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            )}
         </div>
     );
 };
 
 const AboutPage: React.FC = () => {
     const { publicPortalContent } = useData();
-    const { about: aboutContent } = publicPortalContent;
+    const { about } = publicPortalContent;
+
     return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aboutContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aboutContent.subtitle}</p>
+        <div className="bg-brand-dark min-h-screen py-20">
+            <div className="container mx-auto px-6">
+                <SectionTitle title={about.title} subtitle={about.subtitle} />
 
-            <div className="max-w-4xl mx-auto space-y-12">
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                    <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Mission</h2>
-                    <p className="text-brand-text-secondary leading-relaxed">{aboutContent.mission}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto mb-20">
+                    <div className="space-y-6 text-brand-text-secondary text-lg leading-relaxed">
+                        <h3 className="text-2xl font-bold text-brand-text mb-4 border-l-4 border-brand-accent pl-4">Driven to Inspire</h3>
+                        <p>{about.mission}</p>
+                        <p className="text-base">{about.history}</p>
+                    </div>
+                    <div className="bg-brand-dark-secondary p-8 rounded-2xl border border-brand-border shadow-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/5 rounded-full blur-3xl group-hover:bg-brand-accent/10 transition-colors"></div>
+                        <div className="grid grid-cols-2 gap-6 relative z-10">
+                            {about.stats.map(stat => (
+                                <div key={stat.id} className="text-center p-4 border border-brand-border rounded-xl bg-brand-dark/50">
+                                    <div className="text-4xl font-black text-brand-accent mb-1">{stat.value}</div>
+                                    <div className="text-xs font-bold text-brand-text-secondary uppercase tracking-widest">{stat.label}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    )
+}
 
-                <div className="bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                    <h2 className="text-2xl font-bold text-brand-accent mb-3">Our Journey</h2>
-                    <p className="text-brand-text-secondary leading-relaxed">{aboutContent.history}</p>
-                </div>
+const TeamPage: React.FC = () => {
+    const { users } = useData();
+
+    // Map specific real bios to users based on ID/Name matching logic from mockData
+    const bios: Record<string, string> = {
+        'user-1': "I am a passionate young enthusiast of science and art, which has greatly influenced our car designs. I formed our team early on. Despite initial challenges, our dedication led to success.",
+        'user-2': "Hello, I'm Anish. My ambitious career aspiration is to become an aeronautical engineer. I joined this journey in the early days of year 8 when I came across F1 in Schools.",
+        'user-3': "Hello!!! My name is Hadi from St. Olave's. I enjoy sports and subjects including German, Maths, Physics. I schedule meetings and ensure we stay on top of the competition.",
+        // Pranav (user-6) removed
+        'user-5': "Hi, my name is Aarav. My contribution has been the portfolio and design ideas. I have a particular interest in DT, Engineering and cars.",
+        'user-4': "I am Saint Olavian, passionate about cricket, rugby, and football. My friends Anish and Shrivatsa saw my potential and invited me to this group."
+    };
+
+    return (
+        <div className="bg-brand-dark min-h-screen py-20">
+            <div className="container mx-auto px-6">
+                <SectionTitle title="Meet The Team" subtitle="The minds behind the machine." />
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    {aboutContent.stats.map(stat => (
-                        <div key={stat.id} className="bg-brand-dark-secondary p-4 rounded-lg border border-brand-border">
-                            <p className="text-3xl font-bold text-brand-text">{stat.value}</p>
-                            <p className="text-sm text-brand-text-secondary">{stat.label}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                    {users.map(member => (
+                        <div key={member.id} className="bg-brand-dark-secondary rounded-xl overflow-hidden border border-brand-border shadow-lg hover:shadow-[0_0_30px_rgba(0,240,255,0.1)] transition-all duration-300 group flex flex-col h-full">
+                            <div className="h-2 bg-brand-accent w-full"></div>
+                            {/* Updated Image Layout for Full Portraits */}
+                            <div className="w-full h-96 relative bg-brand-dark overflow-hidden">
+                                <img 
+                                    src={member.avatarUrl} 
+                                    alt={member.name} 
+                                    className="w-full h-full object-cover object-top grayscale group-hover:grayscale-0 transition-all duration-500" 
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark-secondary via-transparent to-transparent opacity-90"></div>
+                                <div className="absolute bottom-4 left-6">
+                                    <h3 className="text-3xl font-black text-white mb-1 uppercase tracking-tight drop-shadow-md">{member.name}</h3>
+                                    <p className="text-xs font-bold text-brand-accent uppercase tracking-widest">{member.role}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="p-8 pt-4 flex flex-col flex-grow">
+                                <div className="text-sm text-brand-text-secondary leading-relaxed italic border-l-2 border-brand-border pl-4">
+                                    "{bios[member.id] || "Dedicated team member contributing to the success of Blizzard Racing through hard work and innovation."}"
+                                </div>
+                            </div>
+                            <div className="bg-black/20 p-4 border-t border-brand-border mt-auto">
+                                <div className="flex justify-between items-center text-xs text-brand-text-secondary font-mono">
+                                    <span>STATUS: ACTIVE</span>
+                                    <span>ID: {member.id.split('-')[1]}</span>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -86,70 +157,29 @@ const AboutPage: React.FC = () => {
     )
 }
 
-// Update Team Page to use Wanted Posters ONLY
-const TeamPage: React.FC = () => {
-    const { users, publicPortalContent } = useData();
-    const { team: teamContent } = publicPortalContent;
-
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{teamContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{teamContent.subtitle}</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 justify-items-center mt-8">
-                {users.map(member => (
-                    <div key={member.id} className="relative w-72 h-[450px] bg-[#F3E5AB] text-[#3e2723] p-5 flex flex-col items-center shadow-[0_10px_30px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-300 font-display rotate-1 hover:rotate-0 border-2 border-[#3e2723]/10">
-                        <div className="absolute top-4 left-0 w-full text-center text-3xl font-black opacity-80 tracking-widest uppercase">
-                            WANTED
-                        </div>
-                        
-                        <div className="mt-12 w-full h-56 bg-gray-300 border-4 border-[#3e2723] overflow-hidden relative shadow-inner">
-                             <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover grayscale contrast-125 sepia-[.3]" />
-                        </div>
-                        
-                        <h2 className="text-4xl font-black mt-5 uppercase tracking-tighter w-full text-center truncate px-2">{member.name.split(' ')[0]}</h2>
-                        
-                        <div className="w-full flex items-center justify-center gap-2 px-4 mt-auto mb-3 font-mono font-bold text-xl border-t-4 border-b-4 border-[#3e2723] py-2 bg-[#3e2723]/5">
-                            <span className="text-yellow-900 font-bold text-2xl">฿</span>
-                            <span className="tracking-tighter text-2xl">{(member.bounty || 0).toLocaleString()}</span>
-                        </div>
-                        <p className="text-[10px] font-bold text-[#3e2723]/70 uppercase tracking-[0.3em] text-center w-full">{member.role}</p>
-                        
-                        {/* Paper Texture Overlay */}
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/aged-paper.png')] opacity-60 pointer-events-none mix-blend-multiply"></div>
-                        {/* Pin */}
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-red-800 shadow-md border border-black/30"></div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
-
 const CarPage: React.FC = () => {
-    const { carHighlights, publicPortalContent } = useData();
-    const { car: carContent } = publicPortalContent;
-    const publicHighlights = carHighlights.filter(h => h.isPublic);
+    const { publicPortalContent } = useData();
+    const { car } = publicPortalContent;
+    
     return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{carContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{carContent.subtitle}</p>
-            
-            <div className="mb-12">
-                <FbxViewer fbxDataUrl={carContent.carModelFbx} isBlurred={carContent.isCarModelBlurred} />
-            </div>
-
-            <div className="max-w-4xl mx-auto space-y-8">
-                {publicHighlights.map(highlight => (
-                    <div key={highlight.id} className="bg-brand-dark-secondary rounded-lg shadow-lg overflow-hidden border border-brand-border md:flex">
-                         <div className="md:w-1/2">
-                            <img src={highlight.imageUrl} alt={highlight.title} className="h-full w-full object-cover" />
-                        </div>
-                        <div className="p-8 md:w-1/2">
-                            <h2 className="text-2xl font-bold text-brand-accent mb-3">{highlight.title}</h2>
-                            <p className="text-brand-text-secondary">{highlight.description}</p>
-                        </div>
+        <div className="bg-brand-dark min-h-screen py-20">
+            <div className="container mx-auto px-6">
+                <SectionTitle title={car.title} subtitle={car.subtitle} />
+                
+                <div className="max-w-5xl mx-auto mb-16">
+                    <div className="relative rounded-2xl overflow-hidden border border-brand-border shadow-2xl bg-brand-dark-secondary">
+                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_transparent_0%,_#000_100%)] pointer-events-none z-10"></div>
+                        <FbxViewer fbxDataUrl={car.carModelFbx} isBlurred={car.isCarModelBlurred} />
+                        {car.isCarModelBlurred && (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-md">
+                                <div className="text-center">
+                                    <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-widest">Confidential</h3>
+                                    <p className="text-brand-accent font-mono">Design Reveal Pending</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                ))}
+                </div>
             </div>
         </div>
     )
@@ -157,211 +187,84 @@ const CarPage: React.FC = () => {
 
 const CompetitionPage: React.FC = () => {
     const { competitionProgress, publicPortalContent } = useData();
-    const { competition: competitionContent } = publicPortalContent;
+    const { competition } = publicPortalContent;
     const { competitionDate } = useAppState();
 
-    const colors = useMemo(() => ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-yellow-500', 'bg-pink-500'], []);
-
     return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{competitionContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{competitionContent.subtitle}</p>
-            
-            {competitionDate && (
-                <div className="text-center mb-12 p-4 bg-brand-accent/10 border border-brand-accent/20 rounded-lg max-w-lg mx-auto">
-                    <p className="font-bold text-brand-accent">Next Competition Date</p>
-                    <p className="text-xl text-brand-text">{new Date(competitionDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
-                </div>
-            )}
-            
-            <div className="max-w-3xl mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border space-y-6">
-                {competitionProgress.map((item, index) => (
-                    <div key={item.category}>
-                        <div className="flex justify-between items-baseline mb-1">
-                            <span className="font-semibold text-brand-text">{item.category}</span>
-                            <span className="font-bold text-brand-text-secondary">{item.progress}%</span>
+        <div className="bg-brand-dark min-h-screen py-20">
+            <div className="container mx-auto px-6">
+                <SectionTitle title={competition.title} subtitle={competition.subtitle} />
+                
+                <div className="max-w-4xl mx-auto">
+                    {competitionDate && (
+                        <div className="mb-12 p-8 bg-gradient-to-r from-brand-accent/20 to-transparent border-l-4 border-brand-accent rounded-r-xl">
+                            <p className="text-sm font-bold text-brand-accent uppercase tracking-widest mb-1">Next Event</p>
+                            <p className="text-3xl font-bold text-white">
+                                {new Date(competitionDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
                         </div>
-                        <div className="w-full bg-brand-dark rounded-full h-4 border border-brand-border">
-                            <div className={`${colors[index % colors.length]} h-full rounded-full transition-all duration-500`} style={{ width: `${item.progress}%` }}></div>
-                        </div>
+                    )}
+
+                    <div className="space-y-8">
+                        {competitionProgress.map((item) => (
+                            <div key={item.category} className="group">
+                                <div className="flex justify-between items-end mb-2">
+                                    <h4 className="text-lg font-bold text-brand-text group-hover:text-brand-accent transition-colors">{item.category}</h4>
+                                    <span className="font-mono text-brand-text-secondary">{item.progress}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-brand-dark-secondary rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-brand-accent transition-all duration-1000 ease-out relative" 
+                                        style={{ width: `${item.progress}%` }}
+                                    >
+                                        <div className="absolute right-0 top-0 h-full w-20 bg-white/20 skew-x-12"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
             </div>
         </div>
     );
 };
-
 
 const SponsorsPage: React.FC = () => {
-    const { sponsors, publicPortalContent } = useData();
-    const { sponsors: sponsorsContent } = publicPortalContent;
-
+    const { sponsors } = useData();
     const tiers = ['Platinum', 'Gold', 'Silver', 'Bronze'];
-    const groupedSponsors = useMemo(() => {
-        const groups: { [key: string]: typeof sponsors } = {};
-        tiers.forEach(tier => {
-            groups[tier] = sponsors.filter(s => s.tier === tier && s.status === 'secured');
-        });
-        return groups;
-    }, [sponsors]);
 
     return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{sponsorsContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{sponsorsContent.subtitle}</p>
-            
-            <div className="space-y-12">
-                {tiers.map(tier => (
-                    groupedSponsors[tier].length > 0 && (
-                        <div key={tier}>
-                            <h2 className="text-2xl font-bold text-brand-accent mb-6 text-center">{tier} Partners</h2>
-                            <div className="flex flex-wrap justify-center items-center gap-8">
-                                {groupedSponsors[tier].map(sponsor => (
-                                    <div key={sponsor.id} className="bg-brand-dark-secondary p-6 rounded-lg shadow-md border border-brand-border">
-                                        <img src={sponsor.logoUrl} alt={sponsor.name} className="h-16 w-48 object-contain" />
-                                    </div>
-                                ))}
+        <div className="bg-brand-dark min-h-screen py-20">
+            <div className="container mx-auto px-6">
+                <SectionTitle title="Our Partners" subtitle="Fueling our journey to the podium." />
+                
+                <div className="max-w-5xl mx-auto space-y-16">
+                    {tiers.map(tier => {
+                        const tierSponsors = sponsors.filter(s => s.tier === tier && s.status === 'secured');
+                        if (tierSponsors.length === 0) return null;
+
+                        return (
+                            <div key={tier} className="text-center">
+                                <h3 className="text-2xl font-bold text-brand-text-secondary uppercase tracking-[0.2em] mb-8 flex items-center justify-center gap-4">
+                                    <span className="h-px w-12 bg-brand-border"></span>
+                                    {tier}
+                                    <span className="h-px w-12 bg-brand-border"></span>
+                                </h3>
+                                <div className="flex flex-wrap justify-center gap-8">
+                                    {tierSponsors.map(sponsor => (
+                                        <div key={sponsor.id} className="bg-white p-6 rounded-xl shadow-lg w-64 h-32 flex items-center justify-center grayscale hover:grayscale-0 transition-all duration-300 transform hover:-translate-y-1">
+                                            <img src={sponsor.logoUrl} alt={sponsor.name} className="max-w-full max-h-full object-contain" />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )
-                ))}
+                        )
+                    })}
+                </div>
             </div>
         </div>
     )
 };
-
-
-const NewsPage: React.FC = () => {
-    const { news, getTeamMember, publicPortalContent } = useData();
-    const { news: newsContent } = publicPortalContent;
-    const publicNews = news.filter(n => n.isPublic).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{newsContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{newsContent.subtitle}</p>
-
-            <div className="max-w-3xl mx-auto space-y-8">
-                {publicNews.map(post => {
-                    const author = getTeamMember(post.authorId);
-                    return (
-                        <div key={post.id} className="bg-brand-dark-secondary rounded-lg shadow-lg p-8 border border-brand-border">
-                            <h2 className="text-2xl font-bold text-brand-text mb-2">{post.title}</h2>
-                            <p className="text-sm text-brand-text-secondary mb-4">
-                                By {author?.name || 'Blizzard Racing'} on {new Date(post.createdAt).toLocaleDateString()}
-                            </p>
-                            <p className="text-brand-text-secondary leading-relaxed whitespace-pre-line">{post.content}</p>
-                        </div>
-                    )
-                })}
-                 {publicNews.length === 0 && (
-                    <div className="text-center text-brand-text-secondary p-12 bg-brand-dark-secondary rounded-lg border border-brand-border">
-                        No public news articles have been posted yet. Check back soon!
-                    </div>
-                )}
-            </div>
-        </div>
-    )
-}
-
-const AerotestPage: React.FC = () => {
-    const { publicPortalContent, addInquiry } = useData();
-    const { aerotest: aerotestContent } = publicPortalContent;
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [company, setCompany] = useState('');
-    const [message, setMessage] = useState('I\'m interested in learning more about the Aerotest simulation suite.');
-    const [formSubmitted, setFormSubmitted] = useState(false);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        addInquiry({ name, email, company, message });
-        setFormSubmitted(true);
-    };
-
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{aerotestContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{aerotestContent.subtitle}</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
-                {/* Standard Tier */}
-                <div className="bg-brand-dark-secondary p-8 rounded-xl shadow-lg border border-brand-border">
-                    <h2 className="text-2xl font-bold text-brand-text mb-2">Standard: F1S Edition</h2>
-                    <p className="text-brand-text-secondary mb-4">The perfect tool for competitive F1 in Schools teams.</p>
-                    <ul className="space-y-2 text-brand-text-secondary">
-                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> High-fidelity CFD simulation</li>
-                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> 5,000-race probabilistic analysis</li>
-                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> Automated scrutineering checks</li>
-                        <li className="flex items-center gap-2"><CheckSquareIcon className="w-5 h-5 text-brand-accent"/> Actionable aerodynamic suggestions</li>
-                    </ul>
-                </div>
-                {/* Premium Tier */}
-                <div className="bg-brand-dark-secondary p-8 rounded-xl shadow-lg border-2 border-brand-accent">
-                    <div className="flex justify-between items-center mb-2">
-                        <h2 className="text-2xl font-bold text-brand-accent">Premium: Pro-Grade Solver</h2>
-                        <span className="text-xs font-bold bg-brand-accent text-brand-dark px-2 py-1 rounded-full">RECOMMENDED</span>
-                    </div>
-                    <p className="text-brand-text-secondary mb-4">F1-team level analysis for ultimate performance.</p>
-                     <ul className="space-y-2 text-brand-text-secondary">
-                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> All Standard features, plus:</li>
-                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Advanced RANS solver</li>
-                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> 100,000-race high-fidelity analysis</li>
-                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Deeper performance metrics</li>
-                        <li className="flex items-center gap-2"><SparklesIcon className="w-5 h-5 text-brand-accent"/> Variable thrust & condition models</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div className="max-w-2xl mx-auto bg-brand-dark-secondary p-8 rounded-xl shadow-lg border border-brand-border">
-                 <h3 className="text-xl font-bold text-brand-accent mb-2 text-center">Request a Consultation</h3>
-                <p className="text-sm text-brand-text-secondary mb-4 text-center">Contact us for pricing and to learn how Aerotest can give your team the winning edge.</p>
-                {formSubmitted ? (
-                    <div className="text-center py-8">
-                        <h3 className="text-xl font-bold text-green-400">Thank you!</h3>
-                        <p className="text-brand-text-secondary mt-2">Your inquiry has been submitted. We will be in touch shortly.</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                            <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                        </div>
-                        <input type="text" placeholder="Team / Company (Optional)" value={company} onChange={e => setCompany(e.target.value)} className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                        <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} required className="w-full p-2 bg-brand-dark border border-brand-border rounded-lg" />
-                        <button type="submit" className="w-full bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-lg hover:bg-brand-accent-hover transition-colors">Submit Inquiry</button>
-                    </form>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const ContactPage: React.FC = () => {
-    const { publicPortalContent } = useData();
-    const { contact: contactContent } = publicPortalContent;
-
-    return (
-        <div className="container mx-auto px-6 py-12 animate-fade-in">
-            <h1 className="text-4xl font-bold text-center text-brand-text mb-4">{contactContent.title}</h1>
-            <p className="text-center text-brand-text-secondary mb-12 max-w-3xl mx-auto">{contactContent.subtitle}</p>
-
-            <div className="max-w-lg mx-auto bg-brand-dark-secondary p-8 rounded-lg shadow-lg border border-brand-border">
-                <p className="text-brand-text-secondary">
-                    For all inquiries, including sponsorships and media requests, please reach out to our team manager.
-                </p>
-                <div className="mt-4">
-                    <a href="mailto:shrivatsakarth.kart@saintolaves.net" className="font-bold text-brand-accent text-lg hover:underline">
-                        shrivatsakarth.kart@saintolaves.net
-                    </a>
-                </div>
-                <p className="text-sm text-brand-text-secondary mt-6">
-                    We are based at St. Olave's Grammar School, Orpington.
-                </p>
-            </div>
-        </div>
-    )
-}
 
 // --- Main Layout ---
 
@@ -370,64 +273,75 @@ const PublicPortal: React.FC = () => {
   const { teamLogoUrl } = useAppState();
 
   const navItems = [
-    { name: 'Home', path: '/', icon: <HomeIcon className="w-5 h-5"/> },
-    { name: 'About', path: '/about', icon: <InfoIcon className="w-5 h-5"/> },
-    { name: 'The Team', path: '/team', icon: <UsersIcon className="w-5 h-5"/> },
-    { name: 'The Car', path: '/car', icon: <CarIcon className="w-5 h-5"/> },
-    { name: 'Competition', path: '/competition', icon: <TrophyIcon className="w-5 h-5"/> },
-    { name: 'Sponsors', path: '/sponsors', icon: <SparklesIcon className="w-5 h-5"/> },
-    { name: 'News', path: '/news', icon: <NewspaperIcon className="w-5 h-5"/> },
-    { name: 'Aerotest', path: '/aerotest', icon: <WindIcon className="w-5 h-5"/> },
-    { name: 'Contact', path: '/contact', icon: <MailIcon className="w-5 h-5"/> },
+    { name: 'Home', path: '/' },
+    { name: 'About', path: '/about' },
+    { name: 'Team', path: '/team' },
+    { name: 'Car', path: '/car' },
+    { name: 'Competition', path: '/competition' },
+    { name: 'Sponsors', path: '/sponsors' },
   ];
 
   return (
-    <div className="min-h-screen bg-brand-dark text-brand-text">
-      {/* Header */}
-      <header className="sticky top-0 bg-brand-dark-secondary/80 backdrop-blur-md z-30 border-b border-brand-border">
-        <div className="container mx-auto px-6 py-3 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-3">
-             <div className="bg-white p-1 rounded-md border border-brand-border">
-                <img src={teamLogoUrl} alt="Blizzard Racing Logo" className="h-8 w-8 object-contain" />
+    // Added 'h-screen overflow-y-auto' to enable scrolling within the portal since body is hidden
+    <div className="h-screen overflow-y-auto bg-brand-dark text-brand-text font-sans selection:bg-brand-accent selection:text-brand-dark scroll-smooth">
+      {/* Navbar */}
+      <header className="fixed w-full top-0 z-50 bg-[#020617]/90 backdrop-blur-md border-b border-brand-border">
+        <div className="container mx-auto px-6 h-20 flex justify-between items-center">
+          <Link to="/" className="flex items-center gap-3 group">
+             <div className="bg-white/10 p-1.5 rounded-lg border border-white/10 group-hover:border-brand-accent/50 transition-colors">
+                <img src={teamLogoUrl} alt="Logo" className="h-8 w-8 object-contain" />
             </div>
-            <span className="text-xl font-bold text-brand-text hidden sm:block">Blizzard Racing</span>
+            <span className="text-xl font-black text-white tracking-tight uppercase group-hover:text-brand-accent transition-colors">Blizzard</span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center space-x-2">
+          <nav className="hidden lg:flex items-center gap-8">
             {navItems.map(item => (
-                <NavLink key={item.name} to={item.path} end={item.path === '/'} className={({isActive}) => `px-3 py-2 rounded-md text-sm font-semibold transition-colors ${isActive ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-text-secondary hover:bg-brand-border hover:text-brand-text'}`}>{item.name}</NavLink>
+                <NavLink 
+                    key={item.name} 
+                    to={item.path} 
+                    end={item.path === '/'}
+                    className={({isActive}) => `text-sm font-bold uppercase tracking-wider hover:text-brand-accent transition-colors ${isActive ? 'text-brand-accent' : 'text-brand-text-secondary'}`}
+                >
+                    {item.name}
+                </NavLink>
             ))}
-            <a href="#/login" className="bg-brand-accent text-brand-dark font-bold py-2 px-4 rounded-full text-sm hover:bg-brand-accent-hover transition-transform transform hover:scale-105 inline-block ml-4">
+            <a href="#/login" className="bg-white text-brand-dark font-bold py-2 px-6 rounded-full text-xs uppercase tracking-wider hover:bg-brand-accent hover:text-white transition-all">
               Team HQ
             </a>
           </nav>
 
           {/* Mobile Nav Button */}
-          <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
+          <button className="lg:hidden text-brand-text" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
           </button>
         </div>
       </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       {menuOpen && (
-        <div className="fixed inset-0 bg-brand-dark-secondary z-20 pt-20 lg:hidden animate-fade-in">
-          <nav className="container mx-auto px-6 flex flex-col items-center space-y-4">
+        <div className="fixed inset-0 bg-[#020617] z-40 pt-24 px-6 animate-fade-in lg:hidden">
+          <nav className="flex flex-col gap-6 text-center">
             {navItems.map(item => (
-              <NavLink key={item.name} to={item.path} end={item.path==='/'} onClick={() => setMenuOpen(false)} className={({isActive}) => `w-full text-center flex items-center justify-center gap-3 py-3 text-lg font-semibold rounded-lg ${isActive ? 'text-brand-accent bg-brand-accent/10' : 'text-brand-text-secondary'}`}>
-                {item.icon} {item.name}
+              <NavLink 
+                key={item.name} 
+                to={item.path} 
+                end={item.path === '/'} 
+                onClick={() => setMenuOpen(false)}
+                className="text-2xl font-bold text-white uppercase tracking-tight py-2 border-b border-white/10"
+              >
+                {item.name}
               </NavLink>
             ))}
-             <a href="#/login" className="w-full text-center bg-brand-accent text-brand-dark font-bold py-3 rounded-full text-lg mt-4">
-              Team HQ
+             <a href="#/login" className="mt-8 bg-brand-accent text-brand-dark font-bold py-4 rounded-xl text-lg uppercase tracking-wider">
+              Team Login
             </a>
           </nav>
         </div>
       )}
 
-      {/* Main Content */}
-      <main>
+      {/* Main Content Content */}
+      <main className="pt-20">
         <Routes>
           <Route path="/" element={<PublicHomePage />} />
           <Route path="/about" element={<AboutPage />} />
@@ -435,21 +349,20 @@ const PublicPortal: React.FC = () => {
           <Route path="/car" element={<CarPage />} />
           <Route path="/competition" element={<CompetitionPage />} />
           <Route path="/sponsors" element={<SponsorsPage />} />
-          <Route path="/news" element={<NewsPage />} />
-          <Route path="/aerotest" element={<AerotestPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="*" element={<div className="text-center py-20">404 - Page Not Found</div>} />
+          <Route path="*" element={<div className="text-center py-40 text-brand-text-secondary">Page Not Found</div>} />
         </Routes>
       </main>
 
       {/* Footer */}
-      <footer className="bg-brand-dark-secondary border-t border-brand-border">
-        <div className="container mx-auto px-6 py-8 text-center text-brand-text-secondary">
-          <p>&copy; {new Date().getFullYear()} Blizzard Racing. All Rights Reserved.</p>
-          <p className="text-sm mt-2">F1 in Schools STEM Challenge Team from St. Olave's Grammar School</p>
-           <div className="mt-4">
-                <a href="#/login" className="text-sm text-brand-accent hover:underline">Team HQ Portal</a>
-           </div>
+      <footer className="bg-[#01040f] border-t border-brand-border py-12">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-center md:text-left">
+              <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Blizzard Racing</h4>
+              <p className="text-sm text-brand-text-secondary">St. Olave's Grammar School, Orpington</p>
+          </div>
+          <div className="text-brand-text-secondary text-sm">
+            &copy; {new Date().getFullYear()} Blizzard Racing. All Rights Reserved.
+          </div>
         </div>
       </footer>
     </div>

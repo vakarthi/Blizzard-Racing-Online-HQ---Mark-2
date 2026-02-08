@@ -5,7 +5,7 @@ import { UploadCloudIcon, WindIcon, BeakerIcon, TrashIcon, HistoryIcon, BotIcon,
 import PerformanceGraph from '../../components/hq/PerformanceGraph';
 import SpeedTimeGraph from '../../components/hq/SpeedTimeGraph';
 import FlowFieldVisualizer from '../../components/hq/FlowFieldVisualizer';
-import { PhysicsDomain, EnvironmentPreset } from '../../types';
+import { PhysicsDomain, EnvironmentPreset, AeroResult } from '../../types';
 
 // Vegapunk Mode Selectors
 const DOMAINS: { id: PhysicsDomain; label: string; color: string; icon: any }[] = [
@@ -35,7 +35,7 @@ const AeroPage: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeTasks = backgroundTasks.filter(t => t.status === 'running');
-    const displayResult = selectedResultId ? aeroResults.find(r => r.id === selectedResultId) : aeroResults[0];
+    const displayResult: AeroResult | undefined = selectedResultId ? aeroResults.find(r => r.id === selectedResultId) : aeroResults[0];
 
     // System Ticker Effect
     useEffect(() => {

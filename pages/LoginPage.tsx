@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, useData } from '../contexts/AppContext';
+import { useAuth, useData, useAppState } from '../contexts/AppContext';
 import { CarIcon, FingerprintIcon, ShieldAlertIcon } from '../components/icons';
 import { UserRole, User } from '../types';
 import { authenticateWithBiometrics } from '../utils/biometrics';
@@ -14,6 +14,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login, getBiometricConfig } = useAuth();
   const { users } = useData();
+  const { teamLogoUrl } = useAppState();
   const navigate = useNavigate();
   const [isManagerLogin, setIsManagerLogin] = useState(false);
   const [biometricUser, setBiometricUser] = useState<User | null>(null);
@@ -114,7 +115,7 @@ const LoginPage: React.FC = () => {
       <div className={`w-full max-w-md glass-panel rounded-3xl p-8 md:p-10 animate-fade-in relative z-10 shadow-2xl transition-opacity duration-500 ${loading ? 'opacity-0' : 'opacity-100'}`}>
         <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center bg-gradient-to-br from-brand-surface to-brand-dark p-4 rounded-2xl mb-6 border border-brand-border/50 shadow-lg">
-                <CarIcon className="w-10 h-10 text-brand-accent"/>
+                <img src={teamLogoUrl} alt="Blizzard Logo" className="w-12 h-12 object-contain" />
             </div>
             <h1 className="text-3xl font-display font-bold text-brand-text tracking-tight">Blizzard HQ</h1>
             <p className="text-brand-text-secondary mt-2 font-medium">Secure Team Access</p>

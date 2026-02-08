@@ -62,7 +62,8 @@ const subscribers = new Set<(store: AppStore) => void>();
 const statusSubscribers = new Set<(status: SyncStatus) => void>();
 const logSubscribers = new Set<(log: string[]) => void>();
 
-const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZHRoPSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSIjMDBCRkZGIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMS4zIDEuMDQ2QTEgMSAwIDAxMTIgMnY1aDRhMSAxIDAgMDEuODIgMS41NzNsLTcgMTBhMSAxIDAgMDE4IDE4di01SDRhMSAxIDAgMDEtLjgyLTEuNTczbDctMTBhMSAxIDAgMDExLjEyLS4zOHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIgLz48L3N2Zz4=';
+// Stylized Eagle Logo (SVG Data URI)
+const DEFAULT_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBmaWxsPSJub25lIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZ3JhZDEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDBGMEZGO3N0b3Atb3BhY2l0eToxIiAvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyNTYzRUI7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjI0MCIgZmlsbD0iIzAyMDYxNyIHN0cm9rZT0idXJsKCNncmFkMSkiIHN0cm9rZS13aWR0aD0iMTUiLz4KICA8cGF0aCBkPSJNMTI4IDE5MiBDIDE2MCAxMjAgMzUwIDEyMCAzODQgMTkyIEMgNDIwIDI2MCA0MjAgMzQwIDI1NiA0NDggQyA5MiAzNDAgOTIgMjYwIDEyOCAxOTIgWiIgZmlsbD0iIzFFMjkzQiIgc3Ryb2tlPSJ1cmwoI2dyYWQxKSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPHBhdGggZD0iTTI1NiAxNjAgTCAzMjAgMjQwIEwgMTkyIDI0MCBaIiBmaWxsPSJ1cmwoI2dyYWQxKSIvPgogIDxwYXRoIGQ9Ik0xNjAgMjYwIEwgMjEwIDI4MCBMIDI1NiAzNTAgTCAzMDAgMjgwIEwgMzUwIDI2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==';
 
 const getInitialState = (): AppStore => {
     const defaultState: AppStore = {
@@ -86,7 +87,7 @@ const getInitialState = (): AppStore => {
         backgroundTasks: [],
         activeSessions: [],
         announcement: 'Welcome to the Blizzard Racing HQ! All systems are operational.',
-        competitionDate: '2024-12-01T09:00:00',
+        competitionDate: '2026-03-24T09:00:00', // Updated to Tuesday, March 24, 2026
         teamLogoUrl: DEFAULT_LOGO,
         simulationRunCount: 0,
         punkRecords: {

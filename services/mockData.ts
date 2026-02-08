@@ -2,46 +2,106 @@
 import { User, UserRole, Task, TaskStatus, FinancialRecord, Sponsor, SponsorTier, NewsPost, TeamMember, CarHighlight, DiscussionThread, CompetitionProgressItem, Protocol, DesignParameters, PublicPortalContent, AeroResult } from '../types';
 import { generateAvatar } from '../utils/avatar';
 
-// ... (Existing Users, Tasks, Finances, Sponsors, News, Highlights, Threads, Progress, Protocols, PublicPortalContent remain unchanged)
+// Enhanced Mock Data with Custom Avatar support
 export const MOCK_USERS_DATA = [
-  { id: 'user-1', name: 'Shrivatsa', email: 'shrivatsakarth.kart@saintolaves.net', role: UserRole.Manager, bounty: 0 },
-  { id: 'user-2', name: 'Anish', email: 'anish.ghosh@saintolaves.net', role: UserRole.ManufacturingEngineer, bounty: 0 },
-  { id: 'user-3', name: 'Hadi', email: 'hadinabeel.siddiqui@saintolaves.net', role: UserRole.Marketing, bounty: 0 },
-  { id: 'user-4', name: 'Raiyan', email: 'Raiyan.Haider@saintolaves.net', role: UserRole.SocialsDesigner, bounty: 0 },
-  { id: 'user-5', name: 'Aarav', email: 'Aarav.Gupta-Cure@saintolaves.net', role: UserRole.Resource, bounty: 0 },
-  { id: 'user-6', name: 'Pranav', email: 'PranavRam.Alluri@saintolaves.net', role: UserRole.DesignEngineer, bounty: 0 },
+  { 
+      id: 'user-1', 
+      name: 'Shrivatsa K', 
+      email: 'shrivatsakarth.kart@saintolaves.net', 
+      role: UserRole.Manager, 
+      bounty: 1200,
+      customAvatar: '/shrivatsa.jpg' // User file (1)
+  },
+  { 
+      id: 'user-2', 
+      name: 'Anish G', 
+      email: 'anish.ghosh@saintolaves.net', 
+      role: UserRole.ManufacturingEngineer, 
+      bounty: 950,
+      customAvatar: '/anish.png' // User file (microsoftTeams-image.png)
+  },
+  { 
+      id: 'user-3', 
+      name: 'Hadi S', 
+      email: 'hadinabeel.siddiqui@saintolaves.net', 
+      role: UserRole.Marketing, 
+      bounty: 800,
+      customAvatar: '/hadi.jpg' // User file (b7...)
+  },
+  { 
+      id: 'user-4', 
+      name: 'Raiyan H', 
+      email: 'Raiyan.Haider@saintolaves.net', 
+      role: UserRole.Resource, 
+      bounty: 750,
+      customAvatar: '/raiyan.jpg' // User file (3)
+  },
+  { 
+      id: 'user-5', 
+      name: 'Aarav G', 
+      email: 'Aarav.Gupta-Cure@saintolaves.net', 
+      role: UserRole.DesignEngineer, 
+      bounty: 850,
+      // Replaced picture with "Consent Not Given" placeholder
+      customAvatar: 'https://placehold.co/600x800/1a1a1a/ffffff?text=Consent+Not+Given&font=roboto'
+  },
 ];
 
 export const MOCK_USERS: User[] = MOCK_USERS_DATA.map(user => ({
     ...user,
-    avatarUrl: generateAvatar(user.name),
+    avatarUrl: user.customAvatar || generateAvatar(user.name),
 }));
 
 export const MOCK_TASKS: Task[] = [
-  { id: 'task-1', title: 'Finalize chassis design', description: 'Complete high-fidelity CAD models for v3.0.', status: TaskStatus.Done, assigneeId: 'user-6', dueDate: '2024-08-10' },
+  { id: 'task-1', title: 'Finalize chassis design', description: 'Complete high-fidelity CAD models for v3.0.', status: TaskStatus.Done, assigneeId: 'user-5', dueDate: '2024-08-10' }, // Reassigned to Aarav
   { id: 'task-2', title: 'Run new front wing simulation', description: 'Test v3.2 of the front wing with "high_downforce" configuration.', status: TaskStatus.InProgress, assigneeId: 'user-1', dueDate: '2024-08-15' },
   { id: 'task-3', title: 'Prepare sponsorship pitch deck', description: 'Create a new deck for potential platinum sponsors.', status: TaskStatus.InReview, assigneeId: 'user-3', dueDate: '2024-08-20' },
   { id: 'task-4', title: 'Manufacturing Run v1', description: 'Begin CNC milling for the first chassis prototype.', status: TaskStatus.ToDo, assigneeId: 'user-2', dueDate: '2024-08-25' },
 ];
 
 export const MOCK_FINANCES: FinancialRecord[] = [
-    {id: 'fin-1', type: 'income', description: 'Sponsor: Apex Industries', amount: 50000, date: '2024-07-01'},
-    {id: 'fin-2', type: 'expense', description: 'Carbon Fiber Raw Materials', amount: 15000, date: '2024-07-05'},
-    {id: 'fin-3', type: 'expense', description: 'Wind Tunnel Rental (4 hours)', amount: 8000, date: '2024-07-12'},
-    {id: 'fin-4', type: 'income', description: 'Sponsor: Quantum Dynamics', amount: 75000, date: '2024-07-20'},
+    {id: 'fin-1', type: 'income', description: 'Sponsor: Ansys Grant', amount: 15000, date: '2024-07-01'},
+    {id: 'fin-2', type: 'expense', description: 'Carbon Fiber Raw Materials', amount: 5000, date: '2024-07-05'},
+    {id: 'fin-3', type: 'expense', description: 'Wind Tunnel Rental (4 hours)', amount: 2000, date: '2024-07-12'},
+    {id: 'fin-4', type: 'income', description: 'Sponsor: Cyber Sky Solutions', amount: 5000, date: '2024-07-20'},
+    {id: 'fin-5', type: 'income', description: 'Sponsor: Artistry Italian Fashion', amount: 2500, date: '2024-08-01'},
 ];
 
 export const MOCK_SPONSORS: Sponsor[] = [
-    {id: 'spon-1', name: 'Apex Industries', logoUrl: 'https://picsum.photos/seed/apex/200/100', tier: SponsorTier.Gold, status: 'secured'},
-    {id: 'spon-2', name: 'Quantum Dynamics', logoUrl: 'https://picsum.photos/seed/quantum/200/100', tier: SponsorTier.Platinum, status: 'secured'},
-    {id: 'spon-3', name: 'Momentum Lubricants', logoUrl: 'https://picsum.photos/seed/momentum/200/100', tier: SponsorTier.Silver, status: 'secured'},
-    {id: 'spon-4', name: 'Velocity Parts', logoUrl: 'https://picsum.photos/seed/velocity/200/100', tier: SponsorTier.Gold, status: 'pending'},
+    {
+        id: 'spon-1', 
+        name: 'Ansys', 
+        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Ansys_Logo.png', 
+        tier: SponsorTier.Platinum, 
+        status: 'secured'
+    },
+    {
+        id: 'spon-2', 
+        name: 'Cyber Sky Solutions', 
+        logoUrl: 'https://placehold.co/400x200/ffffff/000000?text=Cyber+Sky', // Placeholder - User should upload real logo
+        tier: SponsorTier.Gold, 
+        status: 'secured'
+    },
+    {
+        id: 'spon-3', 
+        name: 'Artistry Italian Fashion', 
+        logoUrl: 'https://placehold.co/400x200/ffffff/000000?text=Artistry+Italian', // Placeholder
+        tier: SponsorTier.Silver, 
+        status: 'secured'
+    },
+    {
+        id: 'spon-4', 
+        name: 'AH Smile', 
+        logoUrl: 'https://placehold.co/400x200/ffffff/000000?text=AH+Smile', // Placeholder
+        tier: SponsorTier.Bronze, 
+        status: 'secured'
+    },
 ];
 
 export const MOCK_NEWS: NewsPost[] = [
     {id: 'news-1', title: 'Regional Finals Result: 2nd Place!', content: 'Blizzard Racing is proud to announce a 2nd place finish at the Southeast Regional Finals! While we faced some technical challenges in scrutineering, our race pace was unmatched.', authorId: 'user-1', createdAt: '2024-07-15T10:00:00Z', isPublic: true},
-    {id: 'news-2', title: 'Breakthrough in Aero Dynamics Achieved', content: 'Our engineering team has made a significant leap forward in aerodynamic efficiency with the new "Vortex" sidepod design. Internal tests show a 5% reduction in drag while maintaining downforce...', authorId: 'user-6', createdAt: '2024-07-20T14:30:00Z', isPublic: false},
-    {id: 'news-3', title: 'Quantum Dynamics Joins as Platinum Partner', content: 'A huge welcome to Quantum Dynamics, who join us as a platinum partner for the upcoming season. Their expertise in materials science will be invaluable.', authorId: 'user-1', createdAt: '2024-07-22T09:00:00Z', isPublic: true},
+    {id: 'news-2', title: 'Breakthrough in Aero Dynamics Achieved', content: 'Our engineering team has made a significant leap forward in aerodynamic efficiency with the new "Vortex" sidepod design. Internal tests show a 5% reduction in drag while maintaining downforce...', authorId: 'user-5', createdAt: '2024-07-20T14:30:00Z', isPublic: false}, // Reassigned to Aarav
+    {id: 'news-3', title: 'Ansys Partners with Blizzard Racing', content: 'We are thrilled to announce Ansys as our official simulation partner. Their industry-leading software will power our CFD analysis.', authorId: 'user-1', createdAt: '2024-07-22T09:00:00Z', isPublic: true},
 ];
 
 export const MOCK_TEAM_MEMBERS: TeamMember[] = MOCK_USERS.map(({ id, name, role, avatarUrl }) => ({ id, name, role, avatarUrl }));
@@ -60,7 +120,7 @@ export const MOCK_THREADS: DiscussionThread[] = [
         createdAt: '2024-08-03T11:00:00Z',
         posts: [
             { id: 'post-4-1', authorId: 'user-1', content: 'The Regional report showed we lost 65 points in scrutineering. Specifically D4.3.2 (Halo) and D7.6.3 (Front Wing). We need Aerotest to catch these BEFORE we build.', createdAt: '2024-08-03T11:00:00Z' },
-            { id: 'post-4-2', authorId: 'user-6', content: 'Agreed. I am updating the internal checklist now. Anish, can you ensure the CNC milling toolpath accounts for these clearances?', createdAt: '2024-08-03T12:30:00Z' },
+            { id: 'post-4-2', authorId: 'user-5', content: 'Agreed. I am updating the internal checklist now. Anish, can you ensure the CNC milling toolpath accounts for these clearances?', createdAt: '2024-08-03T12:30:00Z' }, // Reassigned to Aarav
         ]
     },
     {
@@ -99,28 +159,28 @@ export const MOCK_PROTOCOLS: Protocol[] = [
 export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
   home: {
     heroTitle: "BLIZZARD RACING",
-    heroSubtitle: "Welcome to the Official Hub of Blizzard Racing",
-    heroCtaText: "Become a Partner",
-    heroBackgroundImage: "https://picsum.photos/seed/racecar/1600/900",
+    heroSubtitle: "Taking over the world by storm.",
+    heroCtaText: "Partner With Us",
+    heroBackgroundImage: "https://images.unsplash.com/photo-1532906619279-a784c0c4124e?q=80&w=2070&auto=format&fit=crop",
   },
   about: {
-    title: "About Blizzard Racing",
-    subtitle: "Learn about our mission, our history, and the competition that drives us to be the best.",
-    mission: "To design, build, and race the fastest F1 in Schools car possible, while developing skills in engineering, marketing, and teamwork.",
-    history: "Founded in 2022, Blizzard Racing started as a small group of passionate students from St. Olave's Grammar School.",
+    title: "Our Mission",
+    subtitle: "Driving Innovation at St. Olave's Grammar School",
+    mission: "We are driven to inspire the younger generation. This inspiration can stem from their pursuit of dreams and aspirations or by paying attention to the subjects and experiences that truly captivate their curiosity, motivating them to seek knowledge and understanding in their chosen fields.",
+    history: "Our journey commenced in the summer of 2023, set against the distinguished backdrop of Saint Olave's Grammar School. What started as an idea on the inaugural day of Year 8 has evolved into a dedicated team seamlessly merging engineering expertise with exceptional communication skills.",
     stats: [
         { id: 1, label: "Regional Rank", value: "2nd" },
-        { id: 2, label: "Race Time Score", value: "215/220" },
-        { id: 3, label: "Team Members", value: "6" },
-        { id: 4, label: "Innovations", value: "5+" },
+        { id: 2, label: "Founded", value: "2023" },
+        { id: 3, label: "Team Members", value: "5" },
+        { id: 4, label: "Iterations", value: "5+" },
     ]
   },
   team: {
-      title: "Meet The Team",
+      title: "The Team",
       subtitle: "The dedicated individuals driving Blizzard Racing forward."
   },
   car: {
-      title: "The BR-02 Challenger",
+      title: "The Storm Challenger",
       subtitle: "A culmination of cutting-edge technology and relentless innovation.",
       carModelFbx: null,
       isCarModelBlurred: true,
@@ -142,8 +202,8 @@ export const INITIAL_PUBLIC_PORTAL_CONTENT: PublicPortalContent = {
       subtitle: "Have a question or a partnership inquiry? We'd love to hear from you."
   },
   aerotest: {
-      title: "Aerotest: Simulation Engine",
-      subtitle: "A next-generation Computational Fluid Dynamics (CFD) solver.",
+      title: "Aerotest Simulation",
+      subtitle: "Next-generation Computational Fluid Dynamics.",
       description: `Aerotest is a first-principles physics solver built on a foundation of numerical excellence.`
   }
 };
@@ -173,7 +233,7 @@ export const F1_IN_SCHOOLS_RULES: readonly {
 export const THEORETICAL_OPTIMUM: AeroResult = {
     id: 'benchmark-optimum',
     timestamp: new Date().toISOString(),
-    fileName: 'Ω-OPTIMUM (Limit)',
+    fileName: 'OPTIMUM (Limit)',
     tier: 'premium',
     parameters: {
         carName: 'The Perfect Challenger',
@@ -190,11 +250,11 @@ export const THEORETICAL_OPTIMUM: AeroResult = {
         visibilityScore: 100,
         hasVirtualCargo: true
     },
-    // Vegapunk Defaults
+    // Standard Defaults
     domain: 'FLUID_DYNAMICS',
     environment: 'EARTH_STD',
     solverSettings: {
-        solverType: 'OMEGA-NEURAL',
+        solverType: 'RANS-WebGPU',
         solver: 'Coupled Implicit',
         precision: 'Double',
         spatialDiscretization: {
